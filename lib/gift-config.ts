@@ -9,7 +9,7 @@ export const gift = {
   favoriteColorName: '雾紫',
   favoriteColorConfirmed: false,
   tuningTarget: 68,
-  usdzUrl: '', // Put the actual model in public/models/bracelet.usdz, then use '/models/bracelet.usdz'.
+  usdzUrl: '', // Put the actual model in public/models/bracelet.usdz, then use 'models/bracelet.usdz' for GitHub Pages.
   finalMessage: '愿你始终拥有出发的勇气，也拥有安心停靠的地方。',
   deliveryWaitSeconds: 12,
 };

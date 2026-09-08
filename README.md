@@ -23,6 +23,6 @@ npm run dev
 
 ## 个性化与 USDZ
 
-礼物信息集中在 `lib/gift-config.ts`，包括生日、蓝宝石、喜欢的颜色、祝福文案和 USDZ 路径。将真实模型放入 `public/models/bracelet.usdz` 并把 `usdzUrl` 设置为 `/models/bracelet.usdz`，在 iPhone Safari 中即可预留 AR Quick Look 入口。
+礼物信息集中在 `lib/gift-config.ts`，包括生日、蓝宝石、喜欢的颜色、祝福文案和 USDZ 路径。将真实模型放入 `public/models/bracelet.usdz` 并把 `usdzUrl` 设置为 `models/bracelet.usdz`，在 iPhone Safari 中即可预留 AR Quick Look 入口。
 
 游戏进度保存在当前设备的 localStorage；“重新开始”只清除本设备上的进度。
