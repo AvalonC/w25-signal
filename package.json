@@ -8,6 +8,10 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "build:pages": "vite build --config vite.pages.config.ts && node scripts/check-pages.mjs",
+    "preview:pages": "vite preview --config vite.pages.config.ts --host 0.0.0.0",
+    "test": "node --experimental-strip-types --test tests/journey.test.ts",
+    "typecheck": "tsc --noEmit",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt"

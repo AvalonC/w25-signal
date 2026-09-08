@@ -28,15 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build static site
-        run: npm run build
+        run: npm run typecheck && npm test && npm run build:pages
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/client
+          path: dist/pages
 
   deploy:
     environment:
