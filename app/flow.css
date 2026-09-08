@@ -523,3 +523,7 @@
     display: none;
   }
 }
+/* Release the entry animation before fading the previous scene. */
+.free-flow.bridging .scene {
+  animation: none;
+}
