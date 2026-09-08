@@ -112,6 +112,15 @@ export function finish(s: Journey): Journey {
 export function symbolFromHold(ms: number) {
   return ms >= 1000 ? '-' : '.';
 }
+// Three touches form W; the rest of W25 follows without further interaction.
+export function constellationDelay(revealed: number) {
+  if (revealed < 3) return Infinity;
+  if (revealed >= 13) return 1600;
+  return MORSE_CODES.join('')[revealed] === '-' ? 1050 : 620;
+}
+export function blessingDuration(line: string) {
+  return Math.max(4000, Math.min(6500, line.length * 160 + 1300));
+}
 export function prefixOK(input: string, target: string) {
   return target.startsWith(input);
 }

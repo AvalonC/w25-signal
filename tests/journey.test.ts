@@ -10,12 +10,26 @@ import {
   morseTimeline,
   prefixOK,
   symbolFromHold,
+  constellationDelay,
+  blessingDuration,
 } from '../lib/journey.ts';
 
 test('three distinct wishes; unsupported values and duplicates rejected', () => {
   assert.ok(validChoices([0, 3, 7]));
   for (const v of [[0, 0, 1], [0, 1, 2, 3], [-1], [8], ['1'], null])
     assert.equal(validChoices(v), false);
+});
+test('only W needs touches, and remaining stars advance at dot/dash pace', () => {
+  assert.equal(constellationDelay(0), Infinity);
+  assert.equal(constellationDelay(2), Infinity);
+  assert.equal(constellationDelay(3), 620);
+  assert.equal(constellationDelay(5), 1050);
+  assert.equal(constellationDelay(13), 1600);
+});
+test('blessings have a bounded reading window before automatically continuing', () => {
+  assert.equal(blessingDuration('愿你快乐。'), 4000);
+  assert.equal(blessingDuration('光'.repeat(100)), 6500);
+  assert.ok(blessingDuration('愿你总能在平常的日子里，发现新的星光。') >= 4000);
 });
 test('seven chapters survive reload and a completed visit can replay the original wishes', () => {
   let s = restart(fresh(), false);

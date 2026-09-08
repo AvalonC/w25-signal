@@ -1,0 +1,525 @@
+/* A continuous sky: off-centre composition, orbiting words and passing prose. */
+.free-flow .scene {
+  max-width: 1240px;
+  padding: 3vh 5vw 50px;
+  min-height: calc(100svh - 100px);
+}
+.free-flow .scene-heading {
+  max-width: 540px;
+  margin: 0 0 0 5%;
+  text-align: left;
+}
+.free-flow .chapter-mark {
+  display: none;
+}
+.free-flow .scene-heading h1 {
+  font-size: clamp(23px, 3vw, 36px);
+  line-height: 1.8;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+.free-flow .scene-heading > p:last-child {
+  margin: 12px 0 0;
+  max-width: 360px;
+  color: #b2a8c1;
+  font-size: 14px;
+}
+.free-flow .sky-header {
+  max-width: none;
+  padding-inline: 5vw;
+  opacity: 0.8;
+}
+.free-flow .continue {
+  border: 0;
+  border-bottom: 1px solid #eab9d952;
+  border-radius: 0;
+  background: none;
+  padding: 10px 0;
+  gap: 35px;
+  box-shadow: none;
+  min-height: 48px;
+}
+.free-flow .scene > .continue {
+  margin: 22px 9% 0 auto;
+}
+.free-flow .continue:hover {
+  background: none;
+  box-shadow: none;
+}
+.free-flow .word-cloud {
+  position: relative;
+  display: block;
+  max-width: 960px;
+  width: 100%;
+  height: clamp(390px, 55svh, 540px);
+  margin: 5px auto 12px;
+}
+.free-flow .word-nebula {
+  position: absolute;
+  width: 190px;
+  transform: translate(-50%, -50%);
+  animation: word-orbit 10s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i)*-1.3s);
+}
+.free-flow .word-nebula:nth-child(1) {
+  left: 24%;
+  top: 15%;
+}
+.free-flow .word-nebula:nth-child(2) {
+  left: 69%;
+  top: 8%;
+}
+.free-flow .word-nebula:nth-child(3) {
+  left: 47%;
+  top: 33%;
+}
+.free-flow .word-nebula:nth-child(4) {
+  left: 12%;
+  top: 49%;
+}
+.free-flow .word-nebula:nth-child(5) {
+  left: 83%;
+  top: 43%;
+}
+.free-flow .word-nebula:nth-child(6) {
+  left: 34%;
+  top: 71%;
+}
+.free-flow .word-nebula:nth-child(7) {
+  left: 68%;
+  top: 82%;
+}
+.free-flow .word-nebula:nth-child(8) {
+  left: 14%;
+  top: 91%;
+}
+.free-flow .word-nebula:active {
+  animation-play-state: paused;
+}
+.free-flow .word-nebula small {
+  font-size: 12px;
+  opacity: 0.55;
+  letter-spacing: 0.2em;
+}
+.free-flow .word-nebula.chosen small {
+  opacity: 1;
+}
+.free-flow .word-nebula.chosen:after {
+  display: none;
+}
+.free-flow .scene-1 .choice-count {
+  justify-content: flex-end;
+  padding-right: 10%;
+  font-size: 12px;
+}
+.free-flow .scene-1 .live-message {
+  text-align: right;
+  margin-right: 10%;
+}
+.free-flow .scene-2 .scene-heading {
+  margin-left: 8%;
+  max-width: 440px;
+}
+.free-flow .prism-scene {
+  max-width: 900px;
+  width: 110%;
+  margin: -15px -5% -30px;
+}
+.free-flow .spectrum-value {
+  justify-content: flex-end;
+  margin: 0 12% 0 auto;
+}
+.free-flow .spectrum-slider {
+  margin: 22px 12% 30px auto;
+}
+.free-flow .scene-3 .scene-heading {
+  margin-left: 12%;
+  margin-top: 3vh;
+}
+.free-flow .living-constellation {
+  max-width: 1000px;
+  width: 100%;
+  height: clamp(340px, 57svh, 600px);
+  margin: 0 auto;
+}
+.free-flow .constellation-star:not(.found):not(.calling) {
+  opacity: 0.055 !important;
+}
+.free-flow .constellation-star.found {
+  opacity: 0.85 !important;
+}
+.constellation-whisper {
+  font:
+    14px/2 'Songti SC',
+    serif;
+  color: #a99bb4;
+  text-align: right;
+  margin-right: 9%;
+  min-height: 45px;
+}
+.free-flow .date-wheels {
+  max-width: 610px;
+  gap: 80px;
+  margin: 75px auto 35px;
+  align-items: flex-start;
+  position: relative;
+}
+.free-flow .dial-block:first-child {
+  transform: translateY(-25px);
+}
+.free-flow .dial-block:last-child {
+  transform: translateY(55px);
+}
+.free-flow .date-dot {
+  display: none;
+}
+.free-flow .date-whisper {
+  margin: 55px 6% 0 auto;
+  text-align: right;
+  max-width: 320px;
+}
+.free-flow .date-dial svg > circle:last-of-type {
+  stroke-opacity: 0.35;
+}
+.free-flow .gem-turn {
+  width: 310px;
+  height: 290px;
+  margin: 15px 17% 0 auto;
+  transform: rotate(-12deg);
+}
+.free-flow .gem-name {
+  text-align: left;
+  margin-left: 15%;
+}
+.free-flow .gem-blessing {
+  text-align: left;
+  margin: 20px auto 0 15%;
+  max-width: 420px;
+}
+.free-flow .gem-progress {
+  justify-content: flex-start;
+  margin-left: 15%;
+}
+.free-flow .scene-4 > .soft-button {
+  margin-left: 14%;
+}
+.free-flow .scene-5 .scene-heading {
+  margin-left: 2%;
+  max-width: 500px;
+}
+.free-flow .echo-intro {
+  margin: 35px 12% 25px auto;
+  text-align: left;
+}
+.free-flow .echo-intro > .four-star {
+  margin-left: 60%;
+}
+.free-flow .press-lesson {
+  justify-content: flex-start;
+  padding-left: 10%;
+}
+.free-flow .echo-pad {
+  margin: 30px 18% 20px auto;
+  width: 195px;
+  height: 195px;
+  border-color: #b1a0c31a;
+}
+.free-flow .letter-slots {
+  justify-content: flex-start;
+  margin: 30px 0 0 15%;
+}
+.free-flow .rhythm-draft {
+  margin-left: 8%;
+  text-align: left;
+}
+.free-flow .echo-actions {
+  justify-content: flex-start;
+  margin-left: 8%;
+}
+.free-flow .reveal-copy {
+  text-align: left;
+  margin: 45px 0 45px 15%;
+}
+.free-flow .wire-wrap {
+  max-width: 1100px;
+  margin-top: 35px;
+}
+.free-flow .model-whisper {
+  text-align: left;
+  margin: 18px 0 10px 10%;
+}
+.free-flow .ar-option {
+  display: flex;
+  width: max-content;
+  margin-left: 10%;
+}
+.free-flow .scene-6 .scene-heading {
+  margin-left: 4%;
+  max-width: 650px;
+}
+.free-flow .scene-7 {
+  padding: 0;
+}
+.free-flow .scene {
+  transition:
+    opacity 1s,
+    filter 1s;
+  animation: sky-arrival 1.7s ease both;
+}
+.free-flow.bridging .scene {
+  opacity: 0;
+  filter: blur(7px);
+  pointer-events: none;
+}
+.free-flow.bridging .sky-header {
+  opacity: 0;
+  transition: opacity 1s;
+}
+.blessing-current {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10vw;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 55%, #1a112222, transparent 60%);
+}
+.blessing-current p {
+  font:
+    clamp(23px, 3.5vw, 38px)/2.2 'Songti SC',
+    Georgia,
+    serif;
+  max-width: 750px;
+  letter-spacing: 0.16em;
+  color: #eed3e8;
+  white-space: normal;
+  animation: passing-prose var(--phrase-time) ease both;
+  text-wrap: balance;
+  text-align: center;
+  text-shadow: 0 0 28px #f1badc22;
+}
+.passing-star {
+  position: absolute;
+  left: 18%;
+  top: 66%;
+  color: #eebdda;
+  font-size: 21px;
+  animation: passing-light 6s ease infinite;
+}
+@keyframes word-orbit {
+  from {
+    transform: translate(-50%, -50%) translate(0, -5px);
+  }
+  to {
+    transform: translate(-50%, -50%) translate(9px, 8px);
+  }
+}
+@keyframes sky-arrival {
+  from {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+@keyframes passing-prose {
+  0% {
+    opacity: 0;
+    filter: blur(9px);
+    transform: translateY(15px);
+  }
+  22%,
+  72% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(-12px);
+  }
+}
+@keyframes passing-light {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0;
+    transform: translate(25vw, -20vh);
+  }
+}
+@media (max-width: 600px) {
+  .free-flow .scene {
+    padding: 2vh 6vw 40px;
+  }
+  .free-flow .scene-heading,
+  .free-flow .scene-2 .scene-heading,
+  .free-flow .scene-3 .scene-heading {
+    margin-left: 2%;
+    max-width: 88%;
+  }
+  .free-flow .scene-heading h1 {
+    font-size: 23px;
+  }
+  .free-flow .scene-heading > p:last-child {
+    font-size: 14px;
+    max-width: 275px;
+    line-height: 2;
+  }
+  .free-flow .word-cloud {
+    height: 410px;
+    margin: 25px auto 8px;
+  }
+  .free-flow .word-nebula {
+    width: 138px;
+  }
+  .free-flow .word-nebula:nth-child(1) {
+    left: 23%;
+    top: 8%;
+  }
+  .free-flow .word-nebula:nth-child(2) {
+    left: 74%;
+    top: 19%;
+  }
+  .free-flow .word-nebula:nth-child(3) {
+    left: 38%;
+    top: 34%;
+  }
+  .free-flow .word-nebula:nth-child(4) {
+    left: 13%;
+    top: 54%;
+  }
+  .free-flow .word-nebula:nth-child(5) {
+    left: 78%;
+    top: 46%;
+  }
+  .free-flow .word-nebula:nth-child(6) {
+    left: 44%;
+    top: 69%;
+  }
+  .free-flow .word-nebula:nth-child(7) {
+    left: 80%;
+    top: 87%;
+  }
+  .free-flow .word-nebula:nth-child(8) {
+    left: 17%;
+    top: 91%;
+  }
+  .free-flow .word-nebula canvas {
+    min-height: 0;
+  }
+  .free-flow .scene-1 .choice-count {
+    padding-right: 0;
+  }
+  .free-flow .scene > .continue {
+    margin-right: 2%;
+  }
+  .free-flow .prism-scene {
+    width: 126%;
+    margin: 35px -13% 15px;
+  }
+  .free-flow .spectrum-slider {
+    max-width: 200px;
+    margin-right: 4%;
+  }
+  .free-flow .spectrum-value {
+    margin-right: 4%;
+  }
+  .free-flow .date-wheels {
+    gap: 20px;
+    margin: 70px 0 60px;
+  }
+  .free-flow .dial-block {
+    max-width: 160px;
+  }
+  .free-flow .dial-block:last-child {
+    transform: translateY(65px);
+  }
+  .free-flow .date-whisper {
+    max-width: 265px;
+    margin-top: 75px;
+  }
+  .free-flow .gem-turn {
+    width: 245px;
+    height: 240px;
+    margin: 20px -2% 0 auto;
+  }
+  .free-flow .gem-name,
+  .free-flow .gem-blessing,
+  .free-flow .gem-progress {
+    margin-left: 3%;
+  }
+  .free-flow .gem-blessing {
+    font-size: 15px;
+  }
+  .free-flow .scene-4 > .soft-button {
+    margin-left: 0;
+  }
+  .free-flow .echo-intro {
+    margin: 25px 0 0 8%;
+    max-width: 300px;
+  }
+  .free-flow .echo-pad {
+    margin: 25px 4% 15px auto;
+    width: 175px;
+    height: 175px;
+  }
+  .free-flow .letter-slots {
+    margin-left: 6%;
+  }
+  .free-flow .scene-6 .scene-heading {
+    max-width: 94%;
+  }
+  .free-flow .wire-wrap {
+    margin-top: 10px;
+  }
+  .free-flow .wire-touch {
+    height: 420px;
+  }
+  .free-flow .model-whisper,
+  .free-flow .ar-option {
+    margin-left: 0;
+    font-size: 13px;
+  }
+  .free-flow .scene-7 {
+    padding: 0;
+  }
+  .blessing-current {
+    padding: 8vw;
+  }
+  .blessing-current p {
+    font-size: 23px;
+    line-height: 2.4;
+    max-width: 330px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .free-flow .word-nebula {
+    animation: none;
+  }
+  .free-flow .scene,
+  .free-flow.bridging .scene {
+    filter: none;
+  }
+  .blessing-current p {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+  .passing-star {
+    display: none;
+  }
+}

@@ -38,6 +38,8 @@ import {
   prefixOK,
   morseTimeline,
   type Journey,
+  constellationDelay,
+  blessingDuration,
 } from '@/lib/journey';
 import { switchTap, tone, feedback, silence } from '@/lib/feedback';
 const POS = [
@@ -68,7 +70,7 @@ const NOTES = [
   '',
   '拖动一团星光，让它聚成一个词。选三个就好。',
   '慢慢转动棱镜，找到那一束属于你的粉色。',
-  '跟随闪光，轻触下一颗星。长光会留下轨迹。',
+  '只需唤醒最初三颗星，余下的光会自己前行。',
   '拨动两枚星盘，让日期停在 10 月 9 日。',
   '看星星说话，再用你的指尖回答。',
   '这些短与长，都是你刚刚读懂的语言。',
@@ -77,7 +79,7 @@ const HINTS = [
   '',
   '按住词的星光并拖动，让它聚拢。选满三个继续。键盘可用 Enter 聚拢并选择。',
   '将棱镜转到 68° 附近，粉色对齐后轻触“留下这束光”。',
-  '跟随唯一明亮的星点。点是短光，划是长光。',
+  '跟随闪光触碰前三颗星，组成 W。后面的 2 和 5 会自动接续，随后进入下一幕。',
   '拖动两个星盘到 10 月 9 日，也可以点击加减。得到宝石后，拖动它发现三道光。',
   '短按是点；按住 1 秒以上是划。看完一组再回应。按错可撤回，或展开“换一种方式回应”。',
   '点击四角星中央那颗粉色宝石，完成这封信。',
@@ -351,13 +353,54 @@ export default function JourneyGame() {
   }, []);
   useEffect(() => {
     if (!bridge) return;
-    setBridgeIndex(0);
-    const id = setInterval(() => {
-      if (!document.hidden)
-        setBridgeIndex((i) => Math.min(i + 1, bridge.lines.length - 1));
-    }, 4500);
-    return () => clearInterval(id);
+    let frame = 0,
+      elapsed = 0,
+      previous = performance.now();
+    const durations = bridge.lines.map(blessingDuration);
+    const total = durations.reduce((a, b) => a + b, 0);
+    const tick = (now: number) => {
+      if (!document.hidden) elapsed += Math.min(now - previous, 80);
+      previous = now;
+      let at = 0,
+        index = 0;
+      while (index < durations.length - 1 && elapsed >= at + durations[index])
+        at += durations[index++];
+      setBridgeIndex(index);
+      if (elapsed >= total) {
+        setS((p) => ({ ...p, stage: bridge.next }));
+        setBridge(null);
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [bridge]);
+  useEffect(() => {
+    if (boot || help || bridge || s.stage !== 3 || s.stars < 3) return;
+    let frame = 0,
+      elapsed = 0,
+      previous = performance.now();
+    const delay = constellationDelay(s.stars);
+    const tick = (now: number) => {
+      if (!document.hidden) elapsed += Math.min(now - previous, 80);
+      previous = now;
+      if (elapsed >= delay) {
+        if (s.stars < 13) setS((p) => ({ ...p, stars: p.stars + 1 }));
+        else {
+          setBridgeIndex(0);
+          setBridge({
+            lines: ['你只点亮了开头，星光便替你走向更远的地方。'],
+            next: 4,
+          });
+        }
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [s.stage, s.stars, boot, help, bridge]);
   useEffect(() => {
     if (s.stage !== 5 || !playing) return;
     const t = morseTimeline(MORSE_CODES[Math.min(s.decoded, 2)], 333);
@@ -433,12 +476,8 @@ export default function JourneyGame() {
   const go = (lines: string[], next: number) => {
     cancelHold();
     setPlaying(false);
+    setBridgeIndex(0);
     setBridge({ lines, next });
-  };
-  const cross = () => {
-    if (!bridge) return;
-    patch({ stage: bridge.next });
-    setBridge(null);
   };
   const start = (replay = false) => {
     setS((p) => restart(p, replay));
@@ -547,7 +586,11 @@ export default function JourneyGame() {
           : '';
   return (
     <div
-      className={'cosmos ' + (boot ? 'booting' : '')}
+      className={
+        'cosmos free-flow ' +
+        (boot ? 'booting ' : '') +
+        (bridge ? 'bridging' : '')
+      }
       style={{ '--pink': PINK } as CSSProperties}
     >
       <Starfield
@@ -585,7 +628,7 @@ export default function JourneyGame() {
         </main>
       ) : (
         <>
-          <header className="sky-header">
+          <header className="sky-header" inert={!!bridge}>
             <span className="sky-brand">
               ✧ <span>星 间 来 信</span>
             </span>
@@ -638,7 +681,11 @@ export default function JourneyGame() {
               </span>
             </button>
           ) : (
-            <main className={'scene scene-' + s.stage}>
+            <main
+              key={s.stage}
+              inert={!!bridge}
+              className={'scene scene-' + s.stage}
+            >
               {s.stage < 7 && (
                 <div className="scene-heading">
                   <p className="chapter-mark">
@@ -888,7 +935,7 @@ export default function JourneyGame() {
                             (i < s.stars ? 'found ' : '') +
                             (dash ? 'long' : 'short')
                           }
-                          disabled={i !== s.stars}
+                          disabled={i !== s.stars || i >= 3 || !!bridge}
                           aria-label={'跟随第 ' + (i + 1) + ' 颗星'}
                           onClick={() => {
                             tap();
@@ -901,21 +948,13 @@ export default function JourneyGame() {
                       );
                     })}
                   </div>
-                  <p className="choice-count">
-                    {s.stars} / 13{' '}
-                    <span>
-                      {s.stars === 13
-                        ? '一瞬成为点，停留成为线。'
-                        : '不用着急，下一颗星会等你。'}
-                    </span>
+                  <p className="constellation-whisper" role="status">
+                    {s.stars < 3
+                      ? '轻触最明亮的星。'
+                      : s.stars < 13
+                        ? '你已点亮开头，余下的星光正在回应。'
+                        : '一瞬成为点，停留成为线。'}
                   </p>
-                  <button
-                    className="continue"
-                    disabled={s.stars !== 13}
-                    onClick={() => go(['愿短暂的相遇，也留下长久的光。'], 4)}
-                  >
-                    把星光收好 <ArrowRight size={16} />
-                  </button>
                 </>
               )}
               {s.stage === 4 && (
@@ -1287,41 +1326,22 @@ export default function JourneyGame() {
             </main>
           )}
           {bridge && (
-            <Dialog open>
-              <DialogContent
-                className="blessing-bridge"
-                showCloseButton={false}
+            <div className="blessing-current" role="status" aria-live="polite">
+              <p
+                key={bridgeIndex}
+                style={
+                  {
+                    '--phrase-time':
+                      blessingDuration(bridge.lines[bridgeIndex]) + 'ms',
+                  } as CSSProperties
+                }
               >
-                <DialogTitle className="sr-only">星光的祝福</DialogTitle>
-                <span aria-hidden="true">✧</span>
-                <DialogDescription key={bridgeIndex}>
-                  {bridge.lines[bridgeIndex]}
-                </DialogDescription>
-                <div className="bridge-dots">
-                  {bridge.lines.map((_, i) => (
-                    <button
-                      key={i}
-                      aria-label={'第 ' + (i + 1) + ' 句祝福'}
-                      className={i === bridgeIndex ? 'active' : ''}
-                      onClick={() => setBridgeIndex(i)}
-                    />
-                  ))}
-                </div>
-                <button
-                  className="continue"
-                  onClick={() =>
-                    bridgeIndex < bridge.lines.length - 1
-                      ? setBridgeIndex((i) => i + 1)
-                      : cross()
-                  }
-                >
-                  {bridgeIndex < bridge.lines.length - 1
-                    ? '再听一句'
-                    : '让光继续'}{' '}
-                  <ArrowRight size={16} />
-                </button>
-              </DialogContent>
-            </Dialog>
+                {bridge.lines[bridgeIndex]}
+              </p>
+              <span className="passing-star" aria-hidden="true">
+                ✧
+              </span>
+            </div>
           )}
           {!saveOK && (
             <p className="storage-note" role="status">
