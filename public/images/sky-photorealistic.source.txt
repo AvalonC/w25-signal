@@ -1,0 +1,6 @@
+Created with the Codex imagegen tool on 2026-09-09 for the W25 Signal mobile web app.
+
+Prompt:
+Create a photorealistic deep night-sky background texture for an intimate mobile stargazing game. Portrait 2:3 orientation, edge-to-edge sky only, no horizon, mountains, buildings or foreground objects. Astronomical long-exposure photography look, thousands of tiny sharp stars with physically plausible varied apparent brightness, mostly faint stars with a very small number of bright white and pale blue stars and occasional warm white stars. A very subtle diagonal Milky Way band, natural irregular dark dust lanes, extremely restrained muted gray blue with a trace of dusty rose, dark navy near black overall. Rich depth and fine grain but no huge glowing nebula, no artificial bokeh dots, no starburst icons, no planets, no moon, no text or lettering, no constellation lines. Keep the middle relatively dark and spacious so translucent interface text remains readable; realistic quiet sky rather than a fantasy space illustration. This is a reusable website background, not a UI mockup.
+
+The image is used as a responsive backdrop under the app's dynamic canvas stars; it is an artistic game texture, not a claim of an accurate astronomical survey.

@@ -118,6 +118,9 @@ export function constellationDelay(revealed: number) {
   if (revealed >= 13) return 1600;
   return MORSE_CODES.join('')[revealed] === '-' ? 1050 : 620;
 }
+export function endingPhase(elapsed: number): 'project' | 'hbd' {
+  return elapsed < 6400 ? 'project' : 'hbd';
+}
 export function blessingDuration(line: string) {
   return Math.max(4000, Math.min(6500, line.length * 160 + 1300));
 }

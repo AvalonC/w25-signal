@@ -1,14 +1,14 @@
 'use client';
 // Canvas and SVG are the image surfaces; replacing them with img would remove the interaction.
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 type Obj = {
   name: string;
   pink: boolean;
   vertices: number[][];
   edges: number[][];
 };
-export function WireBracelet({
+function LegacyWireBracelet({
   onGem,
   onScatter,
 }: {
@@ -246,6 +246,109 @@ export function WireBracelet({
     </div>
   );
 }
+export function WireBracelet({
+  onGem,
+  onScatter,
+}: {
+  onGem: () => void;
+  onScatter: () => void;
+}) {
+  const [viewerReady, setViewerReady] = useState<boolean>(
+    () =>
+      typeof customElements !== 'undefined' &&
+      Boolean(customElements.get('model-viewer')),
+  );
+  const [failed, setFailed] = useState(false);
+  const [departing, setDeparting] = useState(false);
+  const finishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (customElements.get('model-viewer')) {
+      setViewerReady(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src =
+      'https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js';
+    script.onload = () => setViewerReady(true);
+    script.onerror = () => setFailed(true);
+    document.head.appendChild(script);
+    return () => {
+      if (finishTimer.current) clearTimeout(finishTimer.current);
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      if (finishTimer.current) clearTimeout(finishTimer.current);
+    },
+    [],
+  );
+  const depart = () => {
+    if (departing) return;
+    setDeparting(true);
+    onScatter();
+    finishTimer.current = setTimeout(onGem, 1450);
+  };
+  const viewer = React.createElement(
+    'model-viewer',
+    {
+      src: 'models/bracelet-ring.glb',
+      poster: 'model-ring-preview.png',
+      alt: '完整几何的环形 W25 星光手链模型',
+      'camera-controls': true,
+      'touch-action': 'pan-y',
+      'auto-rotate': true,
+      'rotation-per-second': '10deg',
+      'interaction-prompt': 'none',
+      exposure: '1.1',
+      'shadow-intensity': '0.8',
+      ar: true,
+      'ar-modes': 'scene-viewer quick-look webxr',
+      'ios-src': 'models/bracelet-ring.usdz',
+      style: { width: '100%', height: '100%', background: 'transparent' },
+      onError: () => setFailed(true),
+    },
+    React.createElement(
+      'button',
+      {
+        className: 'gem-hotspot ring-gem-hotspot',
+        slot: 'hotspot-gem',
+        'data-position': '0 28 2',
+        'data-normal': '0 1 0',
+        'aria-label': '触碰环形手链上的粉色蓝宝石',
+        onClick: depart,
+      },
+      React.createElement('span', null, '✦'),
+    ),
+  );
+  return (
+    <div className={'wire-wrap ring-model-wrap ' + (departing ? 'departing' : '')}>
+      <div className="wire-touch ring-viewer">
+        {viewerReady ? (
+          viewer
+        ) : (
+          <img
+            className="ring-poster"
+            src="model-ring-preview.png"
+            alt="正在加载完整的环形手链模型"
+            onError={() => setFailed(true)}
+          />
+        )}
+        {!viewerReady && !failed && <p className="model-message">星光正在装配完整模型…</p>}
+        {failed && (
+          <p className="model-message">
+            模型正在从星海中接通，请稍后再试。
+          </p>
+        )}
+      </div>
+      <div className="wire-controls">
+        <span>拖动查看 · 轻触粉色蓝宝石</span>
+      </div>
+    </div>
+  );
+}
+
 export function Sapphire({ rotation = 0 }: { rotation?: number }) {
   const points = Array.from({ length: 8 }, (_, i) => {
     const a = (i * Math.PI) / 4 + rotation * 0.012;

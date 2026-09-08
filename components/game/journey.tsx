@@ -40,8 +40,9 @@ import {
   type Journey,
   constellationDelay,
   blessingDuration,
+  endingPhase,
 } from '@/lib/journey';
-import { switchTap, tone, feedback, silence } from '@/lib/feedback';
+import { switchTap, tone, feedback, silence, playBirthday } from '@/lib/feedback';
 const POS = [
   [19, 18],
   [47, 10],
@@ -57,6 +58,21 @@ const POS = [
   [70, 82],
   [87, 76],
 ];
+const TRAJECTORIES = [
+  [34, -13, 34],
+  [-28, 12, 31],
+  [22, -21, 30],
+  [-18, 19, 28],
+  [31, 8, 35],
+  [-25, -14, 33],
+  [17, 23, 29],
+  [-33, 6, 36],
+  [25, -8, 31],
+  [-20, -22, 34],
+  [29, 16, 37],
+  [-27, 18, 30],
+  [18, -17, 32],
+];
 const HEADINGS = [
   '',
   '把想要的未来，聚拢。',
@@ -71,16 +87,16 @@ const NOTES = [
   '拖动一团星光，让它聚成一个词。选三个就好。',
   '慢慢转动棱镜，找到那一束属于你的粉色。',
   '只需唤醒最初三颗星，余下的光会自己前行。',
-  '拨动两枚星盘，让日期停在 10 月 9 日。',
+  '拨动两枚星盘，让日期停在 10 月 8 日。',
   '看星星说话，再用你的指尖回答。',
   '这些短与长，都是你刚刚读懂的语言。',
 ];
 const HINTS = [
   '',
   '按住词的星光并拖动，让它聚拢。选满三个继续。键盘可用 Enter 聚拢并选择。',
-  '将棱镜转到 68° 附近，粉色对齐后轻触“留下这束光”。',
+  '慢慢转动，让分开的光重新相遇。',
   '跟随闪光触碰前三颗星，组成 W。后面的 2 和 5 会自动接续，随后进入下一幕。',
-  '拖动两个星盘到 10 月 9 日，也可以点击加减。得到宝石后，拖动它发现三道光。',
+  '拖动两个星盘到 10 月 8 日，也可以点击加减。得到宝石后，拖动它发现三道光。',
   '短按是点；按住 1 秒以上是划。看完一组再回应。按错可撤回，或展开“换一种方式回应”。',
   '点击四角星中央那颗粉色宝石，完成这封信。',
   '按住 HBD, Leah 至少 3 秒，星光会带你回到起点。',
@@ -96,15 +112,52 @@ function Star({ on = false }: { on?: boolean }) {
     </svg>
   );
 }
+const ZODIAC = ['♑', '♒', '♓', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐'];
+const ROMAN = [
+  '',
+  'I',
+  'II',
+  'III',
+  'IV',
+  'V',
+  'VI',
+  'VII',
+  'VIII',
+  'IX',
+  'X',
+  'XI',
+  'XII',
+  'XIII',
+  'XIV',
+  'XV',
+  'XVI',
+  'XVII',
+  'XVIII',
+  'XIX',
+  'XX',
+  'XXI',
+  'XXII',
+  'XXIII',
+  'XXIV',
+  'XXV',
+  'XXVI',
+  'XXVII',
+  'XXVIII',
+  'XXIX',
+  'XXX',
+  'XXXI',
+];
 function Dial({
   label,
   value,
   max,
+  kind,
   onChange,
 }: {
   label: string;
   value: number;
   max: number;
+  kind: 'month' | 'day';
   onChange: (n: number) => void;
 }) {
   const drag = useRef<{ a: number; v: number } | null>(null);
@@ -165,34 +218,46 @@ function Dial({
           }
         }}
       >
-        <svg viewBox="0 0 180 180" aria-hidden="true">
-          <circle cx="90" cy="90" r="78" />
-          <circle cx="90" cy="90" r="65" />
+        <svg viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="106" />
+          <circle cx="120" cy="120" r="90" />
           <g
             style={{
               transform: 'rotate(' + (-value * 360) / max + 'deg)',
-              transformOrigin: '90px 90px',
+              transformOrigin: '120px 120px',
             }}
           >
             {Array.from({ length: max }, (_, i) => {
               const a = ((i + 1) * Math.PI * 2) / max - Math.PI / 2;
               return (
-                <line
-                  key={i}
-                  x1={90 + 69 * Math.cos(a)}
-                  y1={90 + 69 * Math.sin(a)}
-                  x2={90 + 76 * Math.cos(a)}
-                  y2={90 + 76 * Math.sin(a)}
-                  className={i + 1 === value ? 'dial-active' : ''}
-                />
+                <g key={i}>
+                  <line
+                    x1={120 + 94 * Math.cos(a)}
+                    y1={120 + 94 * Math.sin(a)}
+                    x2={120 + 104 * Math.cos(a)}
+                    y2={120 + 104 * Math.sin(a)}
+                    className={i + 1 === value ? 'dial-active' : ''}
+                  />
+                  <text
+                    x={120 + 80 * Math.cos(a)}
+                    y={120 + 80 * Math.sin(a)}
+                    className={i + 1 === value ? 'dial-label-active' : 'dial-label'}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                  >
+                    {kind === 'month' ? ZODIAC[i] : ROMAN[i + 1]}
+                  </text>
+                </g>
               );
             })}
           </g>
-          <path className="dial-pointer" d="M87 2 93 2 90 13Z" />
+          <path className="dial-pointer" d="M117 3 123 3 120 15Z" />
         </svg>
         <div>
-          <strong>{String(value).padStart(2, '0')}</strong>
-          <small>{label}</small>
+          <strong>{kind === 'day' ? ROMAN[value] : String(value).padStart(2, '0')}</strong>
+          <small>
+            {label} {kind === 'month' ? ZODIAC[value - 1] : String(value).padStart(2, '0')}
+          </small>
         </div>
       </div>
       <div className="dial-arrows">
@@ -224,14 +289,15 @@ export default function JourneyGame() {
   const [pulse, setPulse] = useState(false),
     [loaderProgress, setLoaderProgress] = useState(0),
     [words, setWords] = useState<number[]>(Array(8).fill(0)),
-    [prism, setPrism] = useState(16);
+    [prism, setPrism] = useState(16),
+    [prismScattering, setPrismScattering] = useState(false);
   const [draft, setDraft] = useState(''),
     [message, setMessage] = useState(''),
     [echoIntro, setEchoIntro] = useState(true),
     [playing, setPlaying] = useState(false),
     [sequence, setSequence] = useState(0),
     [hold, setHold] = useState(0);
-  const [ending, setEnding] = useState('scatter'),
+  const [ending, setEnding] = useState('project'),
     [charge, setCharge] = useState(0),
     [returning, setReturning] = useState(false),
     [bridge, setBridge] = useState<{ lines: string[]; next: number } | null>(
@@ -443,31 +509,24 @@ export default function JourneyGame() {
     const tick = (now: number) => {
       if (!document.hidden) t += Math.min(now - last, 80);
       last = now;
-      setEnding(
-        t < 1600
-          ? 'scatter'
-          : t < 5200
-            ? 'project'
-            : t < 6700
-              ? 'scatter2'
-              : 'hbd',
-      );
+      setEnding(endingPhase(t));
       const n = timeline.frames.findIndex((f) => t >= f.start && t < f.end);
       setPulse(n >= 0);
       if (n >= 0 && n !== lastPulse) {
         feedback(
           timeline.frames[n].end - timeline.frames[n].start,
-          soundRef.current,
+          false,
         );
         lastPulse = n;
       }
-      if (t < 7300) frame = requestAnimationFrame(tick);
+      if (t < 9000) frame = requestAnimationFrame(tick);
       else {
         setPulse(false);
         silence();
       }
     };
     frame = requestAnimationFrame(tick);
+    if (soundRef.current) playBirthday();
     return () => {
       cancelAnimationFrame(frame);
       silence();
@@ -504,6 +563,28 @@ export default function JourneyGame() {
     color = aligned
       ? PINK
       : 'hsl(' + Math.round(180 + prism * 1.85) + ' 82% 77%)';
+  useEffect(() => {
+    if (s.stage !== 2) {
+      setPrismScattering(false);
+      return;
+    }
+    if (!aligned) {
+      setPrismScattering(false);
+      return;
+    }
+    setPrismScattering(true);
+    const timer = window.setTimeout(() => {
+      patch({ color: true });
+      go(
+        [
+          '原来，你喜欢的颜色，也能被星光记住。',
+          '愿这抹粉色，温柔地落在你每一个日常。',
+        ],
+        3,
+      );
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [s.stage, aligned]);
   const adjustPrism = (n: number) => {
     const value = Math.max(0, Math.min(100, n));
     if (Math.abs(value - 68) <= 2 && !aligned) tap();
@@ -512,7 +593,7 @@ export default function JourneyGame() {
   const stoneQuotes = [
       '愿你像蓝宝石一样，温柔，也坚韧。',
       '愿属于你的粉色，照亮平凡的每一天。',
-      '愿 10 月 9 日的星光，年年都为你而亮。',
+      '愿 10 月 8 日的星光，年年都为你而亮。',
     ],
     stoneSteps = Math.min(3, 1 + Math.floor(s.rotation / 50));
   function inputSymbol(ms: number) {
@@ -555,7 +636,7 @@ export default function JourneyGame() {
       () => {
         patch({ stage: 0 });
         setReturning(false);
-        setEnding('scatter');
+        setEnding('project');
       },
       reduced ? 200 : 1500,
     );
@@ -596,9 +677,7 @@ export default function JourneyGame() {
       <Starfield
         text={boot ? '' : text}
         burst={
-          modelBurst ||
-          returning ||
-          (s.stage === 7 && ['scatter', 'scatter2'].includes(ending))
+          modelBurst || returning
         }
         charge={charge}
       />
@@ -789,7 +868,11 @@ export default function JourneyGame() {
               {s.stage === 2 && (
                 <>
                   <div
-                    className={'prism-scene ' + (aligned ? 'aligned' : '')}
+                    className={
+                      'prism-scene ' +
+                      (aligned ? 'aligned ' : '') +
+                      (prismScattering ? 'scattering' : '')
+                    }
                     style={
                       {
                         '--spectrum': color,
@@ -840,6 +923,7 @@ export default function JourneyGame() {
                       {[0, 1, 2, 3, 4, 5].map((n) => (
                         <path
                           key={n}
+                          className="spectrum-ray"
                           d={
                             'M320 180 L600 ' +
                             (110 + n * 28 + (prism - 68) * 1.5)
@@ -860,6 +944,7 @@ export default function JourneyGame() {
                         />
                       ))}
                       <path
+                        className="spectrum-glow"
                         d="M320 180 600 138 600 235Z"
                         fill="url(#pinkBeam)"
                       />
@@ -881,8 +966,7 @@ export default function JourneyGame() {
                   </div>
                   <p className="spectrum-value">
                     <i style={{ background: color }} />
-                    {aligned ? '#ffb3de' : '寻找那一束粉色'}
-                    <small>{prism.toFixed(0)}°</small>
+                    {prismScattering ? '光正在散开' : '转动，让分开的光重新相遇'}
                   </p>
                   <div className="spectrum-slider">
                     <Slider
@@ -895,23 +979,6 @@ export default function JourneyGame() {
                       }
                     />
                   </div>
-                  <button
-                    className="continue"
-                    disabled={!aligned}
-                    onClick={() => {
-                      tap();
-                      patch({ color: true });
-                      go(
-                        [
-                          '原来，你喜欢的颜色，也能被星光记住。',
-                          '愿这抹粉色，温柔地落在你每一个日常。',
-                        ],
-                        3,
-                      );
-                    }}
-                  >
-                    留下这束光 <ArrowRight size={16} />
-                  </button>
                 </>
               )}
               {s.stage === 3 && (
@@ -927,6 +994,18 @@ export default function JourneyGame() {
                               left: x + '%',
                               top: y + '%',
                               '--star-delay': (i % 4) * 0.14 + 's',
+                              '--drift-x': TRAJECTORIES[i][0] + 'px',
+                              '--drift-y': TRAJECTORIES[i][1] + 'px',
+                              '--trail-angle':
+                                Math.round(
+                                  (Math.atan2(
+                                    TRAJECTORIES[i][1],
+                                    TRAJECTORIES[i][0],
+                                  ) *
+                                    180) /
+                                    Math.PI,
+                                ) + 'deg',
+                              '--trail-length': TRAJECTORIES[i][2] + 'px',
                             } as CSSProperties
                           }
                           className={
@@ -966,6 +1045,7 @@ export default function JourneyGame() {
                           label="月"
                           value={s.month}
                           max={12}
+                          kind="month"
                           onChange={(n) => {
                             patch({ month: n });
                             tap();
@@ -976,6 +1056,7 @@ export default function JourneyGame() {
                           label="日"
                           value={s.day}
                           max={31}
+                          kind="day"
                           onChange={(n) => {
                             patch({ day: n });
                             tap();
@@ -983,13 +1064,13 @@ export default function JourneyGame() {
                         />
                       </div>
                       <p className="date-whisper">
-                        {s.month === 10 && s.day === 9
-                          ? '10 月 9 日。就是这一天，世界多了一个你。'
+                        {s.month === 10 && s.day === 8
+                          ? '10 月 8 日。就是这一天，世界多了一个你。'
                           : '时间转过四季，停在你到来的那天。'}
                       </p>
                       <button
                         className="continue"
-                        disabled={s.month !== 10 || s.day !== 9}
+                        disabled={s.month !== 10 || s.day !== 8}
                         onClick={() => {
                           tap();
                           patch({ stone: true });
@@ -1256,14 +1337,15 @@ export default function JourneyGame() {
                     }}
                     onGem={() => {
                       cancelHold();
-                      setEnding('scatter');
+                      setModelBurst(false);
+                      setEnding('project');
                       setS((p) => finish(p));
                     }}
                   />
                   <p className="model-whisper">
-                    在那颗粉色蓝宝石上，留下你的指尖。
+                    让光绕成一个圆，再留下你的指尖。
                   </p>
-                  <a className="ar-option" rel="ar" href="models/bracelet.usdz">
+                  <a className="ar-option" rel="ar" href="models/bracelet-ring.usdz">
                     <img src="model-poster.svg" alt="在身边查看真实手链模型" />
                     <span>也可以，让它来到现实中 ↗</span>
                   </a>

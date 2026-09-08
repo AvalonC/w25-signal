@@ -1,7 +1,7 @@
 /** Personalization lives here. The stone is the gift's chosen stone, not a month lookup. */
 export const gift = {
   recipient: 'Leah',
-  birthday: '10 月 9 日',
+  birthday: '10 月 8 日',
   birthstone: '粉色蓝宝石',
   stoneEnglish: 'PINK SAPPHIRE',
   stoneColor: '#ffb3de',

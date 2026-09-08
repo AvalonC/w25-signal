@@ -64,6 +64,7 @@ export function Starfield({
       y: rand(i + 2000) * innerHeight,
       seed: rand(i + 100),
       r: 0.5 + rand(i + 900) * 1.2,
+      tone: rand(i + 4100),
     }));
     const resize = () => {
       w = c.clientWidth;
@@ -94,7 +95,7 @@ export function Starfield({
       stars.forEach((s, i) => {
         const t =
           targets.length && i < 850
-            ? targets[i % targets.length]
+            ? targets[Math.min(targets.length - 1, Math.floor((i / 850) * targets.length))]
             : { x: rand(i) * w, y: rand(i + 2000) * h };
         const goal = p.burst
           ? { x: rand(i + 777) * w, y: rand(i + 999) * h }
@@ -104,10 +105,16 @@ export function Starfield({
         s.y += (goal.y - s.y) * ease;
         const inText = !!targets.length && i < 850 && !p.burst;
         g.globalAlpha = inText
-          ? 0.6 + 0.35 * Math.sin(time * 0.001 + s.seed * 8) ** 2
-          : 0.12 + 0.5 * Math.sin(time * 0.0003 + s.seed * 8) ** 2;
+          ? 0.62 + 0.3 * Math.sin(time * 0.001 + s.seed * 8) ** 2
+          : 0.12 + (0.28 + s.tone * 0.2) * Math.sin(time * 0.0003 + s.seed * 8) ** 2;
         if (!inText && i > 230 && !p.burst) return;
-        g.fillStyle = inText ? '#ffe2f2' : '#b5cbe5';
+        g.fillStyle = inText
+          ? '#ffe2f2'
+          : s.tone < 0.16
+            ? '#d8e7ff'
+            : s.tone > 0.91
+              ? '#ffe5d2'
+              : '#b8c9df';
         g.beginPath();
         g.arc(
           s.x,

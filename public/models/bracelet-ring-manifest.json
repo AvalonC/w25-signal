@@ -1,0 +1,9 @@
+{
+  "source": "silver_pink_bracelet_v3.blend",
+  "objects": 288,
+  "evaluatedVertices": 141478,
+  "evaluatedPolygons": 144520,
+  "ringRadiusMm": 28.05640751697658,
+  "decimated": false,
+  "export": "bracelet-ring.glb"
+}

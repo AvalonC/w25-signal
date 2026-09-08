@@ -92,8 +92,10 @@ h2 {
   min-height: 100svh;
   overflow-x: clip;
   background:
+    linear-gradient(180deg, #02040a66 0%, #05081322 42%, #02040acc 100%),
     radial-gradient(ellipse at 50% 40%, #29203c20, transparent 55%),
-    radial-gradient(ellipse at 90% 0%, #1b294133, transparent 50%);
+    url('/w25-signal/images/sky-photorealistic.png') center / cover fixed;
+  background-color: #02040a;
 }
 .starfield {
   position: fixed;
@@ -406,6 +408,15 @@ h2 {
 .prism-scene.aligned .prism-body {
   filter: drop-shadow(0 0 14px #ffb3de66);
 }
+.prism-scene.scattering .prism-body {
+  animation: prism-refract 1.5s ease-in-out both;
+}
+.prism-scene.scattering .spectrum-ray {
+  animation: spectrum-scatter 1.5s ease-out both;
+}
+.prism-scene.scattering .spectrum-glow {
+  animation: spectrum-glow 1.5s ease-out both;
+}
 .spectrum-value {
   font: 12px/2 monospace;
   display: flex;
@@ -480,7 +491,7 @@ h2 {
   top: 23px;
   width: 0;
   height: 1px;
-  transform: rotate(-18deg);
+  transform: rotate(var(--trail-angle, -18deg));
   transform-origin: left;
   background: linear-gradient(90deg, #ffb3de05, #fbc7e9);
   box-shadow: 0 0 7px #f5b8dd;
@@ -532,6 +543,20 @@ h2 {
 .date-dial .dial-active {
   stroke: #ffd0ea;
   stroke-width: 2;
+}
+.date-dial svg text {
+  stroke: none;
+  fill: #8f8ba6;
+  font: 10px Georgia, 'Songti SC', serif;
+  letter-spacing: 0;
+}
+.date-dial svg text.dial-label-active {
+  fill: #ffe0f2;
+  font-size: 15px;
+  text-shadow: 0 0 8px #ffb3de;
+}
+.date-dial svg text.dial-label {
+  opacity: 0.6;
 }
 .date-dial .dial-pointer {
   fill: #ebbbd8;
@@ -781,6 +806,30 @@ h2 {
   display: block;
   width: 100%;
   height: 100%;
+}
+.ring-viewer {
+  position: relative;
+  height: 440px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: radial-gradient(circle at 50% 46%, #17203244, transparent 62%);
+}
+.ring-viewer model-viewer,
+.ring-poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ring-poster {
+  opacity: 0.78;
+  mix-blend-mode: screen;
+}
+.ring-model-wrap.departing .ring-viewer {
+  animation: ring-depart 1.45s ease-in forwards;
+}
+.ring-gem-hotspot {
+  pointer-events: auto;
 }
 .gem-hotspot {
   position: absolute;
@@ -1046,7 +1095,7 @@ h2 {
     opacity: 1;
   }
   to {
-    transform: translate(29px, -10px);
+    transform: translate(var(--drift-x, 29px), var(--drift-y, -10px));
     opacity: 0.8;
   }
 }
@@ -1056,7 +1105,7 @@ h2 {
     opacity: 0;
   }
   to {
-    width: 33px;
+    width: var(--trail-length, 33px);
     opacity: 1;
   }
 }
@@ -1074,6 +1123,63 @@ h2 {
   100% {
     transform: scale(1.35);
     opacity: 0;
+  }
+}
+@keyframes ring-depart {
+  0% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  42% {
+    opacity: 1;
+    filter: brightness(1.5) drop-shadow(0 0 30px #ffb3de88);
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(2.2) blur(5px);
+    transform: scale(1.04);
+  }
+}
+@keyframes prism-refract {
+  0% {
+    transform: rotate(var(--prism-angle));
+    filter: drop-shadow(0 0 10px #dcd7ff33);
+  }
+  46% {
+    transform: rotate(calc(var(--prism-angle) + 4deg)) scale(1.015);
+    filter: drop-shadow(0 0 30px #fff1fa99);
+  }
+  100% {
+    transform: rotate(calc(var(--prism-angle) + 1deg)) scale(1);
+    filter: drop-shadow(0 0 4px #fff1fa22);
+  }
+}
+@keyframes spectrum-scatter {
+  0% {
+    opacity: 0.3;
+    stroke-width: 1;
+  }
+  45% {
+    opacity: 0.95;
+    stroke-width: 2;
+  }
+  100% {
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+}
+@keyframes spectrum-glow {
+  0% {
+    opacity: 0.2;
+    transform: scaleX(0.85);
+  }
+  42% {
+    opacity: 0.85;
+    transform: scaleX(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.25);
   }
 }
 @media (max-width: 600px) {
@@ -1152,6 +1258,9 @@ h2 {
   }
   .wire-touch {
     height: 400px;
+  }
+  .ring-viewer {
+    height: 390px;
   }
   .wire-wrap {
     margin-top: 10px;

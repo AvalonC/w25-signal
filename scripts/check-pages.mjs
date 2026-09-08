@@ -18,8 +18,13 @@ for (const link of links) {
 assert.ok(!html.includes('/_vinext/'), 'Server entry leaked into static build');
 for (const path of [
   'models/bracelet-wire.json',
+  'models/bracelet-ring.glb',
+  'models/bracelet-ring-manifest.json',
+  'models/bracelet-ring.usdz',
   'models/bracelet.usdz',
   'model-poster.svg',
+  'model-ring-preview.png',
+  'images/sky-photorealistic.png',
 ]) {
   assert.ok(statSync(resolve(root, path)).size > 0, 'Missing asset: ' + path);
 }
@@ -31,6 +36,12 @@ for (const o of model.objects)
   for (const [a, b] of o.edges) {
     assert.ok(o.vertices[a] && o.vertices[b], 'Broken geometry indices');
   }
+const ringManifest = JSON.parse(
+  readFileSync(resolve(root, 'models/bracelet-ring-manifest.json'), 'utf8'),
+);
+assert.equal(ringManifest.decimated, false, 'Ring model was decimated');
+assert.ok(ringManifest.evaluatedVertices >= 140000, 'Full ring geometry missing');
+assert.ok(ringManifest.evaluatedPolygons >= 140000, 'Ring polygons missing');
 console.log(
-  'Static Pages entry, nested assets, actual USDZ and wire geometry verified.',
+  'Static Pages entry, photorealistic sky, full ring geometry and USDZ verified.',
 );

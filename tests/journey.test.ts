@@ -12,6 +12,7 @@ import {
   symbolFromHold,
   constellationDelay,
   blessingDuration,
+  endingPhase,
 } from '../lib/journey.ts';
 
 test('three distinct wishes; unsupported values and duplicates rejected', () => {
@@ -42,7 +43,7 @@ test('seven chapters survive reload and a completed visit can replay the origina
     stars: 13,
     stage: 4,
     month: 10,
-    day: 9,
+    day: 8,
     stone: true,
     rotation: 120,
   };
@@ -115,4 +116,9 @@ test('light timelines preserve 1:3 duration, inter-symbol and letter spacing', (
   const full = morseTimeline(MORSE_CODES.join(' '), 110);
   assert.equal(full.frames.length, 13);
   assert.equal(full.duration, 4400);
+});
+test('Project W25 remains fully formed before the birthday morph begins', () => {
+  assert.equal(endingPhase(0), 'project');
+  assert.equal(endingPhase(5399), 'project');
+  assert.equal(endingPhase(6400), 'hbd');
 });
