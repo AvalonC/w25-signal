@@ -1,0 +1,41 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { initialState, transition, restore, MORSE, signalTimings, canContinue } from '../lib/game.ts';
+test('complete all seven chapters; only explicit receipt completes delivery',()=>{
+ let s={...initialState};
+ s=transition(s,{type:'next'});
+ assert.equal(s.chapter,1);
+ assert.equal(transition(s,{type:'next'}),s);
+ s=transition(s,{type:'wishes',values:[0,2,4,7]});
+ s=transition(s,{type:'next'});s=transition(s,{type:'color'});s=transition(s,{type:'next'});
+ assert.equal(transition(s,{type:'star',index:2}),s);
+ for(let i=0;i<13;i++)s=transition(s,{type:'star',index:i});
+ s=transition(s,{type:'next'});
+ for(const index of [2,0,1])s=transition(s,{type:'facet',index});
+ s=transition(s,{type:'next'});
+ assert.equal(transition(s,{type:'decode',pattern:'....-'}),s);
+ for(const pattern of MORSE)s=transition(s,{type:'decode',pattern});
+ assert.equal(s.decoded,3);
+ s=transition(s,{type:'next'});for(let i=0;i<4;i++)s=transition(s,{type:'assemble'});
+ s=transition(s,{type:'next'});assert.equal(s.chapter,7);
+ assert.equal(transition(s,{type:'receive'}),s);
+ s=transition(s,{type:'delivery-start',deadline:123456789});
+ assert.equal(transition(s,{type:'receive'}),s);
+ s=transition(s,{type:'delivery-ready'});assert.equal(s.delivery,'ready');
+ assert.deepEqual(restore(JSON.stringify(s)),s);
+ s=transition(s,{type:'receive'});assert.equal(s.delivery,'complete');assert.equal(canContinue(s),false);
+ assert.deepEqual(restore(JSON.stringify(s)),s);
+ s=transition(s,{type:'visit',chapter:3});assert.equal(s.delivery,'complete');
+ assert.deepEqual(restore(JSON.stringify(s)),s);
+});
+test('resume partial progress and reject corrupt saves',()=>{
+ let s=transition(initialState,{type:'next'});s=transition(s,{type:'wishes',values:[1,3]});
+ assert.deepEqual(restore(JSON.stringify(s)),s);
+ for(const raw of ['broken','null','{}',JSON.stringify({...initialState,chapter:7,unlocked:7}),JSON.stringify({...initialState,stars:99}),JSON.stringify({...initialState,wishes:[1,1]})])assert.deepEqual(restore(raw),initialState);
+ assert.equal(transition(s,{type:'wishes',values:[1,1]}),s);
+ assert.equal(transition(s,{type:'visit',chapter:7}),s);
+});
+test('Morse is exactly W25, with standard 1:3 timing and letter gaps',()=>{
+ assert.deepEqual(MORSE,['.--','..---','.....']);
+ assert.deepEqual(signalTimings('.- .',100),[100,100,300,300,100,100]);
+});
