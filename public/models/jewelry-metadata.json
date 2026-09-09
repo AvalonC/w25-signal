@@ -1,0 +1,18 @@
+{
+  "hotspot": [
+    -0.027445223182439804,
+    0.0016498561017215252,
+    -0.005795818287879229
+  ],
+  "normal": [
+    0,
+    1,
+    0
+  ],
+  "objects": 288,
+  "vertices": 141478,
+  "polygons": 144520,
+  "triangles": 282192,
+  "units": "meters",
+  "decimated": false
+}

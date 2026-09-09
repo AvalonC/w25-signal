@@ -94,7 +94,7 @@ h2 {
   background:
     linear-gradient(180deg, #02040a66 0%, #05081322 42%, #02040acc 100%),
     radial-gradient(ellipse at 50% 40%, #29203c20, transparent 55%),
-    url('/w25-signal/images/sky-photorealistic.png') center / cover fixed;
+    url('/images/sky-photorealistic.png') center / cover;
   background-color: #02040a;
 }
 .starfield {

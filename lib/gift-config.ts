@@ -9,7 +9,7 @@ export const gift = {
   favoriteColorName: '粉色',
   favoriteColorConfirmed: true,
   tuningTarget: 68,
-  usdzUrl: 'models/bracelet.usdz',
+  usdzUrl: 'models/bracelet-ring.usdz',
   finalMessage: '愿你始终拥有出发的勇气，也拥有安心停靠的地方。',
   deliveryWaitSeconds: 0,
 };

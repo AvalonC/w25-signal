@@ -1,4 +1,12 @@
 export const PINK = '#ffb3de';
+export const SAPPHIRE_QUOTES = [
+  '愿你像蓝宝石一样，温柔，也坚韧。',
+  '愿你喜欢的粉色，照亮每一个平常的日子。',
+  '愿十月八日的星光，年年都为你而亮。',
+] as const;
+export function sapphireCanAdvance(elapsed: number, turned: boolean) {
+  return turned && elapsed >= 4600;
+}
 export const MORSE_CODES = ['.--', '..---', '.....'];
 export const NOUNS = [
   ['勇气', 'COURAGE', '愿你有勇气，走向每一个心之所往。'],

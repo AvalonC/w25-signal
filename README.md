@@ -29,7 +29,7 @@ npm run preview:pages
 1. **愿望**：词汇自由错落在星空中；拖动聚拢并选出三个。祝福以动画浮现、淡出，然后自动进入下一部分，不再弹出转场对话框。
 2. **光谱**：拖动棱镜，让分开的光重新相遇；光束散开后自动进入下一章。
 3. **星轨**：只触碰前三颗星组成 W；2 和 5 自动以长短光延续，随后自动转场。长光移动并留下拖尾。
-4. **纪念日**：双转盘到 **10 月 8 日**，得到粉色蓝宝石。拖动宝石，让三个祝福依次出现。蓝宝石是这份礼物指定的诞生纪念，不按月份自动推算宝石。
+4. **纪念日**：双转盘到 **10 月 8 日**，光弧凝成四角星，再显出原手链中的粉色蓝宝石与银镶座。拖动或点击转动，三个祝福各停留至少 4.6 秒，最后一道光自动带入回声。蓝宝石是这份礼物指定的诞生纪念，不按月份自动推算宝石。
 5. **回声**：教程说明短按与至少 1 秒长按。观察闪光，回应三个字母组，解出 W25。可重播、撤回，也可用替代按钮输入。
 6. **成形**：呈现由原始 Blender 完整几何弯成的闭合环形手链。保留全部网格和材质，拖动查看，点击环上的粉色蓝宝石。另有环形 USDZ 的 AR Quick Look 入口。
 7. **回信**：模型淡出，星光自然重排为 Project W25 并停留，再直接变成 HBD, Leah。背景旋律采用轻柔的《Happy Birthday》音型；按住文字至少 3 秒，激发闪光并散回首页。
@@ -48,11 +48,14 @@ npm run preview:pages
 - `components/game/particles.tsx`：星空、文字重组、星光词汇。
 - `components/game/model.tsx`：完整环形模型查看器、宝石热点及散开效果。
 - `lib/journey.ts`：W25 时间序列、存档校验、重玩规则。
-- `public/models/bracelet.usdz`：约 9 MB 的真实模型，仅点击 AR 时加载。
-- `public/models/bracelet-wire.json`：从 `silver_pink_bracelet_v3.blend` 提取的简化线框，保留短镶座、长镶座、四角星和延长链。
+- `components/game/sapphire-scene.tsx`：星光汇聚、真实宝石、三句祝福与自动离场。
+- `components/game/model-surface.tsx`：随项目打包的模型查看器、加载重试与静态后备图；不依赖外部 CDN 脚本。
+- `components/game/scene-clock.ts`：可暂停的场景计时，防止重渲染取消转场或后台跳章。
 - `public/models/bracelet-ring.glb` / `bracelet-ring.usdz`：由原始 Blender 模型闭合成环，未减面，分别用于网页查看器和 iPhone AR Quick Look。
 - `public/images/sky-photorealistic.png`：由 imagegen 生成的拟真星空底图，动态星点仍叠加在其上。
-- `docs/sapphire-redesign.md`：粉色蓝宝石“星光凝成宝石”环节的待确认设计方案。
+- `public/models/sapphire-star.glb`：从原模型完整提取的宝石及四角星镶座，10 个网格、7,162 个三角形。
+- `public/models/jewelry-metadata.json`：完整环形模型几何数量、米制尺寸与实际宝石热点位置。手链含 288 个网格，原始多边形 144,520 个，无减面。
+- `docs/sapphire-redesign.md`：已实现的“星光凝成宝石”流程与模型导出说明。
 - `lib/gift-config.ts`：礼物信息记录；章节文案与交互参数在上述源文件中。
 
 日期以 10 月 8 日为准，颜色 #ffb3de，结尾收件人 Leah。
@@ -65,7 +68,7 @@ npm run typecheck
 npm run build:pages
 ```
 
-测试涵盖三愿望限制、七章存档、重温历史、损坏存档、旧版迁移、1 秒阈值和 W25 间隔。静态检查验证入口及模型文件，不替代 iPhone 真机试用。
+测试涵盖三愿望限制、七章存档、重温历史、损坏存档、旧版迁移、1 秒阈值、W25 间隔、祝福阅读时长，以及场景计时在重渲染、暂停和切换阶段后的行为。静态检查读取 GLB 验证完整几何、米制尺度、真实宝石热点及部署资源，不替代 iPhone 真机试用。
 
 每次推送到 main，`.github/workflows/deploy-pages.yml` 会检查、构建并部署 `dist/pages`，访问：
 https://avalonc.github.io/w25-signal/ 。

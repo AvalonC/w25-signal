@@ -1,18 +1,26 @@
-# Sapphire scene redesign proposal
+# 粉色蓝宝石：星光凝成宝石
 
-The sapphire should feel as if it is made by the same signal the player has already been following. The current isolated octagon can remain as a temporary MVP surface, but the next version should use this sequence:
+已实现，日期以 10 月 8 日为准。使用原始手链中的粉色宝石、四角星银镶座与爪镶，保留完整几何和材质；不再使用独立的八角形 SVG。
 
-1. **The date leaves a trace.** When the two dials settle on 10 October 8, the selected ticks do not jump to the stone. They stay lit for a beat and send two thin arcs of starlight toward the center of the scene.
-2. **Light gathers before a stone appears.** The arcs meet at a small four-point-star setting. A soft pink-white flare opens from the center, with a short lens-like bloom and a few dust motes. The player sees the light first and the gemstone second.
-3. **The setting reveals the cut.** The star setting rotates slowly into view. The pink sapphire is revealed as a rounded four-point brilliant that belongs to the setting, with a silver rim and small facet highlights. Its silhouette should echo the four-point star used in the loader and the bracelet model.
-4. **Rotation becomes a blessing.** Dragging the stone sweeps one narrow highlight across the facets. Each quarter turn changes the blessing line, while the previous line fades through the same passing-light transition used between chapters. A short light trail remains behind the highlight instead of replacing the whole scene.
-5. **The signal continues.** After the third blessing, one remaining ray points toward the echo chapter. The scene advances automatically after the light has finished travelling; there is no numeric angle, color code, or “find the pink” instruction.
+1. **日期留下光。** 确认双星盘后，天秤座符号与 VIII 两道圆弧向中心汇聚，3.2 秒内点亮一颗四角星。
+2. **先看到光，再看到切面。** 光心柔和展开，真实宝石和镶座用 2 秒从光中显现；星空始终连续。
+3. **转动成为祝福。** 拖动宝石或点击转动按钮，切面反光经过宝石。三句祝福分别停留至少 4.6 秒，每句都需要一次主动转动才继续。打开提示、切到后台时，场景计时暂停。
+4. **光继续传递。** 第三句之后，一道光用 1.9 秒离开，自动进入回声，无额外确认按钮。
 
-Visual rules:
+祝福文案：
 
-- keep the sapphire close to `#ffb3de`, but let it pick up pale blue and white reflections from the star field;
-- use a restrained bloom around the setting, not a large neon aura;
-- keep the stone centered in the same free-flow composition as the two dials so it does not pop into an unrelated card;
-- let motion explain the interaction: arcs gather, the cut appears, a highlight sweeps, then a ray departs.
+- 愿你像蓝宝石一样，温柔，也坚韧。
+- 愿你喜欢的粉色，照亮每一个平常的日子。
+- 愿十月八日的星光，年年都为你而亮。
 
-This proposal deliberately keeps the interaction readable without naming the answer. Once approved, the next implementation pass can replace the temporary SVG with this assembled-light sequence and connect its final ray to the echo chapter.
+模型查看器随项目打包并按需加载。加载过程中显示由同一模型渲染的透明后备图；加载失败可重试，也能通过转动按钮完成流程。系统减少动态效果时，隐藏扫光和飞行光线。
+
+实现入口：`components/game/sapphire-scene.tsx`、`components/game/model-surface.tsx`、`app/atmosphere.css`。
+
+`scripts/export-jewelry.py` 使用 Blender 从本地原始文件导出资产：
+
+```sh
+blender --background --python scripts/export-jewelry.py -- /path/to/silver_pink_bracelet_v3.blend /path/to/bracelet-ring.blend
+```
+
+第一个文件为原手链，第二个为已成环的完整 Blender 模型；省略第二个参数时读取本地 `work/bracelet-ring.blend`。源文件不随网页加载，仓库中的 GLB、USDZ 与后备图可直接使用。导出统一为米，不减面；完整手链含 288 个网格、141,478 个顶点和 144,520 个原始多边形，GLB 三角化后为 282,192 个三角形。独立宝石及镶座含 10 个网格、7,162 个三角形。

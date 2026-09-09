@@ -1,0 +1,109 @@
+/* The same sky and light continue through every scene. */
+.cosmos { background: transparent; isolation: isolate; }
+.cosmos::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg,#02040a88,#05081344 45%,#02040acc),
+    url('/images/sky-photorealistic.png') center / cover;
+}
+.date-dial svg g g { transition: none; }
+.date-dial svg text { paint-order: stroke; stroke:#090d16; stroke-width:1px; }
+.free-flow .date-dial > div { flex-direction: column; gap: 8px; }
+.free-flow .date-dial strong { font-size: clamp(24px,5vw,38px); }
+.free-flow .dial-block { max-width: 250px; }
+.free-flow .date-wheels { gap:clamp(18px,8vw,90px); }
+.free-flow .scene-heading[hidden] { display:none; }
+.sapphire-story { position:relative; min-height:650px; padding:45px 0 65px; }
+.gathering-orbits { position:absolute; inset:0; pointer-events:none; }
+.orbit-month,.orbit-day {
+  position:absolute; width:140px; height:140px; top:40px; left:16%;
+  border:1px solid #cfb9e544; outline:1px solid #cfb9e51c; outline-offset:12px;
+  border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font:36px Georgia; color:#decde6; animation:orbit-gather 3.2s ease-in-out both;
+}
+.orbit-day { left:auto;right:16%;top:135px;animation-name:orbit-gather-right; font-size:26px; }
+.gathering-orbits small { font:12px/2 Georgia; opacity:.5; }
+.incoming-light {
+  position:absolute;top:200px;left:24%;width:29%;height:1px;
+  background:linear-gradient(90deg,transparent,#f6c5e6);transform:rotate(25deg);
+  transform-origin:right;box-shadow:0 0 15px #ffd2ed99;animation:light-arrives 3.2s ease both;
+}
+.second-light {left:48%;top:215px;transform:rotate(-25deg);background:linear-gradient(90deg,#f6c5e6,transparent);}
+.star-seed {
+  position:absolute;left:50%;top:215px;transform:translate(-50%,-50%);font:45px Georgia;
+  color:#ffe9f6;text-shadow:0 0 26px #ffd4ee,0 0 65px #fbb2dc;
+  pointer-events:none;animation:seed-form 3.2s ease both;
+}
+.sapphire-object {position:relative;width:min(440px,100%);height:370px;margin:0 auto;opacity:0;filter:blur(6px);pointer-events:none;}
+.sapphire-object .model-surface {height:100%;}
+.sapphire-reveal .sapphire-object {animation:facet-arrives 2s ease both;}
+.sapphire-explore .sapphire-object {opacity:1;filter:none;pointer-events:auto;}
+.sapphire-depart .sapphire-object {animation:facet-departs 1.9s ease both;}
+.sapphire-story:not(.sapphire-gather) .gathering-orbits {opacity:0;transition:opacity 1.2s;}
+.sapphire-story:not(.sapphire-gather) .star-seed {animation:seed-reveal 1.8s ease both;}
+.sapphire-prose {position:relative;min-height:105px;margin:0 auto;max-width:600px;padding:20px;}
+.sapphire-prose p {
+  font:clamp(19px,2.7vw,27px)/2.2 Georgia,'Songti SC',serif;
+  color:#edd4e5;letter-spacing:.1em;text-wrap:balance;animation:verse-arrives 1.4s ease both;
+}
+.sapphire-caption {font:14px/2 Georgia,'Songti SC',serif;color:#cab0c5;letter-spacing:.15em;}
+.sapphire-caption span {display:block;font:11px/2.5 monospace;color:#8d819a;letter-spacing:.2em;}
+.sapphire-turn-button {margin-top:12px;min-height:48px;}
+.facet-dots {display:flex;justify-content:center;gap:17px;margin-top:15px;}
+.facet-dots i {width:3px;height:3px;background:#ffffff20;border-radius:50%;}
+.facet-dots i.lit {background:#ffd3ed;box-shadow:0 0 10px #ffb3de;}
+.facet-sweep {
+  position:absolute;inset:15% 10%;pointer-events:none;opacity:0;
+  background:linear-gradient(120deg,transparent 44%,#fff4fb55 49%,transparent 54%);
+  mix-blend-mode:screen;mask:radial-gradient(ellipse,#000,transparent 66%);
+}
+.facet-sweep.sweeping {animation:facet-sweep 2s ease both;}
+.outgoing-light {
+  position:absolute;left:50%;top:205px;width:1px;height:1px;opacity:0;
+  background:linear-gradient(90deg,#ffe7f5,transparent);transform:rotate(-25deg);transform-origin:left;
+  box-shadow:0 0 12px #ffb3de;pointer-events:none;
+}
+.sapphire-depart .outgoing-light {animation:light-departs 1.9s ease-in both;}
+.sapphire-story.is-paused * {animation-play-state:paused!important;}
+.model-surface {position:relative;width:100%;height:100%;}
+.model-surface model-viewer {display:block;width:100%;height:100%;background:transparent;opacity:0;transition:opacity 1.5s;}
+.model-ready model-viewer {opacity:1;}
+.model-fallback {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.model-status {position:absolute;bottom:3px;left:10%;width:80%;font-size:12px;color:#aea2bb;min-height:44px;display:grid;place-items:center;}
+.free-flow .ring-viewer {border-radius:0;background:none;overflow:visible;height:clamp(340px,54svh,580px);}
+.ring-model-wrap .wire-controls {flex-direction:column;gap:0;transition:opacity 1s;}
+.ring-model-wrap.departing .ring-viewer {animation: ring-depart 1.8s ease both;}
+.ring-jewel-hotspot {
+  width:48px;height:48px;border-radius:50%;padding:0;opacity:0;pointer-events:none;
+  background:radial-gradient(circle,transparent 20%,#ffd1eb1a 55%,transparent 70%);
+  border:1px solid #ffd1eb44;box-shadow:0 0 17px #ffd1eb33;
+}
+.ring-jewel-hotspot[data-visible] {opacity:1;pointer-events:auto;}
+.free-flow .constellation-star.long.found .star-head {animation-duration:1.4s;}
+.free-flow .constellation-star.long.found .trail {animation-duration:1.4s;}
+@keyframes orbit-gather {0%,20%{opacity:.65;transform:rotate(-15deg)}70%{opacity:.3}100%{opacity:0;transform:translate(60px,100px) scale(.15) rotate(70deg)}}
+@keyframes orbit-gather-right {0%,20%{opacity:.65;transform:rotate(12deg)}70%{opacity:.3}100%{opacity:0;transform:translate(-60px,0) scale(.15) rotate(-70deg)}}
+@keyframes light-arrives {0%,25%{opacity:0;scale:.2 1}55%{opacity:.7}100%{opacity:0;scale:1 1}}
+@keyframes seed-form {0%,30%{opacity:0;scale:.1}85%{opacity:1;scale:1.1}100%{opacity:1;scale:1}}
+@keyframes seed-reveal {from{opacity:1;scale:1}to{opacity:0;scale:2.3;filter:blur(10px)}}
+@keyframes facet-arrives {from{opacity:0;filter:blur(9px);transform:scale(.55)}to{opacity:1;filter:none;transform:scale(1)}}
+@keyframes verse-arrives {from{opacity:0;filter:blur(5px);transform:translateY(7px)}to{opacity:1;filter:none;transform:none}}
+@keyframes facet-sweep {0%{opacity:0;transform:translateX(-25%)}45%{opacity:.8}100%{opacity:0;transform:translateX(25%)}}
+@keyframes facet-departs {0%{opacity:1;filter:none}40%{opacity:.8;filter:brightness(1.4)}100%{opacity:0;filter:blur(5px);transform:scale(.86)}}
+@keyframes light-departs {0%,25%{width:1px;opacity:0}45%{opacity:1}100%{width:70vw;opacity:0}}
+@media(max-width:600px) {
+ .sapphire-story{min-height:610px;padding-top:30px;}
+ .sapphire-object{height:320px;width:100%;}
+ .sapphire-prose{padding:8px 10px;min-height:100px;}
+ .sapphire-prose p{font-size:20px;}
+ .orbit-month,.orbit-day{width:115px;height:115px;left:3%;}
+ .orbit-day{left:auto;right:3%;}
+ .star-seed{top:185px;}
+ .free-flow .date-wheels{margin-top:50px;}
+ .free-flow .dial-block{max-width:none;}
+ .date-dial svg text.dial-label-active{font-size:17px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .sapphire-object{filter:none!important;}
+ .sapphire-reveal .sapphire-object,.sapphire-explore .sapphire-object{opacity:1;}
+ .facet-sweep,.incoming-light,.outgoing-light{display:none;}
+}

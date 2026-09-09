@@ -2,7 +2,7 @@
 // Keep native switch activation in a user gesture. Never pretend timers are haptics.
 let context: AudioContext | null = null;
 let oscillators: OscillatorNode[] = [];
-let musicTimers: number[] = [];
+
 
 function getAudioContext() {
   const ctor =
@@ -94,34 +94,41 @@ export function playBirthday() {
   try {
     const audio = getAudioContext();
     if (!audio) return;
-    musicTimers.forEach((id) => window.clearTimeout(id));
-    musicTimers = [];
     const phraseLength = BIRTHDAY.reduce((sum, [, duration]) => sum + duration + 0.08, 0) + 0.65;
     const start = audio.currentTime + 0.08;
-    for (let repeat = 0; repeat < 2; repeat += 1) {
+    for (let repeat = 0; repeat < 1; repeat += 1) {
       let at = start + repeat * phraseLength;
       for (const [note, duration] of BIRTHDAY) {
         const frequency = FREQ[note];
         const main = audio.createOscillator();
         const harmonic = audio.createOscillator();
         const gain = audio.createGain();
-        main.type = 'triangle';
+        const overtone = audio.createGain();
+        overtone.gain.value = 0.12;
+        main.type = 'sine';
         harmonic.type = 'sine';
         main.frequency.value = frequency;
         harmonic.frequency.value = frequency * 2;
         gain.gain.setValueAtTime(0, at);
-        gain.gain.linearRampToValueAtTime(0.052, at + 0.025);
+        gain.gain.linearRampToValueAtTime(0.055, at + 0.018);
         gain.gain.exponentialRampToValueAtTime(0.001, at + duration);
         main.connect(gain);
-        harmonic.connect(gain);
+        harmonic.connect(overtone);
+        overtone.connect(gain);
         gain.connect(audio.destination);
         main.start(at);
         harmonic.start(at);
         main.stop(at + duration + 0.03);
         harmonic.stop(at + duration + 0.03);
         oscillators.push(main, harmonic);
-        main.onended = () => main.disconnect();
-        harmonic.onended = () => harmonic.disconnect();
+        main.onended = () => {
+          main.disconnect(); gain.disconnect();
+          oscillators = oscillators.filter((o) => o !== main);
+        };
+        harmonic.onended = () => {
+          harmonic.disconnect(); overtone.disconnect();
+          oscillators = oscillators.filter((o) => o !== harmonic);
+        };
         at += duration + 0.08;
       }
     }
@@ -134,8 +141,6 @@ export function silence() {
     } catch {}
   });
   oscillators = [];
-  musicTimers.forEach((id) => window.clearTimeout(id));
-  musicTimers = [];
   if (
     typeof navigator !== 'undefined' &&
     typeof navigator.vibrate === 'function'

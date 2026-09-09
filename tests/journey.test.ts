@@ -13,6 +13,7 @@ import {
   constellationDelay,
   blessingDuration,
   endingPhase,
+  sapphireCanAdvance,
 } from '../lib/journey.ts';
 
 test('three distinct wishes; unsupported values and duplicates rejected', () => {
@@ -121,4 +122,9 @@ test('Project W25 remains fully formed before the birthday morph begins', () => 
   assert.equal(endingPhase(0), 'project');
   assert.equal(endingPhase(5399), 'project');
   assert.equal(endingPhase(6400), 'hbd');
+});
+test('each sapphire blessing requires both a turn and enough reading time', () => {
+  assert.equal(sapphireCanAdvance(4599, true), false);
+  assert.equal(sapphireCanAdvance(4600, true), true);
+  assert.equal(sapphireCanAdvance(30000, false), false);
 });

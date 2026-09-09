@@ -25,7 +25,9 @@ import {
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Starfield, WordDust } from './particles';
-import { WireBracelet, Sapphire } from './model';
+import { WireBracelet } from './model';
+import { SapphireScene } from './sapphire-scene';
+import { useVisibleClock } from './scene-clock';
 import {
   fresh,
   readSave,
@@ -85,7 +87,7 @@ const HEADINGS = [
 const NOTES = [
   '',
   '拖动一团星光，让它聚成一个词。选三个就好。',
-  '慢慢转动棱镜，找到那一束属于你的粉色。',
+  '慢慢转动，看看光会在哪里停留。',
   '只需唤醒最初三颗星，余下的光会自己前行。',
   '拨动两枚星盘，让日期停在 10 月 8 日。',
   '看星星说话，再用你的指尖回答。',
@@ -313,7 +315,6 @@ export default function JourneyGame() {
       y: number;
       progress: number;
     } | null>(null),
-    gemDrag = useRef<{ x: number; y: number } | null>(null),
     prismDrag = useRef<number | null>(null);
   const echoPress = useRef<{ start: number; pointer: number | null } | null>(
       null,
@@ -386,6 +387,7 @@ export default function JourneyGame() {
   // Reset gesture UI only on chapter entry, never during a drag or wish toggle.
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (s.stage === 2) { setPrism(16); setPrismScattering(false); }
     setWords(
       s.choices.reduce((a, n) => {
         a[n] = 1;
@@ -520,18 +522,18 @@ export default function JourneyGame() {
         lastPulse = n;
       }
       if (t < 9000) frame = requestAnimationFrame(tick);
-      else {
-        setPulse(false);
-        silence();
-      }
+      else setPulse(false);
     };
     frame = requestAnimationFrame(tick);
-    if (soundRef.current) playBirthday();
     return () => {
       cancelAnimationFrame(frame);
       silence();
     };
   }, [s.stage, returning, boot]);
+  useEffect(() => {
+    if (s.stage === 7 && !returning && !boot && sound) playBirthday();
+    return () => { if (s.stage === 7) silence(); };
+  }, [s.stage, returning, boot, sound]);
   const go = (lines: string[], next: number) => {
     cancelHold();
     setPlaying(false);
@@ -539,6 +541,8 @@ export default function JourneyGame() {
     setBridge({ lines, next });
   };
   const start = (replay = false) => {
+    setPrism(16);
+    setPrismScattering(false);
     setS((p) => restart(p, replay));
     setRevisit(false);
   };
@@ -563,39 +567,21 @@ export default function JourneyGame() {
     color = aligned
       ? PINK
       : 'hsl(' + Math.round(180 + prism * 1.85) + ' 82% 77%)';
+  const prismTime = useVisibleClock(s.stage === 2 && prismScattering && !help && !boot && !bridge, s.stage);
   useEffect(() => {
-    if (s.stage !== 2) {
-      setPrismScattering(false);
-      return;
-    }
-    if (!aligned) {
-      setPrismScattering(false);
-      return;
-    }
-    setPrismScattering(true);
-    const timer = window.setTimeout(() => {
-      patch({ color: true });
-      go(
-        [
-          '原来，你喜欢的颜色，也能被星光记住。',
-          '愿这抹粉色，温柔地落在你每一个日常。',
-        ],
-        3,
-      );
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [s.stage, aligned]);
+    if (s.stage === 2 && aligned && !prismScattering && !boot) setPrismScattering(true);
+  }, [s.stage, aligned, prismScattering, boot]);
+  useEffect(() => {
+    if (s.stage !== 2 || !prismScattering || prismTime < 1800 || bridge) return;
+    patch({ color: true });
+    go(['愿这抹粉色，温柔地落在你每一个日常。'], 3);
+  }, [s.stage, prismScattering, prismTime, bridge]);
   const adjustPrism = (n: number) => {
+    if (prismScattering || bridge) return;
     const value = Math.max(0, Math.min(100, n));
     if (Math.abs(value - 68) <= 2 && !aligned) tap();
     setPrism(value);
   };
-  const stoneQuotes = [
-      '愿你像蓝宝石一样，温柔，也坚韧。',
-      '愿属于你的粉色，照亮平凡的每一天。',
-      '愿 10 月 8 日的星光，年年都为你而亮。',
-    ],
-    stoneSteps = Math.min(3, 1 + Math.floor(s.rotation / 50));
   function inputSymbol(ms: number) {
     const symbol = symbolFromHold(ms),
       value = draft + symbol,
@@ -660,6 +646,8 @@ export default function JourneyGame() {
   const text =
     s.stage === 0 && s.completed
       ? 'Project\nW25'
+      : s.stage === 6 && modelBurst
+        ? 'Project\nW25'
       : s.stage === 7 && ending === 'hbd'
         ? 'HBD, Leah'
         : s.stage === 7 && ending === 'project'
@@ -676,9 +664,7 @@ export default function JourneyGame() {
     >
       <Starfield
         text={boot ? '' : text}
-        burst={
-          modelBurst || returning
-        }
+        burst={returning}
         charge={charge}
       />
       <input
@@ -718,6 +704,7 @@ export default function JourneyGame() {
                 onClick={() => {
                   setSound((v) => !v);
                   if (!sound) tone(120);
+                  else silence();
                 }}
               >
                 {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
@@ -766,7 +753,7 @@ export default function JourneyGame() {
               className={'scene scene-' + s.stage}
             >
               {s.stage < 7 && (
-                <div className="scene-heading">
+                <div className="scene-heading" hidden={s.stage === 4 && s.stone}>
                   <p className="chapter-mark">
                     0{s.stage} <i /> 07
                   </p>
@@ -880,6 +867,7 @@ export default function JourneyGame() {
                       } as CSSProperties
                     }
                     onPointerDown={(e) => {
+                      if (prismScattering) return;
                       prismDrag.current = e.clientX;
                       e.currentTarget.setPointerCapture(e.pointerId);
                     }}
@@ -971,6 +959,7 @@ export default function JourneyGame() {
                   <div className="spectrum-slider">
                     <Slider
                       aria-label="棱镜转角"
+                      disabled={prismScattering}
                       value={[prism]}
                       min={0}
                       max={100}
@@ -1080,63 +1069,15 @@ export default function JourneyGame() {
                       </button>
                     </>
                   ) : (
-                    <>
-                      <div
-                        className="gem-turn"
-                        onPointerDown={(e) => {
-                          gemDrag.current = { x: e.clientX, y: e.clientY };
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                        }}
-                        onPointerMove={(e) => {
-                          if (!gemDrag.current) return;
-                          const d = Math.hypot(
-                            e.clientX - gemDrag.current.x,
-                            e.clientY - gemDrag.current.y,
-                          );
-                          setS((p) => ({
-                            ...p,
-                            rotation: p.rotation + d * 0.8,
-                          }));
-                          gemDrag.current = { x: e.clientX, y: e.clientY };
-                        }}
-                        onPointerUp={() => (gemDrag.current = null)}
-                        onPointerCancel={() => (gemDrag.current = null)}
-                      >
-                        <Sapphire rotation={s.rotation} />
-                      </div>
-                      <p className="gem-name">
-                        粉色蓝宝石 <small>PINK SAPPHIRE</small>
-                      </p>
-                      <p className="gem-blessing" aria-live="polite">
-                        {stoneQuotes[stoneSteps - 1]}
-                      </p>
-                      <div className="gem-progress">
-                        {[1, 2, 3].map((n) => (
-                          <i key={n} className={n <= stoneSteps ? 'lit' : ''} />
-                        ))}
-                      </div>
-                      <button
-                        className="soft-button"
-                        onClick={() => {
-                          patch({ rotation: s.rotation + 50 });
-                          tap();
-                        }}
-                      >
-                        转动宝石，让另一道光经过
-                      </button>
-                      <button
-                        className="continue"
-                        disabled={s.rotation < 100}
-                        onClick={() =>
-                          go(
-                            ['一枚属于你的诞生纪念，收藏了整片星空的祝福。'],
-                            5,
-                          )
-                        }
-                      >
-                        带着它继续 <ArrowRight size={16} />
-                      </button>
-                    </>
+                    <SapphireScene
+                      rotation={s.rotation}
+                      paused={help || boot || !!bridge}
+                      onProgress={(rotation) => patch({ rotation })}
+                      onTap={tap}
+                      onDone={() => {
+                        patch({ rotation: 150, stage: 5 });
+                      }}
+                    />
                   )}
                 </>
               )}
@@ -1331,6 +1272,7 @@ export default function JourneyGame() {
               {s.stage === 6 && (
                 <>
                   <WireBracelet
+                    paused={help || !!bridge}
                     onScatter={() => {
                       tap();
                       setModelBurst(true);
