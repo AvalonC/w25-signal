@@ -28,6 +28,7 @@ import { Starfield, WordDust } from './particles';
 import { WireBracelet } from './model';
 import { SapphireScene } from './sapphire-scene';
 import { useVisibleClock } from './scene-clock';
+import type { StarArrival } from '@/lib/bracelet-transition';
 import {
   fresh,
   readSave,
@@ -308,6 +309,7 @@ export default function JourneyGame() {
     [bridgeIndex, setBridgeIndex] = useState(0);
   const [reduced, setReduced] = useState(false),
     [modelBurst, setModelBurst] = useState(false);
+  const [starArrival, setStarArrival] = useState<StarArrival | null>(null);
   const haptic = useRef<HTMLInputElement>(null),
     nounDrag = useRef<{
       i: number;
@@ -541,6 +543,7 @@ export default function JourneyGame() {
     setBridge({ lines, next });
   };
   const start = (replay = false) => {
+    setStarArrival(null);
     setPrism(16);
     setPrismScattering(false);
     setS((p) => restart(p, replay));
@@ -646,8 +649,6 @@ export default function JourneyGame() {
   const text =
     s.stage === 0 && s.completed
       ? 'Project\nW25'
-      : s.stage === 6 && modelBurst
-        ? 'Project\nW25'
       : s.stage === 7 && ending === 'hbd'
         ? 'HBD, Leah'
         : s.stage === 7 && ending === 'project'
@@ -658,6 +659,7 @@ export default function JourneyGame() {
       className={
         'cosmos free-flow ' +
         (boot ? 'booting ' : '') +
+        (modelBurst ? 'bracelet-leaving ' : '') +
         (bridge ? 'bridging' : '')
       }
       style={{ '--pink': PINK } as CSSProperties}
@@ -666,6 +668,7 @@ export default function JourneyGame() {
         text={boot ? '' : text}
         burst={returning}
         charge={charge}
+        arrival={starArrival}
       />
       <input
         ref={haptic}
@@ -1277,20 +1280,14 @@ export default function JourneyGame() {
                       tap();
                       setModelBurst(true);
                     }}
-                    onGem={() => {
+                    onGem={(arrival) => {
                       cancelHold();
+                      setStarArrival(arrival);
                       setModelBurst(false);
                       setEnding('project');
                       setS((p) => finish(p));
                     }}
                   />
-                  <p className="model-whisper">
-                    让光绕成一个圆，再留下你的指尖。
-                  </p>
-                  <a className="ar-option" rel="ar" href="models/bracelet-ring.usdz">
-                    <img src="model-poster.svg" alt="在身边查看真实手链模型" />
-                    <span>也可以，让它来到现实中 ↗</span>
-                  </a>
                 </>
               )}
               {s.stage === 7 && (

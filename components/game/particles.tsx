@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import type { StarArrival } from '@/lib/bracelet-transition';
 type Point = { x: number; y: number };
 function glyph(text: string, w: number, h: number): Point[] {
   const c = document.createElement('canvas');
@@ -32,16 +33,18 @@ export function Starfield({
   text = '',
   burst = false,
   charge = 0,
+  arrival,
 }: {
   text?: string;
   burst?: boolean;
   charge?: number;
+  arrival?: StarArrival | null;
 }) {
   const ref = useRef<HTMLCanvasElement>(null),
-    props = useRef({ text, burst, charge });
+    props = useRef({ text, burst, charge, arrival });
   useEffect(() => {
-    props.current = { text, burst, charge };
-  }, [text, burst, charge]);
+    props.current = { text, burst, charge, arrival };
+  }, [text, burst, charge, arrival]);
   useEffect(() => {
     const c = ref.current!,
       g = c.getContext('2d');
@@ -52,6 +55,7 @@ export function Starfield({
       last = '',
       targets: Point[] = [],
       previous = 0;
+    let lastArrival = 0;
     const reduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches;
@@ -83,6 +87,10 @@ export function Starfield({
       if (document.hidden || time - previous < (reduced ? 100 : 32)) return;
       previous = time;
       const p = props.current;
+      if (p.arrival && p.arrival.id !== lastArrival) {
+        lastArrival = p.arrival.id;
+        p.arrival.points.forEach((point, i) => { if (stars[i]) { stars[i].x = point.x; stars[i].y = point.y; } });
+      }
       if (p.text !== last) {
         last = p.text;
         targets = p.text

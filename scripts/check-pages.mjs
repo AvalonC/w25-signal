@@ -26,6 +26,7 @@ for (const path of [
   'model-ring-preview.png',
   'models/sapphire-star.glb',
   'models/jewelry-metadata.json',
+  'models/bracelet-stars.json',
   'sapphire-preview.png',
   'images/sky-photorealistic.png',
 ]) {
@@ -83,6 +84,35 @@ for (let i = 0; i < 3; i++) {
   assert.ok(metadata.hotspot[i] >= Math.min(...gemPositions.map((p) => p.min[i])) &&
     metadata.hotspot[i] <= Math.max(...gemPositions.map((p) => p.max[i])), 'Hotspot must be inside the actual sapphire');
 }
+const stars = JSON.parse(readFileSync(resolve(root, 'models/bracelet-stars.json'), 'utf8'));
+assert.equal(stars.effectOnly, true);
+assert.equal(stars.points.length, 1050);
+assert.ok(stars.points.every((p) => p.length === 3 && p.every((n) => Number.isFinite(n) && Math.abs(n) < .1)));
+// Tail must fall below the ring's plane, with the pendant lower than its bail.
+function centerY(name) {
+  const node = ring.nodes.find((n) => n.name === name);
+  assert.ok(node, 'Missing jewelry part: ' + name);
+  const positions = ring.meshes[node.mesh].primitives.map((p) => ring.accessors[p.attributes.POSITION]);
+  return (Math.min(...positions.map((p) => p.min[1])) + Math.max(...positions.map((p) => p.max[1]))) / 2;
+}
+assert.ok(centerY('Fan charm · domed silver pendant') < -.01, 'Pendant must hang under the ring');
+assert.ok(centerY('Fan charm · domed silver pendant') < centerY('Fan charm · suspension eye'));
+assert.ok(centerY('Extension · oval link 07') < centerY('Extension · oval link 01'));
+// USDZ is an uncompressed ZIP with each file aligned to a 64-byte boundary.
+const usdz = readFileSync(resolve(root, 'models/bracelet-ring.usdz'));
+let offset = 0, entries = 0;
+while (usdz.readUInt32LE(offset) === 0x04034b50) {
+  assert.equal(usdz.readUInt16LE(offset + 8), 0, 'USDZ entries cannot be compressed');
+  const size = usdz.readUInt32LE(offset + 18), nameLength = usdz.readUInt16LE(offset + 26), extra = usdz.readUInt16LE(offset + 28);
+  const name = usdz.toString('utf8', offset + 30, offset + 30 + nameLength);
+  assert.ok(!name.startsWith('/') && !name.includes('..') && !name.includes('\\'));
+  if (!entries) assert.ok(/\.usd[ac]?$/.test(name), 'First USDZ entry must be the root scene');
+  const data = offset + 30 + nameLength + extra;
+  assert.equal(data % 64, 0, 'USDZ data alignment is invalid');
+  assert.ok(size > 0 && data + size <= usdz.length);
+  entries++; offset = data + size;
+}
+assert.ok(entries > 0, 'USDZ archive is empty');
 console.log(
-  'Pages assets, full ring/sapphire geometry, meter scale, gemstone hotspot and USDZ verified.',
+  'Pages assets, full geometry, gravity tail, star silhouette, gemstone hotspot and USDZ packing verified.',
 );

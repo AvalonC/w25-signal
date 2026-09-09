@@ -1,6 +1,6 @@
 """Rebuild full geometry display assets; no decimation, LOD or mesh sampling."""
-import bpy, json, os, sys
-from mathutils import Vector
+import bpy, json, os, sys, math, random, bisect
+from mathutils import Vector, Matrix
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 source = sys.argv[sys.argv.index('--') + 1]
@@ -73,13 +73,59 @@ def render(objects, name):
     scene.render.filepath=os.path.join(out,name+'.png')
     bpy.ops.render.render(write_still=True)
 
+def drape_tail(objects):
+    # Rigidly rotate each chain link around its own joint along a gravity arc.
+    # The pendant parts share the final vertical tangent; no mesh is simplified
+    # or stretched. Work in Blender Z-up meters before glTF axis conversion.
+    hinge = .02865
+    radius = .0038
+    for obj in objects:
+        if not obj.name.startswith(('Extension', 'Fan charm')): continue
+        vertices = obj.data.vertices
+        center = Vector(tuple((min(v.co[i] for v in vertices)+max(v.co[i] for v in vertices))/2 for i in range(3)))
+        distance = max(0, -center.y - hinge)
+        angle = min(math.pi/2, distance/radius)
+        beyond = max(0, distance-radius*math.pi/2)
+        target = Vector((center.x, -(hinge+radius*math.sin(angle)), .00122-radius*(1-math.cos(angle))-beyond))
+        rotation = Matrix.Rotation(angle, 3, 'X')
+        for vertex in vertices: vertex.co = target + rotation @ (vertex.co-center)
+        obj.data.update()
+
+def export_stars(objects):
+    # Surface samples are a separate visual effect; full GLB/USDZ meshes remain.
+    triangles, cumulative = [], []
+    total = 0
+    for obj in objects:
+        mesh = obj.data; mesh.calc_loop_triangles()
+        for triangle in mesh.loop_triangles:
+            a,b,c = [mesh.vertices[i].co.copy() for i in triangle.vertices]
+            area = (b-a).cross(c-a).length/2
+            if area <= 0: continue
+            total += area; cumulative.append(total); triangles.append((a,b,c))
+    rng = random.Random(2508)
+    points = []
+    for i in range(1050):
+        a,b,c = triangles[bisect.bisect_left(cumulative, (i+rng.random())/1050*total)]
+        u=math.sqrt(rng.random()); v=rng.random()
+        point=(1-u)*a+u*(1-v)*b+u*v*c
+        points.append([round(point.x,8),round(point.z,8),round(-point.y,8)])
+    with open(os.path.join(out,'models','bracelet-stars.json'),'w',encoding='utf-8') as f:
+        json.dump({'points':points,'effectOnly':True,'source':'bracelet-ring.glb'},f,separators=(',',':'))
+
 objects=open_meshes(ring,lambda o: o.type=='MESH')
+drape_tail(objects)
+export_stars(objects)
 export(objects,'bracelet-ring')
 bpy.ops.wm.usd_export(filepath=os.path.join(out,'models','bracelet-ring.usdz'),selected_objects_only=True,export_materials=True,evaluation_mode='VIEWPORT')
 gem=next(o for o in objects if 'four-point' in o.name and 'brilliant' in o.name)
 center=sum((v.co for v in gem.data.vertices),Vector())/len(gem.data.vertices)
 for obj in objects: obj.data.calc_loop_triangles()
 metadata={'hotspot':[center.x,center.z,-center.y], 'normal':[0,1,0], 'objects':len(objects), 'vertices':sum(len(o.data.vertices) for o in objects),'polygons':sum(len(o.data.polygons) for o in objects),'triangles':sum(len(o.data.loop_triangles) for o in objects),'units':'meters','decimated':False}
+positions=[v.co for o in objects for v in o.data.vertices]
+low=[min(v[i] for v in positions) for i in range(3)]
+high=[max(v[i] for v in positions) for i in range(3)]
+middle=[(low[i]+high[i])/2 for i in range(3)]
+metadata['poster']={'target':[middle[0],middle[2],-middle[1]],'span':max(high[i]-low[i] for i in range(3))*1.2,'phi':math.atan(.55/1.3)}
 with open(os.path.join(out,'models','jewelry-metadata.json'),'w',encoding='utf-8') as f: json.dump(metadata,f,indent=2)
 render(objects,'model-ring-preview')
 objects=open_meshes(source,lambda o: o.name.startswith('Pink four-point star'))

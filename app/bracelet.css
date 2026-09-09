@@ -1,0 +1,56 @@
+/* Isolate the final object scene from legacy 44px wireframe icon controls. */
+.free-flow .scene-6 {
+  width: 100%; max-width: 1120px; padding: 12px clamp(16px,4vw,52px) max(32px,env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: stretch;
+}
+.free-flow .scene-6 .scene-heading { margin: 0; max-width: 600px; padding: 0 12px; transition: opacity 1.2s; }
+.free-flow .scene-6 .scene-heading h1 { font-size: clamp(22px,3vw,32px); margin:0; line-height:1.65; }
+.free-flow .scene-6 .scene-heading > p:last-child { max-width: none; margin-top: 8px; font-size: 14px; }
+.bracelet-experience { width:100%; min-width:0; position:relative; }
+.bracelet-viewport { position:relative; width:100%; height:clamp(290px,47svh,500px); margin:12px auto 0; }
+.bracelet-viewport > .model-surface { opacity:var(--solid-opacity,1); }
+.bracelet-viewport model-viewer { touch-action:pan-y; cursor:grab; }
+.bracelet-viewport model-viewer:active { cursor:grabbing; }
+.bracelet-viewport .model-status { bottom:0; font-size:14px; background:#0b0d1999; border-radius:20px; }
+.bracelet-gem-target {
+  display:grid; place-items:center; padding:0; width:48px; height:48px; border-radius:50%;
+  border:1px solid #ffd4ed55; background:#eab3da0d; color:#fff0f9;
+  box-shadow:0 0 18px #ffb3de33; opacity:0; pointer-events:none; touch-action:manipulation;
+}
+.bracelet-gem-target[data-visible] { opacity:1; pointer-events:auto; }
+.bracelet-gem-target span { font:22px Georgia; text-shadow:0 0 8px #ffb3de; pointer-events:none; }
+.bracelet-gem-target:disabled { pointer-events:none; }
+.bracelet-gem-target:focus-visible,.bracelet-send:focus-visible,.bracelet-ar-link:focus-visible,.bracelet-file-link:focus-visible {
+  outline:2px solid #ffe0f2; outline-offset:5px;
+}
+.bracelet-actions { display:flex; flex-direction:column; align-items:center; gap:12px; padding:6px 0 0; transition:opacity .9s; }
+.bracelet-caption { font-size:14px; line-height:1.8; color:#c0b2c9; margin:0; text-align:center; }
+.bracelet-send {
+  width:auto; max-width:100%; min-width:230px; min-height:48px; height:auto; padding:12px 22px;
+  font:16px/1.6 Georgia,'Songti SC',serif; letter-spacing:.08em; color:#ffe0f2;
+  border:1px solid #ffcae73d; border-radius:28px; background:#f4bce80a;
+  white-space:normal; text-wrap:balance; touch-action:manipulation;
+}
+.bracelet-ar-entry { position:relative; width:280px; max-width:100%; height:64px; margin-top:3px; }
+.bracelet-ar-link { display:block; position:absolute; inset:0; min-height:56px; border-radius:12px; z-index:1; touch-action:manipulation; }
+.bracelet-ar-link img { display:block; width:56px; height:56px; margin:4px 0 4px 20px; object-fit:contain; }
+.bracelet-ar-label { position:absolute; left:88px; top:9px; pointer-events:none; font-size:15px; line-height:1.8; color:#d5c4de; text-align:left; }
+.bracelet-ar-label small { display:block; font-size:12px; letter-spacing:.08em; color:#a99ab5; }
+.bracelet-ar-note { max-width:370px; font-size:13px; line-height:1.8; text-align:center; color:#aa9cb7; margin:0; }
+.bracelet-file-link { font-size:14px; min-height:44px; padding:8px; text-decoration:underline; text-underline-offset:5px; }
+.bracelet-experience.is-departing .bracelet-actions,.bracelet-leaving .scene-6 .scene-heading { opacity:0; pointer-events:none; }
+.bracelet-experience.is-departing .model-status { visibility:hidden; }
+.bracelet-stardust { position:fixed; inset:0; width:100vw; height:100dvh; z-index:45; touch-action:none; }
+@media (max-width:600px) {
+ .free-flow .scene-6 { padding-top:4px; }
+ .bracelet-viewport { height:clamp(270px,41svh,380px); margin-top:8px; }
+ .bracelet-actions { gap:9px; }
+ .bracelet-send { min-width:0; width:min(100%,280px); }
+}
+@media (max-height:650px) and (min-width:650px) {
+ .bracelet-experience { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(250px,1fr); align-items:center; gap:20px; }
+ .bracelet-viewport { height:65svh; min-height:260px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .bracelet-actions,.free-flow .scene-6 .scene-heading { transition:opacity .2s; }
+}
