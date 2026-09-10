@@ -67,7 +67,7 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
       <button className="bracelet-send" onClick={depart}>触碰宝石，让星光继续</button>
       <QuickLookLink onOpen={() => setArRequested(true)} />
       <p className="bracelet-ar-note" role="status">
-        {arRequested ? '正在交给系统打开；模型约 9 MB，请稍候。' : arSupport === false ? '在 iPhone Safari 中打开，可预览到现实空间。' : '轻触打开系统预览，返回后仍停留在这里。'}
+        {arRequested ? '正在打开现实中的预览，请稍候。' : arSupport === false ? '在 iPhone Safari 中打开，可以把它放到眼前。' : '让这束光，在你眼前停一会。'}
       </p>
       {arRequested && <a className="bracelet-file-link" href="models/bracelet-ring.usdz">未打开？查看模型文件</a>}
     </div>

@@ -10,14 +10,14 @@ export function sapphireCanAdvance(elapsed: number, turned: boolean) {
 }
 export const MORSE_CODES = ['.--', '..---', '.....'];
 export const NOUNS = [
-  ['勇气', 'COURAGE', '愿你有勇气，走向每一个心之所往。'],
+  ['勇气', 'COURAGE', '愿你向前时，心里有光。'],
   ['幸运', 'LUCK', '愿生活偶尔偏心，把好事留给你。'],
-  ['惊喜', 'WONDER', '愿你总能在平常的日子里，发现新的星光。'],
-  ['平静', 'PEACE', '愿纷扰经过，而你心里仍有一片安静的海。'],
+  ['惊喜', 'WONDER', '愿平常的日子，也有意外的欢喜。'],
+  ['平静', 'PEACE', '愿喧嚣散去，你仍有自己的安静。'],
   ['爱', 'LOVE', '愿你被温柔地爱着，也自由地去爱。'],
-  ['好奇', 'CURIOSITY', '愿世界一直辽阔，你的好奇一直明亮。'],
-  ['归属', 'HOME', '愿无论走多远，总有一束光为你而亮。'],
-  ['明天', 'TOMORROW', '愿所有尚未抵达的明天，都值得期待。'],
+  ['好奇', 'CURIOSITY', '愿你总有想问的事，想去的地方。'],
+  ['归属', 'HOME', '愿你走得再远，都有一盏为你留的灯。'],
+  ['明天', 'TOMORROW', '愿明天到来时，你仍有所期待。'],
 ] as const;
 export interface Journey {
   version: 2;
@@ -32,6 +32,7 @@ export interface Journey {
   stone: boolean;
   rotation: number;
   decoded: number;
+  echoWishes?: number[];
   color: boolean;
 }
 export const fresh = (): Journey => ({
@@ -92,6 +93,12 @@ export function readSave(raw: string | null, legacy?: string | null): Journey {
         (s.stage >= 6 && s.decoded !== 3)
       )
         return fresh();
+      // Older saves have no delivery order; retain their progress. A malformed
+      // optional order must never inject wishes the player did not select.
+      if (s.echoWishes !== undefined && (!validChoices(s.echoWishes) ||
+        s.echoWishes.length !== s.decoded || !s.echoWishes.every((i: number) => s.choices.includes(i)))) {
+        delete s.echoWishes;
+      }
       return s;
     }
     const old = JSON.parse(legacy || 'null');

@@ -1,0 +1,65 @@
+/* Two shores in one continuous sky. Wishes are lights to carry, not a HUD. */
+.echo-relay { width:min(100%,640px); margin:0 auto; padding:0 8px 24px; }
+.relay-sky { position:relative; height:clamp(235px,34svh,330px); margin:10px auto 0; }
+.relay-bridge { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.relay-path,.relay-path-lit { fill:none; stroke:#c8c9e915; stroke-width:1; }
+.relay-path-lit { stroke:#f5c6e398; transition:stroke-dasharray 650ms var(--motion-ease); }
+.relay-traveler { fill:#ffe4f4; filter:drop-shadow(0 0 5px #ffb3de); }
+.relay-far { position:absolute; left:77.2%; top:18.5%; transform:translate(-50%,-50%); text-align:center; }
+.relay-spark { display:block; width:40px; height:40px; margin:auto; fill:#8d9fb9; opacity:.55; transition:fill 120ms,filter 160ms,opacity 160ms; }
+.relay-spark.is-lit { fill:#fff0f9; opacity:1; filter:drop-shadow(0 0 11px #ffb3debb); }
+.relay-far > span,.relay-near > span { display:block; white-space:nowrap; font-size:12px; letter-spacing:.08em; color:#b9b4ce; }
+.relay-far > span { position:absolute; left:50%; transform:translateX(-50%); top:-24px; }
+.relay-landmarks { position:absolute; left:50%; transform:translateX(-50%); display:flex; gap:15px; color:#7b81965c; font:18px Georgia,serif; }
+.relay-landmarks i { font-style:normal; }
+.relay-landmarks .lit { color:#f3d7e9; text-shadow:0 0 12px #ffb3de44; }
+.relay-near { position:absolute; left:22.8%; top:78.8%; transform:translate(-50%,-50%); width:124px; height:108px; border:0; border-radius:50%; background:radial-gradient(ellipse,#ecbade08,transparent 65%); cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.relay-near::before { content:''; position:absolute; inset:12px 28px 28px; border:1px solid #ffb3de; border-radius:50%; opacity:calc(var(--hold)*.55); transform:scale(calc(.7 + var(--hold)*.55)); }
+.relay-near:disabled { cursor:default; opacity:1; }
+.relay-reversed .relay-near { left:77.2%; top:18.5%; }
+.relay-reversed .relay-far { left:22.8%; top:78.8%; }
+.relay-near .relay-spark { width:35px; height:35px; }
+.relay-near.is-long .relay-spark { filter:drop-shadow(0 0 18px #ffb3de); }
+.relay-near > span { margin-top:10px; }
+.relay-near:focus-visible,.wish-hand button:focus-visible { outline:1px solid #eed6e6; outline-offset:5px; }
+.relay-answer .relay-near:not(:active) { animation:relay-breathe 4s ease-in-out infinite; }
+.relay-glimpse { position:absolute; top:57%; left:44%; font:24px Georgia,serif; color:#edc3de9c; animation:shared-reveal var(--motion-reveal) both; }
+.relay-verse { display:block; min-height:3.8em; max-width:440px; margin:10px 4% 0 auto; color:#dfd1e0; font:16px/1.9 'Songti SC',serif; text-wrap:pretty; animation:shared-reveal var(--motion-reveal) var(--motion-ease) both; }
+.relay-invitation { margin:0 4% 12px; color:#b9afc6; font-size:13px; text-align:right; }
+.wish-hand { display:flex; justify-content:center; gap:clamp(8px,3vw,26px); margin:14px auto; padding:0; border:0; min-inline-size:0; }
+.wish-hand button { min-width:0; width:30%; min-height:90px; border:0; background:transparent; color:#c8bace; padding:10px 2px; transition:opacity var(--motion-release),color var(--motion-release); cursor:pointer; }
+.wish-hand button:nth-child(2) { transform:translateY(8px); }
+.wish-hand button > span { display:block; color:#ddc8e5; text-shadow:0 0 14px #ffb3de66; font-size:18px; }
+.wish-hand strong { display:block; font:16px/2 'Songti SC',serif; letter-spacing:.16em; }
+.wish-hand small { display:block; font-size:11px; line-height:1.6; white-space:nowrap; }
+.wish-hand button:disabled { opacity:.48; cursor:default; }
+.wish-hand button.carried,.wish-hand button.delivered { opacity:1; color:#efd4e5; }
+.wish-hand button.delivered > span { color:#ffb3de; }
+.relay-footsteps { display:flex; min-height:28px; gap:14px; justify-content:center; color:#9da7c042; }
+.relay-footsteps i { font:20px/1.4 Georgia,serif; transition:color 500ms; }
+.relay-footsteps .lit { color:#f5ccdf; }
+.echo-relay .relay-listen { display:block; margin:4px auto; min-height:44px; }
+.echo-relay .relay-access { max-width:390px; margin:4px auto 0; text-align:center; }
+.relay-access summary { min-height:44px; padding:12px 0; box-sizing:border-box; }
+.relay-access[open] { padding-bottom:16px; }
+.relay-access p { text-align:left; line-height:1.9; }
+.relay-access button { min-height:44px; }
+.relay-arrived { max-width:600px; margin:55px auto; padding:0 14px; animation:shared-reveal var(--motion-reveal) both; }
+.relay-address { font:clamp(46px,10vw,76px)/1.4 Georgia,serif; letter-spacing:.3em; color:#ead8e7; text-shadow:0 0 25px #ffb3de30; margin:0; }
+.free-flow .relay-arrived .reveal-copy { margin:28px 0; }
+.arrived-wishes { color:#edbad8; letter-spacing:.18em; margin:24px 0 40px; }
+.relay-arrived .continue { margin:0; }
+.is-paused.echo-relay * { animation-play-state:paused!important; }
+.free-flow .scene-5 .scene-heading h1 { font-size:clamp(22px,3vw,32px); }
+.free-flow .scene-6 .scene-heading h1 { max-width:620px; }
+@keyframes relay-breathe { 0%,100% { filter:drop-shadow(0 0 2px #ffb3de00); } 50% { filter:drop-shadow(0 0 9px #ffb3de66); } }
+@media(max-width:420px) {
+  .echo-relay { padding-inline:0; }
+  .relay-verse { font-size:15px; margin-right:0; }
+  .wish-hand small { font-size:10px; }
+  .relay-sky { margin-top:22px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .relay-answer .relay-near,.relay-glimpse,.relay-arrived,.relay-verse { animation:none; }
+  .relay-path-lit,.wish-hand button { transition:none; }
+}

@@ -12,9 +12,6 @@ import {
   Volume2,
   VolumeX,
   HelpCircle,
-  RotateCcw,
-  Play,
-  Pause,
 } from 'lucide-react';
 import {
   Dialog,
@@ -26,6 +23,8 @@ import {
 import { Starfield, WordDust } from './particles';
 import { WireBracelet } from './model';
 import { SapphireScene } from './sapphire-scene';
+import { EchoRelay } from './echo-relay';
+import { deliveredWishes } from '@/lib/echo-relay';
 import { PrismLight } from './prism-light';
 import { PassingMeteor } from './passing-meteor';
 import { MOTION, MOTION_STYLE, meteorFlight } from '@/lib/motion';
@@ -39,8 +38,6 @@ import {
   MORSE_CODES,
   NOUNS,
   PINK,
-  symbolFromHold,
-  prefixOK,
   morseTimeline,
   type Journey,
   constellationDelay,
@@ -80,21 +77,21 @@ const TRAJECTORIES = [
 ];
 const HEADINGS = [
   '',
-  '把想要的未来，聚拢。',
-  '把白光，转成你。',
-  '一瞬，或停留。',
-  '世界记住了这一天。',
-  '现在，轮到你回应。',
-  '原来星光，有这样的形状。',
+  '想带走的，留在心里。',
+  '光里，有你喜欢的颜色。',
+  '有的光一闪，有的多留一会。',
+  '这一天，你来到世上。',
+  '隔着星海，也能听见彼此。',
+  '原来，是为了来到你身边。',
 ];
 const NOTES = [
   '',
-  '拖动一团星光，让它聚成一个词。选三个就好。',
+  '轻轻拖动散落的光，留下三个愿望。',
   '慢慢转动，看看光会在哪里停留。',
-  '只需唤醒最初三颗星，余下的光会自己前行。',
-  '拨动两枚星盘，让日期停在 10 月 8 日。',
-  '看星星说话，再用你的指尖回答。',
-  '这些短与长，都是你刚刚读懂的语言。',
+  '循着闪光，看看它要去哪里。',
+  '转动星盘，找回十月八日的星光。',
+  '你带来的愿望，会在路上照亮彼此。',
+  '星星、长短的光，还有你喜欢的粉色。',
 ];
 const HINTS = [
   '',
@@ -102,7 +99,7 @@ const HINTS = [
   '慢慢转动，让分开的光重新相遇。',
   '跟随闪光触碰前三颗星，组成 W。后面的 2 和 5 会自动接续，随后进入下一幕。',
   '将两个星盘转到 10 月 8 日。星盘汇成光、织出宝石后，持续左右转动它，慢慢读出名字、天秤和粉色之间的联系；也可轻触下方按钮。',
-  '短按是点；按住 1 秒以上是划。看完一组再回应。按错可撤回，或展开“换一种方式回应”。',
+  '先轻触一个愿望。看远方的星闪完，再用下方的星回应：轻按是点，按住一秒是划。答对会自动送达，答错保留已经点亮的部分。送达的愿望仍会帮忙，它们的光可以叠在一起。不便长按时，展开“让星光再清楚一些”。',
   '点击四角星中央那颗粉色宝石，完成这封信。',
   '按住 HBD, Leah 至少 3 秒，星光会带你回到起点。',
 ];
@@ -296,12 +293,7 @@ export default function JourneyGame() {
     [words, setWords] = useState<number[]>(Array(8).fill(0)),
     [prism, setPrism] = useState(16),
     [prismScattering, setPrismScattering] = useState(false);
-  const [draft, setDraft] = useState(''),
-    [message, setMessage] = useState(''),
-    [echoIntro, setEchoIntro] = useState(true),
-    [playing, setPlaying] = useState(false),
-    [sequence, setSequence] = useState(0),
-    [hold, setHold] = useState(0);
+  const [message, setMessage] = useState('');
   const [ending, setEnding] = useState('project'),
     [charge, setCharge] = useState(0),
     [returning, setReturning] = useState(false),
@@ -320,23 +312,22 @@ export default function JourneyGame() {
       y: number;
       progress: number;
     } | null>(null);
-  const echoPress = useRef<{ start: number; pointer: number | null } | null>(
-      null,
-    ),
-    endPress = useRef<{ start: number; pointer: number | null } | null>(null),
+  const endPress = useRef<{ start: number; pointer: number | null } | null>(null),
     holdFrame = useRef(0),
     returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundRef = useRef(sound);
+  const choicesAtEntry = useRef(s.choices);
   useEffect(() => {
     soundRef.current = sound;
   }, [sound]);
+  useEffect(() => {
+    choicesAtEntry.current = s.choices;
+  }, [s.choices]);
   const patch = (v: Partial<Journey>) => setS((p) => ({ ...p, ...v }));
   const tap = () => switchTap(haptic.current, soundRef.current);
   const cancelHold = () => {
-    echoPress.current = null;
     endPress.current = null;
     cancelAnimationFrame(holdFrame.current);
-    setHold(0);
     setCharge(0);
     silence();
   };
@@ -389,22 +380,18 @@ export default function JourneyGame() {
     return () => cancelAnimationFrame(frame);
   }, [ready, boot]);
   // Reset gesture UI only on chapter entry, never during a drag or wish toggle.
-  // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (s.stage === 2) { setPrism(16); setPrismScattering(false); }
     if (s.stage === 3) setFlights(TRAJECTORIES.map(() => {
       const f = meteorFlight(); return [f.dx * 30, f.dy * 30, f.length * .65, 1100 + f.duration * .25];
     }));
     setWords(
-      s.choices.reduce((a, n) => {
+      choicesAtEntry.current.reduce((a, n) => {
         a[n] = 1;
         return a;
       }, Array(8).fill(0)),
     );
-    setDraft('');
     setMessage('');
-    setEchoIntro(true);
-    setPlaying(false);
     setModelBurst(false);
     cancelHold();
     window.scrollTo(0, 0);
@@ -413,7 +400,6 @@ export default function JourneyGame() {
     const stop = () => {
       if (document.hidden) {
         cancelHold();
-        setPlaying(false);
       }
     };
     document.addEventListener('visibilitychange', stop);
@@ -465,7 +451,7 @@ export default function JourneyGame() {
         else {
           setBridgeIndex(0);
           setBridge({
-            lines: ['你只点亮了开头，星光便替你走向更远的地方。'],
+            lines: ['有些光，记得你来时的日子。'],
             next: 4,
           });
         }
@@ -476,38 +462,6 @@ export default function JourneyGame() {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [s.stage, s.stars, boot, help, bridge]);
-  useEffect(() => {
-    if (s.stage !== 5 || !playing) return;
-    const t = morseTimeline(MORSE_CODES[Math.min(s.decoded, 2)], 333);
-    let frame = 0,
-      elapsed = 0,
-      prev = performance.now(),
-      last = -1;
-    const tick = (now: number) => {
-      elapsed += Math.min(now - prev, 80);
-      prev = now;
-      const n = t.frames.findIndex(
-        (f) => elapsed >= f.start && elapsed < f.end,
-      );
-      setPulse(n >= 0);
-      if (n >= 0 && last !== n) {
-        if (soundRef.current) tone(t.frames[n].end - t.frames[n].start);
-        last = n;
-      }
-      if (elapsed > t.duration + 800) {
-        setPlaying(false);
-        setPulse(false);
-        return;
-      }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(frame);
-      setPulse(false);
-      silence();
-    };
-  }, [playing, sequence, s.stage, s.decoded]);
   useEffect(() => {
     if (s.stage !== 7 || returning || boot) return;
     let frame = 0,
@@ -543,7 +497,6 @@ export default function JourneyGame() {
   }, [s.stage, returning, boot, sound]);
   const go = (lines: string[], next: number) => {
     cancelHold();
-    setPlaying(false);
     setBridgeIndex(0);
     setBridge({ lines, next });
   };
@@ -579,7 +532,7 @@ export default function JourneyGame() {
   useEffect(() => {
     if (s.stage !== 2 || !prismScattering || prismTime < MOTION.prismBloom || bridge) return;
     patch({ color: true });
-    go([], 3);
+    go(['原来，光也记得你喜欢的颜色。'], 3);
   }, [s.stage, prismScattering, prismTime, bridge]);
   const adjustPrism = (n: number) => {
     if (prismScattering || bridge) return;
@@ -587,39 +540,6 @@ export default function JourneyGame() {
     if (Math.abs(value - 68) <= 2 && !aligned) tap();
     setPrism(value);
   };
-  function inputSymbol(ms: number) {
-    const symbol = symbolFromHold(ms),
-      value = draft + symbol,
-      target = MORSE_CODES[s.decoded];
-    if (!target) return;
-    feedback(symbol === '.' ? 30 : 140, sound);
-    if (!prefixOK(value, target)) {
-      setMessage('这束回声没有对上。已保留之前的节奏，再试一次。');
-      return;
-    }
-    setDraft(value);
-    setMessage(value === target ? '这一组已经完整，轻触确认接通。' : '');
-  }
-  function beginEcho(pointer: number | null) {
-    if (echoPress.current || playing || s.decoded >= 3) return;
-    echoPress.current = { start: performance.now(), pointer };
-    const tick = () => {
-      if (!echoPress.current) return;
-      setHold(
-        Math.min(1, (performance.now() - echoPress.current.start) / 1000),
-      );
-      holdFrame.current = requestAnimationFrame(tick);
-    };
-    holdFrame.current = requestAnimationFrame(tick);
-  }
-  function endEcho(pointer: number | null) {
-    const p = echoPress.current;
-    if (!p || p.pointer !== pointer) return;
-    echoPress.current = null;
-    cancelAnimationFrame(holdFrame.current);
-    setHold(0);
-    inputSymbol(performance.now() - p.start);
-  }
   function returnHome() {
     cancelHold();
     setReturning(true);
@@ -719,7 +639,6 @@ export default function JourneyGame() {
                   aria-label="查看提示"
                   onClick={() => {
                     cancelHold();
-                    setPlaying(false);
                     setHelp(true);
                   }}
                 >
@@ -829,16 +748,15 @@ export default function JourneyGame() {
                           progress={words[i]}
                           selected={s.choices.includes(i)}
                         />
-                        <small>{s.choices.includes(i) ? '✧  ' + en : en}</small>
+                        <small aria-hidden="true">{s.choices.includes(i) ? '✧' : ''}</small>
                       </button>
                     ))}
                   </div>
                   <p className="choice-count">
-                    {s.choices.length} / 3{' '}
                     <span>
                       {s.replay
-                        ? '带着上次的愿望，再走一遍。'
-                        : '愿望没有正确答案。'}
+                        ? '上次留下的愿望，还在这里。'
+                        : s.choices.length === 3 ? '三个愿望，都在身边。' : '还可以留下' + ['三个', '两个', '一个'][s.choices.length] + '愿望。'}
                     </span>
                   </p>
                   <p className="live-message" role="status">
@@ -849,7 +767,7 @@ export default function JourneyGame() {
                     disabled={s.choices.length !== 3}
                     onClick={() =>
                       go(
-                        s.choices.map((i) => NOUNS[i][2]),
+                        [...s.choices.map((i) => NOUNS[i][2]), '愿望有了归处。再借一束你喜欢的光。'],
                         2,
                       )
                     }
@@ -913,8 +831,8 @@ export default function JourneyGame() {
                     {s.stars < 3
                       ? '轻触最明亮的星。'
                       : s.stars < 13
-                        ? '你已点亮开头，余下的星光正在回应。'
-                        : '一瞬成为点，停留成为线。'}
+                        ? '它们听见了，正在把光传下去。'
+                        : '一瞬是点，停留是划。'}
                   </p>
                 </>
               )}
@@ -927,7 +845,7 @@ export default function JourneyGame() {
                   </div>
                   {!s.stone && <>
                     <p className="date-whisper">
-                      {s.month === 10 && s.day === 8 ? '10 月 8 日。就是这一天，世界多了一个你。' : '时间转过四季，停在你到来的那天。'}
+                      {s.month === 10 && s.day === 8 ? '十月八日。世界从此，多了一个你。' : '时间转过四季，停在你到来的那天。'}
                     </p>
                     <button className="continue" disabled={s.month !== 10 || s.day !== 8}
                       onClick={() => { tap(); patch({ stone: true }); }}>
@@ -940,192 +858,27 @@ export default function JourneyGame() {
                 </div>
               )}
               {s.stage === 5 && (
-                <>
-                  {echoIntro && s.decoded < 3 ? (
-                    <div className="echo-intro">
-                      <Star on />
-                      <p>刚才的星星，留下了一封信。</p>
-                      <div className="press-lesson">
-                        <span>
-                          ·<small>轻按一下</small>
-                        </span>
-                        <span>
-                          —<small>按住 1 秒</small>
-                        </span>
-                      </div>
-                      <p>
-                        先看一遍闪光，
-                        <br />
-                        再把相同的节奏，轻轻按回来。
-                      </p>
-                      <button
-                        className="continue"
-                        onClick={() => {
-                          setEchoIntro(false);
-                          setPlaying(true);
-                        }}
-                      >
-                        我来回应它 <Play size={15} />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="letter-slots">
-                        {['W', '2', '5'].map((l, i) => (
-                          <span
-                            key={l}
-                            className={i < s.decoded ? 'solved' : ''}
-                          >
-                            {i < s.decoded ? l : '·'}
-                          </span>
-                        ))}
-                      </div>
-                      {s.decoded < 3 ? (
-                        <>
-                          <button
-                            className={
-                              'echo-pad ' +
-                              (pulse ? 'pulsing ' : '') +
-                              (hold >= 1 ? 'long-ready' : '')
-                            }
-                            style={{ '--hold': hold } as CSSProperties}
-                            disabled={playing}
-                            aria-label="回应星光：短按为点，按住至少一秒为划"
-                            onContextMenu={(e) => e.preventDefault()}
-                            onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.setPointerCapture(e.pointerId);
-                              beginEcho(e.pointerId);
-                            }}
-                            onPointerUp={(e) => endEcho(e.pointerId)}
-                            onPointerCancel={cancelHold}
-                            onKeyDown={(e) => {
-                              if (
-                                (e.key === ' ' || e.key === 'Enter') &&
-                                !e.repeat
-                              ) {
-                                e.preventDefault();
-                                beginEcho(null);
-                              }
-                            }}
-                            onKeyUp={(e) => {
-                              if (e.key === ' ' || e.key === 'Enter') {
-                                e.preventDefault();
-                                endEcho(null);
-                              }
-                            }}
-                          >
-                            <Star on={pulse || hold > 0} />
-                            <span>
-                              {playing
-                                ? '看星光停留多久'
-                                : hold >= 1
-                                  ? '长光已点亮，松手送出'
-                                  : hold > 0
-                                    ? '继续按住，直到 1 秒'
-                                    : '用指尖回应'}
-                            </span>
-                          </button>
-                          <div className="rhythm-draft" role="status">
-                            {draft
-                              .replaceAll('.', '· ')
-                              .replaceAll('-', '— ') || '等待你的第一束光'}
-                          </div>
-                          <p className="live-message" role="status">
-                            {message}
-                          </p>
-                          <div className="echo-actions">
-                            <button
-                              className="soft-button"
-                              onClick={() => {
-                                cancelHold();
-                                setPlaying((v) => !v);
-                                setSequence((n) => n + 1);
-                              }}
-                            >
-                              {playing ? (
-                                <Pause size={15} />
-                              ) : (
-                                <Play size={15} />
-                              )}{' '}
-                              {playing ? '暂停' : '再看一遍'}
-                            </button>
-                            <button
-                              className="soft-button"
-                              disabled={!draft || playing}
-                              onClick={() => {
-                                setDraft((v) => v.slice(0, -1));
-                                setMessage('');
-                              }}
-                            >
-                              <RotateCcw size={15} /> 撤回
-                            </button>
-                          </div>
-                          <button
-                            className="continue"
-                            disabled={
-                              draft !== MORSE_CODES[s.decoded] || playing
-                            }
-                            onClick={() => {
-                              tap();
-                              patch({ decoded: s.decoded + 1 });
-                              setDraft('');
-                              setMessage('');
-                              if (s.decoded < 2) setPlaying(true);
-                            }}
-                          >
-                            接通这一组 <ArrowRight size={16} />
-                          </button>
-                          <details className="rhythm-access">
-                            <summary>换一种方式回应</summary>
-                            <p>
-                              第 {s.decoded + 1} 组：
-                              {MORSE_CODES[s.decoded]
-                                .replaceAll('.', '· ')
-                                .replaceAll('-', '— ')}
-                            </p>
-                            <button
-                              disabled={playing}
-                              onClick={() => inputSymbol(100)}
-                            >
-                              短光 ·
-                            </button>
-                            <button
-                              disabled={playing}
-                              onClick={() => inputSymbol(1000)}
-                            >
-                              长光 —
-                            </button>
-                          </details>
-                        </>
-                      ) : (
-                        <>
-                          <p className="reveal-copy">
-                            这门短与长的语言，叫摩尔斯电码。
-                            <br />
-                            W25，从来不只是答案。
-                            <br />
-                            它还是一份礼物的形状。
-                          </p>
-                          <button
-                            className="continue"
-                            onClick={() =>
-                              go(
-                                [
-                                  '你已经见过它的每一部分。',
-                                  '现在，让它们相遇。',
-                                ],
-                                6,
-                              )
-                            }
-                          >
-                            让星光成形 <ArrowRight size={16} />
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
+                s.decoded < 3 ? <EchoRelay key={s.decoded} choices={s.choices}
+                  delivered={deliveredWishes(s.choices, s.decoded, s.echoWishes)} paused={help || boot || !!bridge}
+                  onTone={(ms) => { if (soundRef.current) tone(ms); }}
+                  onTouch={(symbol) => { if (symbol) feedback(symbol === '.' ? 30 : 140, soundRef.current); else tap(); }}
+                  onDelivered={(wish) => setS((p) => ({
+                    ...p, decoded: p.decoded + 1,
+                    echoWishes: [...deliveredWishes(p.choices, p.decoded, p.echoWishes), wish],
+                  }))} />
+                : <div className="relay-arrived">
+                  <p className="relay-address">W25</p>
+                  <p className="reveal-copy">
+                    一瞬是点，停留是划。<br />
+                    这叫摩尔斯电码。<br />
+                    你送出的三个愿望，已在这里相遇。
+                  </p>
+                  <p className="arrived-wishes">{s.choices.map((i) => NOUNS[i][0]).join(' · ')}</p>
+                  <button className="continue" onClick={() => go(
+                    ['把喜欢的颜色、到来的日子，和想带走的愿望，留在身边。'], 6)}>
+                    看看光的另一面 <ArrowRight size={16} />
+                  </button>
+                </div>
               )}
               {s.stage === 6 && (
                 <>
@@ -1155,7 +908,7 @@ export default function JourneyGame() {
                   {ending === 'hbd' && !returning && (
                     <>
                       <p className="ending-blessing">
-                        愿这些星光，往后的每一年都陪着你。
+                        {s.choices.map((i) => NOUNS[i][0]).join('、')}。<br />愿你留下的，往后的每一年都在身边。
                       </p>
                       <button
                         className="ending-hold"
@@ -1184,7 +937,7 @@ export default function JourneyGame() {
                       <p className="ending-cue">
                         {charge > 0
                           ? '星光正在回应你的指尖…'
-                          : '长按这句话 3 秒，让星光回到起点。'}
+                          : '把手指停在这句话上，让星光慢慢散开。'}
                       </p>
                       <div className="return-progress">
                         <i style={{ width: charge * 100 + '%' }} />

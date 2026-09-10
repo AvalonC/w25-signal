@@ -87,17 +87,17 @@ export function SapphireScene({ rotation, paused, onProgress, onDone, onTap }: {
     </div>
     <div className="sapphire-discovery-copy" aria-live="polite">
       {phase === 'orbits' && <p className="motion-verse">这一天的星光，正在相遇。</p>}
-      {(phase === 'light' || phase === 'weave') && <p className="motion-verse">光散作星点，又慢慢有了形状。</p>}
+      {(phase === 'light' || phase === 'weave') && <p className="motion-verse">你来时的光，还在。</p>}
       {phase === 'explore' && (entry ? <div key={discovery} className="sapphire-identity motion-verse">
         <span className="identity-overline">{entry.english}</span>
         <h2>{entry.name}</h2><p>{entry.line}</p>
       </div> : <p className="motion-verse">轻轻转动，看看光里藏着什么。</p>)}
       {phase === 'resolve' && <div className="sapphire-identity motion-verse">
         <span className="identity-overline">SAPPHIRE · LIBRA · YOUR PINK</span>
-        <h2>三件关于你的事，住进同一颗星。</h2>
-        <p>愿你一直拥有自己喜欢的颜色，也自在地成为自己。</p>
+        <h2>你的日子，你的颜色。</h2>
+        <p>愿你珍爱的，都能陪你走过新的岁月。</p>
       </div>}
-      {phase === 'depart' && <p className="motion-verse">现在，让这束光继续走向你。</p>}
+      {phase === 'depart' && <p className="motion-verse">还有三个愿望，等着一起出发。</p>}
     </div>
     <div className="sapphire-discovery-controls" inert={!active}>
       <button className="sapphire-rotate" onClick={() => rotate(.7)} disabled={!active}

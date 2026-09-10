@@ -10,7 +10,7 @@
     "build": "vinext build",
     "build:pages": "vite build --config vite.pages.config.ts && node scripts/check-pages.mjs",
     "preview:pages": "vite preview --config vite.pages.config.ts --host 0.0.0.0",
-    "test": "node --experimental-strip-types --test tests/journey.test.ts tests/scene-clock.test.mjs tests/bracelet.test.ts",
+    "test": "node --experimental-strip-types --test tests/journey.test.ts tests/scene-clock.test.mjs tests/bracelet.test.ts tests/echo-relay.test.ts tests/echo-scene.test.mjs",
     "typecheck": "tsc --noEmit",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",

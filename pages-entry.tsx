@@ -5,5 +5,6 @@ import './app/flow.css';
 import './app/atmosphere.css';
 import './app/bracelet.css';
 import './app/motion.css';
+import './app/relay.css';
 
 createRoot(document.getElementById('root')!).render(<JourneyGame />);
