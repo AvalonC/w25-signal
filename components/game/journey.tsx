@@ -23,10 +23,12 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Slider } from '@/components/ui/slider';
 import { Starfield, WordDust } from './particles';
 import { WireBracelet } from './model';
 import { SapphireScene } from './sapphire-scene';
+import { PrismLight } from './prism-light';
+import { PassingMeteor } from './passing-meteor';
+import { MOTION, MOTION_STYLE, meteorFlight } from '@/lib/motion';
 import { useVisibleClock } from './scene-clock';
 import type { StarArrival } from '@/lib/bracelet-transition';
 import {
@@ -310,14 +312,14 @@ export default function JourneyGame() {
   const [reduced, setReduced] = useState(false),
     [modelBurst, setModelBurst] = useState(false);
   const [starArrival, setStarArrival] = useState<StarArrival | null>(null);
+  const [flights, setFlights] = useState(() => TRAJECTORIES.map((p) => [...p, 1300]));
   const haptic = useRef<HTMLInputElement>(null),
     nounDrag = useRef<{
       i: number;
       x: number;
       y: number;
       progress: number;
-    } | null>(null),
-    prismDrag = useRef<number | null>(null);
+    } | null>(null);
   const echoPress = useRef<{ start: number; pointer: number | null } | null>(
       null,
     ),
@@ -390,6 +392,9 @@ export default function JourneyGame() {
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (s.stage === 2) { setPrism(16); setPrismScattering(false); }
+    if (s.stage === 3) setFlights(TRAJECTORIES.map(() => {
+      const f = meteorFlight(); return [f.dx * 30, f.dy * 30, f.length * .65, 1100 + f.duration * .25];
+    }));
     setWords(
       s.choices.reduce((a, n) => {
         a[n] = 1;
@@ -426,7 +431,7 @@ export default function JourneyGame() {
     let frame = 0,
       elapsed = 0,
       previous = performance.now();
-    const durations = bridge.lines.map(blessingDuration);
+    const durations = bridge.lines.length ? bridge.lines.map(blessingDuration) : [MOTION.release];
     const total = durations.reduce((a, b) => a + b, 0);
     const tick = (now: number) => {
       if (!document.hidden) elapsed += Math.min(now - previous, 80);
@@ -566,18 +571,15 @@ export default function JourneyGame() {
     }));
     tap();
   };
-  const aligned = Math.abs(prism - 68) <= 2,
-    color = aligned
-      ? PINK
-      : 'hsl(' + Math.round(180 + prism * 1.85) + ' 82% 77%)';
+  const aligned = Math.abs(prism - 68) <= 2;
   const prismTime = useVisibleClock(s.stage === 2 && prismScattering && !help && !boot && !bridge, s.stage);
   useEffect(() => {
     if (s.stage === 2 && aligned && !prismScattering && !boot) setPrismScattering(true);
   }, [s.stage, aligned, prismScattering, boot]);
   useEffect(() => {
-    if (s.stage !== 2 || !prismScattering || prismTime < 1800 || bridge) return;
+    if (s.stage !== 2 || !prismScattering || prismTime < MOTION.prismBloom || bridge) return;
     patch({ color: true });
-    go(['愿这抹粉色，温柔地落在你每一个日常。'], 3);
+    go([], 3);
   }, [s.stage, prismScattering, prismTime, bridge]);
   const adjustPrism = (n: number) => {
     if (prismScattering || bridge) return;
@@ -662,7 +664,7 @@ export default function JourneyGame() {
         (modelBurst ? 'bracelet-leaving ' : '') +
         (bridge ? 'bridging' : '')
       }
-      style={{ '--pink': PINK } as CSSProperties}
+      style={{ '--pink': PINK, ...MOTION_STYLE } as CSSProperties}
     >
       <Starfield
         text={boot ? '' : text}
@@ -756,7 +758,7 @@ export default function JourneyGame() {
               className={'scene scene-' + s.stage}
             >
               {s.stage < 7 && (
-                <div className="scene-heading" hidden={s.stage === 4 && s.stone}>
+                <div className="scene-heading" hidden={s.stage === 2 || (s.stage === 4 && s.stone)}>
                   <p className="chapter-mark">
                     0{s.stage} <i /> 07
                   </p>
@@ -856,122 +858,8 @@ export default function JourneyGame() {
                 </>
               )}
               {s.stage === 2 && (
-                <>
-                  <div
-                    className={
-                      'prism-scene ' +
-                      (aligned ? 'aligned ' : '') +
-                      (prismScattering ? 'scattering' : '')
-                    }
-                    style={
-                      {
-                        '--spectrum': color,
-                        '--prism-angle': (prism - 50) * 0.6 + 'deg',
-                      } as CSSProperties
-                    }
-                    onPointerDown={(e) => {
-                      if (prismScattering) return;
-                      prismDrag.current = e.clientX;
-                      e.currentTarget.setPointerCapture(e.pointerId);
-                    }}
-                    onPointerMove={(e) => {
-                      if (prismDrag.current === null) return;
-                      adjustPrism(
-                        prism + (e.clientX - prismDrag.current!) * 0.32,
-                      );
-                      prismDrag.current = e.clientX;
-                    }}
-                    onPointerUp={() => {
-                      prismDrag.current = null;
-                      if (aligned) tap();
-                    }}
-                    onPointerCancel={() => (prismDrag.current = null)}
-                  >
-                    <svg
-                      viewBox="0 0 600 360"
-                      role="img"
-                      aria-label="转动的棱镜，把白光分解成彩色光谱"
-                    >
-                      <defs>
-                        <linearGradient id="prismGlass">
-                          <stop stopColor="#abc6e4" stopOpacity=".03" />
-                          <stop
-                            offset="1"
-                            stopColor="#dce0ff"
-                            stopOpacity=".24"
-                          />
-                        </linearGradient>
-                        <linearGradient id="pinkBeam">
-                          <stop stopColor={color} stopOpacity=".65" />
-                          <stop offset="1" stopColor={color} stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M0 184 264 184"
-                        stroke="#f0eafa"
-                        strokeWidth="1"
-                      />
-                      {[0, 1, 2, 3, 4, 5].map((n) => (
-                        <path
-                          key={n}
-                          className="spectrum-ray"
-                          d={
-                            'M320 180 L600 ' +
-                            (110 + n * 28 + (prism - 68) * 1.5)
-                          }
-                          stroke={
-                            aligned
-                              ? PINK
-                              : [
-                                  '#96a9ff',
-                                  '#ab95ed',
-                                  '#ce95e7',
-                                  '#efa3d7',
-                                  '#f1b7b0',
-                                  '#d8d5a6',
-                                ][n]
-                          }
-                          strokeOpacity=".3"
-                        />
-                      ))}
-                      <path
-                        className="spectrum-glow"
-                        d="M320 180 600 138 600 235Z"
-                        fill="url(#pinkBeam)"
-                      />
-                      <g className="prism-body">
-                        <path
-                          d="M300 65 205 242 395 242Z"
-                          fill="url(#prismGlass)"
-                          stroke="#d3dcf8"
-                          strokeWidth="1"
-                        />
-                        <path
-                          d="M300 65 306 216 205 242M306 216 395 242"
-                          stroke="#d3dcf8"
-                          strokeOpacity=".4"
-                          fill="none"
-                        />
-                      </g>
-                    </svg>
-                  </div>
-                  <p className="spectrum-value">
-                    <i style={{ background: color }} />
-                    {prismScattering ? '光正在散开' : '转动，让分开的光重新相遇'}
-                  </p>
-                  <div className="spectrum-slider">
-                    <Slider
-                      aria-label="棱镜转角"
-                      disabled={prismScattering}
-                      value={[prism]}
-                      min={0}
-                      max={100}
-                      onValueChange={(v) =>
-                        adjustPrism(Array.isArray(v) ? v[0] : v)
-                      }
-                    />
-                  </div>
-                </>
+                <PrismLight value={prism} bloom={prismTime} paused={help || !!bridge || boot} locked={prismScattering}
+                  onChange={adjustPrism} />
               )}
               {s.stage === 3 && (
                 <>
@@ -986,18 +874,19 @@ export default function JourneyGame() {
                               left: x + '%',
                               top: y + '%',
                               '--star-delay': (i % 4) * 0.14 + 's',
-                              '--drift-x': TRAJECTORIES[i][0] + 'px',
-                              '--drift-y': TRAJECTORIES[i][1] + 'px',
+                              '--drift-x': flights[i][0] + 'px',
+                              '--drift-y': flights[i][1] + 'px',
+                              '--flight-time': flights[i][3] + 'ms',
                               '--trail-angle':
                                 Math.round(
                                   (Math.atan2(
-                                    TRAJECTORIES[i][1],
-                                    TRAJECTORIES[i][0],
+                                    flights[i][1],
+                                    flights[i][0],
                                   ) *
                                     180) /
                                     Math.PI,
                                 ) + 'deg',
-                              '--trail-length': TRAJECTORIES[i][2] + 'px',
+                              '--trail-length': flights[i][2] + 'px',
                             } as CSSProperties
                           }
                           className={
@@ -1348,7 +1237,7 @@ export default function JourneyGame() {
           )}
           {bridge && (
             <div className="blessing-current" role="status" aria-live="polite">
-              <p
+              {bridge.lines.length > 0 && <p
                 key={bridgeIndex}
                 style={
                   {
@@ -1358,10 +1247,8 @@ export default function JourneyGame() {
                 }
               >
                 {bridge.lines[bridgeIndex]}
-              </p>
-              <span className="passing-star" aria-hidden="true">
-                ✧
-              </span>
+              </p>}
+              <PassingMeteor paused={help} />
             </div>
           )}
           {!saveOK && (

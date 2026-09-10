@@ -1,3 +1,4 @@
+import { MOTION } from './motion.ts';
 export const PINK = '#ffb3de';
 export const SAPPHIRE_QUOTES = [
   '愿你像蓝宝石一样，温柔，也坚韧。',
@@ -5,7 +6,7 @@ export const SAPPHIRE_QUOTES = [
   '愿十月八日的星光，年年都为你而亮。',
 ] as const;
 export function sapphireCanAdvance(elapsed: number, turned: boolean) {
-  return turned && elapsed >= 4600;
+  return turned && elapsed >= MOTION.blessing;
 }
 export const MORSE_CODES = ['.--', '..---', '.....'];
 export const NOUNS = [

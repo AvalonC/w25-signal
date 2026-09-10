@@ -1,0 +1,39 @@
+.cosmos { --motion-reveal:1800ms; --motion-release:1800ms; --motion-ease:cubic-bezier(.22,.61,.36,1); }
+.free-flow .scene { animation:shared-reveal var(--motion-reveal) var(--motion-ease) both; transition:opacity var(--motion-release) var(--motion-ease),filter var(--motion-release) var(--motion-ease); }
+.free-flow.bridging .scene { animation:none; opacity:0; filter:blur(2px); }
+.free-flow .scene-heading[hidden] {display:none;}
+.free-flow .scene-2 {display:grid;place-items:center;padding:0;}
+.prism-light {width:100%;height:clamp(440px,76svh,850px);touch-action:pan-y;cursor:grab;outline-offset:-24px;}
+.prism-light:active {cursor:grabbing;}
+.prism-light canvas {width:100%;height:100%;display:block;pointer-events:none;}
+.prism-light:focus-visible {outline:1px solid #ddd7ed55;}
+.blessing-current {background:none;}
+.blessing-current p {animation:shared-prose var(--phrase-time) var(--motion-ease) both;text-shadow:0 0 20px #f1badc12;}
+.passing-meteor {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.sapphire-constellation {position:relative;max-width:760px;margin:0 auto;padding-bottom:30px;}
+.sapphire-sky {position:relative;width:100%;height:clamp(300px,45svh,480px);touch-action:pan-y;cursor:grab;}
+.sapphire-sky:active{cursor:grabbing;}
+.star-sapphire-canvas {width:100%;height:100%;display:block;pointer-events:none;}
+.rotation-guide {position:absolute;left:40%;right:40%;bottom:8%;text-align:center;color:#d5b8d1;opacity:.65;transition:opacity .8s;pointer-events:none;}
+.rotation-guide span {display:inline-block;font:24px Georgia;animation:turn-suggestion 3.6s ease-in-out infinite;}
+.rotation-guide.is-reading {opacity:0;}
+.sapphire-words {min-height:110px;display:grid;place-items:center;padding:0 18px;}
+.motion-verse {font:clamp(19px,2.8vw,26px)/2 Georgia,'Songti SC',serif;letter-spacing:.08em;color:#e4cde0;text-wrap:balance;animation:shared-reveal var(--motion-reveal) var(--motion-ease) both;}
+.sapphire-navigation {min-height:146px;opacity:0;transition:opacity var(--motion-reveal);}
+.sapphire-navigation.visible {opacity:1;}
+.sapphire-label {font-size:14px;line-height:2;color:#c2acc8;letter-spacing:.1em;}
+.sapphire-label span {display:block;font-size:13px;color:#a799b3;}
+.sapphire-rotate {min-height:48px;max-width:100%;padding:10px 18px;font-size:14px;line-height:1.8;color:#e9c9e0;border-bottom:1px solid #dcb4d333;touch-action:manipulation;}
+.sapphire-rotate:disabled {color:#b2a5ba;border-color:transparent;}
+.sapphire-steps {display:flex;justify-content:center;gap:18px;margin-top:18px;}
+.sapphire-steps i {width:4px;height:4px;border-radius:50%;background:#eee1f326;transition:background var(--motion-reveal),box-shadow var(--motion-reveal);}
+.sapphire-steps i.lit {background:#ffcee9;box-shadow:0 0 10px #ffb3de66;}
+.sapphire-constellation.is-paused * {animation-play-state:paused!important;}
+.free-flow .constellation-star .star-head {font-size:13px;}
+.free-flow .constellation-star.long.found .star-head {animation-duration:var(--flight-time,1.3s);}
+.free-flow .constellation-star.long.found .trail {animation-duration:var(--flight-time,1.3s);height:1px;opacity:.35;}
+@keyframes shared-reveal {from{opacity:0;filter:blur(2px);transform:translateY(3px)}to{opacity:1;filter:none;transform:none}}
+@keyframes shared-prose {0%{opacity:0;filter:blur(2px);transform:translateY(3px)}26%,76%{opacity:1;filter:none;transform:none}100%{opacity:0;filter:blur(2px);transform:translateY(-3px)}}
+@keyframes turn-suggestion {0%,100%{transform:translateX(-9px);opacity:.35}50%{transform:translateX(9px);opacity:.8}}
+@media(max-width:600px){.sapphire-words{min-height:120px;padding:0 8px;}.sapphire-sky{height:350px;max-height:45svh;}.sapphire-rotate{font-size:14px;}}
+@media(prefers-reduced-motion:reduce){.free-flow .scene,.motion-verse{animation:shared-reveal .25s linear both;}.blessing-current p{animation:none;filter:none;transform:none;opacity:1;}.rotation-guide span{animation:none;}.passing-meteor{display:none;}}
