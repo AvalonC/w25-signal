@@ -101,7 +101,7 @@ const HINTS = [
   '按住词的星光并拖动，让它聚拢。选满三个继续。键盘可用 Enter 聚拢并选择。',
   '慢慢转动，让分开的光重新相遇。',
   '跟随闪光触碰前三颗星，组成 W。后面的 2 和 5 会自动接续，随后进入下一幕。',
-  '拖动两个星盘到 10 月 8 日，也可以点击加减。得到宝石后，拖动它发现三道光。',
+  '将两个星盘转到 10 月 8 日。星盘汇成光、织出宝石后，持续左右转动它，慢慢读出名字、天秤和粉色之间的联系；也可轻触下方按钮。',
   '短按是点；按住 1 秒以上是划。看完一组再回应。按错可撤回，或展开“换一种方式回应”。',
   '点击四角星中央那颗粉色宝石，完成这封信。',
   '按住 HBD, Leah 至少 3 秒，星光会带你回到起点。',
@@ -758,7 +758,8 @@ export default function JourneyGame() {
               className={'scene scene-' + s.stage}
             >
               {s.stage < 7 && (
-                <div className="scene-heading" hidden={s.stage === 2 || (s.stage === 4 && s.stone)}>
+                <div className={'scene-heading ' + (s.stage === 4 && s.stone ? 'date-heading-released' : '')}
+                  hidden={s.stage === 2} aria-hidden={s.stage === 4 && s.stone}>
                   <p className="chapter-mark">
                     0{s.stage} <i /> 07
                   </p>
@@ -918,60 +919,25 @@ export default function JourneyGame() {
                 </>
               )}
               {s.stage === 4 && (
-                <>
-                  {!s.stone ? (
-                    <>
-                      <div className="date-wheels">
-                        <Dial
-                          label="月"
-                          value={s.month}
-                          max={12}
-                          kind="month"
-                          onChange={(n) => {
-                            patch({ month: n });
-                            tap();
-                          }}
-                        />
-                        <span className="date-dot">·</span>
-                        <Dial
-                          label="日"
-                          value={s.day}
-                          max={31}
-                          kind="day"
-                          onChange={(n) => {
-                            patch({ day: n });
-                            tap();
-                          }}
-                        />
-                      </div>
-                      <p className="date-whisper">
-                        {s.month === 10 && s.day === 8
-                          ? '10 月 8 日。就是这一天，世界多了一个你。'
-                          : '时间转过四季，停在你到来的那天。'}
-                      </p>
-                      <button
-                        className="continue"
-                        disabled={s.month !== 10 || s.day !== 8}
-                        onClick={() => {
-                          tap();
-                          patch({ stone: true });
-                        }}
-                      >
-                        拾起这一天的星光 <ArrowRight size={16} />
-                      </button>
-                    </>
-                  ) : (
-                    <SapphireScene
-                      rotation={s.rotation}
-                      paused={help || boot || !!bridge}
-                      onProgress={(rotation) => patch({ rotation })}
-                      onTap={tap}
-                      onDone={() => {
-                        patch({ rotation: 150, stage: 5 });
-                      }}
-                    />
-                  )}
-                </>
+                <div className={'birth-chapter ' + (s.stone ? 'is-unveiling' : '')}>
+                  <div className="date-wheels" inert={s.stone} aria-hidden={s.stone}>
+                    <Dial label="月" value={s.month} max={12} kind="month" onChange={(n) => { patch({ month: n }); tap(); }} />
+                    <span className="date-dot">·</span>
+                    <Dial label="日" value={s.day} max={31} kind="day" onChange={(n) => { patch({ day: n }); tap(); }} />
+                  </div>
+                  {!s.stone && <>
+                    <p className="date-whisper">
+                      {s.month === 10 && s.day === 8 ? '10 月 8 日。就是这一天，世界多了一个你。' : '时间转过四季，停在你到来的那天。'}
+                    </p>
+                    <button className="continue" disabled={s.month !== 10 || s.day !== 8}
+                      onClick={() => { tap(); patch({ stone: true }); }}>
+                      拾起这一天的星光 <ArrowRight size={16} />
+                    </button>
+                  </>}
+                  {s.stone && <SapphireScene rotation={s.rotation} paused={help || boot || !!bridge}
+                    onProgress={(rotation) => patch({ rotation })} onTap={tap}
+                    onDone={() => { patch({ rotation: 150, stage: 5 }); }} />}
+                </div>
               )}
               {s.stage === 5 && (
                 <>

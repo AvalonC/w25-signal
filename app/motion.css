@@ -11,6 +11,26 @@
 .blessing-current p {animation:shared-prose var(--phrase-time) var(--motion-ease) both;text-shadow:0 0 20px #f1badc12;}
 .passing-meteor {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .sapphire-constellation {position:relative;max-width:760px;margin:0 auto;padding-bottom:30px;}
+.birth-chapter {position:relative;display:flow-root;}
+.birth-chapter > .continue {margin:28px auto;}
+.free-flow .scene-heading.date-heading-released {opacity:0;pointer-events:none;transition:opacity var(--motion-release);}
+.birth-chapter.is-unveiling > .date-wheels {position:absolute;top:0;left:0;right:0;width:100%;z-index:2;pointer-events:none;}
+.birth-chapter.is-unveiling > .date-wheels .dial-block:first-child {animation:month-becomes-light 3800ms var(--motion-ease) both;transform-origin:center;}
+.birth-chapter.is-unveiling > .date-wheels .dial-block:last-child {animation:day-becomes-light 3800ms var(--motion-ease) both;transform-origin:center;}
+.birth-chapter.is-unveiling > .date-wheels .dial-arrows,
+.birth-chapter.is-unveiling > .date-wheels .dial-label {opacity:0;transition:opacity .6s;}
+.birth-chapter:has(.is-paused) > .date-wheels * {animation-play-state:paused!important;}
+.sapphire-discovery-copy {min-height:190px;padding:0 16px;display:grid;place-items:center;}
+.sapphire-identity h2 {font:inherit;font-size:clamp(22px,3vw,29px);margin:10px 0 12px;}
+.sapphire-identity p {font-size:16px;line-height:2.1;color:#c6b7ce;margin:0;max-width:450px;}
+.identity-overline {display:block;font:11px/2.2 Georgia;letter-spacing:.18em;color:#a2adc6;}
+.sapphire-discovery-controls {min-height:106px;text-align:center;}
+.sapphire-discovery-controls[inert] {visibility:hidden;}
+.sapphire-keepsakes {display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:20px auto 0;font-size:13px;color:#b7b9cb;}
+.sapphire-keepsakes span {animation:shared-reveal var(--motion-reveal) var(--motion-ease) both;}
+.sapphire-keepsakes .pink-keepsake {color:#ffb3de;}
+@keyframes month-becomes-light {0%,12%{transform:translate(0,-25px) rotate(0);opacity:1;filter:none}55%{opacity:.65}100%{transform:translate(var(--orbit-to-x,65%),var(--orbit-to-y,22px)) rotate(140deg) scale(.025);opacity:0;filter:blur(3px)}}
+@keyframes day-becomes-light {0%,12%{transform:translate(0,55px) rotate(0);opacity:1;filter:none}55%{opacity:.65}100%{transform:translate(var(--orbit-to-x,-65%),var(--orbit-to-y,-48px)) rotate(-140deg) scale(.025);opacity:0;filter:blur(3px)}}
 .sapphire-sky {position:relative;width:100%;height:clamp(300px,45svh,480px);touch-action:pan-y;cursor:grab;}
 .sapphire-sky:active{cursor:grabbing;}
 .star-sapphire-canvas {width:100%;height:100%;display:block;pointer-events:none;}
@@ -37,3 +57,5 @@
 @keyframes turn-suggestion {0%,100%{transform:translateX(-9px);opacity:.35}50%{transform:translateX(9px);opacity:.8}}
 @media(max-width:600px){.sapphire-words{min-height:120px;padding:0 8px;}.sapphire-sky{height:350px;max-height:45svh;}.sapphire-rotate{font-size:14px;}}
 @media(prefers-reduced-motion:reduce){.free-flow .scene,.motion-verse{animation:shared-reveal .25s linear both;}.blessing-current p{animation:none;filter:none;transform:none;opacity:1;}.rotation-guide span{animation:none;}.passing-meteor{display:none;}}
+@media(prefers-reduced-motion:reduce){.birth-chapter.is-unveiling>.date-wheels .dial-block:first-child,.birth-chapter.is-unveiling>.date-wheels .dial-block:last-child{animation:orbit-soft-fade 3800ms ease both;}}
+@keyframes orbit-soft-fade{from{opacity:1}to{opacity:0}}

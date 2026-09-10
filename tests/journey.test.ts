@@ -1,5 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { nextSapphireDiscovery, DISCOVERY_READ_MS } from '../lib/sapphire-discovery.ts';
+
+test('continuous turning reveals meanings in order without skipping their reading time', () => {
+  assert.equal(nextSapphireDiscovery(-1, .2, 9000), -1);
+  assert.equal(nextSapphireDiscovery(-1, .42, 0), 0);
+  assert.equal(nextSapphireDiscovery(-1, 30, 9000), 0, 'one fast turn cannot reveal all three at once');
+  assert.equal(nextSapphireDiscovery(0, 30, DISCOVERY_READ_MS - 1), 0);
+  assert.equal(nextSapphireDiscovery(0, 1.45, DISCOVERY_READ_MS), 1);
+  assert.equal(nextSapphireDiscovery(1, 2, 9000), 1, 'more interaction is required for colour');
+  assert.equal(nextSapphireDiscovery(1, 2.65, DISCOVERY_READ_MS), 2);
+  assert.equal(nextSapphireDiscovery(2, 100, 10000), 2);
+});
 import {
   fresh,
   readSave,
