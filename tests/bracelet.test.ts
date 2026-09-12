@@ -15,6 +15,9 @@ test('Quick Look is a native image-only anchor; label cannot intercept the click
   assert.equal(link.props.children.type, 'img', 'No span/text siblings inside a Quick Look anchor');
   assert.ok(isValidElement(label)); assert.equal(label.type, 'span');
   link.props.onClick(); assert.equal(opened, 1);
+  assert.match(link.props['aria-label'], /Apple AR Quick Look/);
+  assert.equal(link.props.children.props.width, 80);
+  assert.equal(label.props.children, '在现实中看一看');
 });
 
 test('solid fades into a held star silhouette before any scattering or chapter change', () => {

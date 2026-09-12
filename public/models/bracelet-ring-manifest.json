@@ -1,9 +1,17 @@
 {
-  "source": "silver_pink_bracelet_v3.blend",
-  "objects": 288,
-  "evaluatedVertices": 141478,
-  "evaluatedPolygons": 144520,
-  "ringRadiusMm": 28.05640751697658,
+  "revision": "GU1893-v6",
+  "source": "GU1893_factory_v6.blend",
+  "objects": 155,
+  "evaluatedVertices": 113249,
+  "evaluatedPolygons": 113411,
+  "triangles": 226234,
+  "ringRadiusMm": 23.609618018427152,
   "decimated": false,
-  "export": "bracelet-ring.glb"
+  "export": "bracelet-ring.glb",
+  "sapphire": {
+    "objects": 5,
+    "vertices": 7392,
+    "polygons": 7458,
+    "triangles": 14780
+  }
 }

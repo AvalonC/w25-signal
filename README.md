@@ -20,7 +20,7 @@ npm run build:pages
 npm run preview:pages
 ```
 
-打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址。
+打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址；手链缩略图保留原生 `rel="ar"` 链接，Apple 的 AR 标识由 iPhone Safari 自动叠加，不由项目绘制。
 
 ## 七章流程
 
@@ -57,8 +57,8 @@ npm run preview:pages
 - `components/game/scene-clock.ts`：可暂停的场景计时，防止重渲染取消转场或后台跳章。
 - `public/models/bracelet-ring.glb` / `bracelet-ring.usdz`：由原始 Blender 模型闭合成环，未减面，分别用于网页查看器和 iPhone AR Quick Look。
 - `public/images/sky-photorealistic.png`：由 imagegen 生成的拟真星空底图，动态星点仍叠加在其上。
-- `public/models/sapphire-star.glb`：从原模型完整提取的宝石及四角星镶座，10 个网格、7,162 个三角形。
-- `public/models/jewelry-metadata.json`：完整环形模型几何数量、米制尺寸与实际宝石热点位置。手链含 288 个网格，原始多边形 144,520 个，无减面。
+- `public/models/sapphire-star.glb`：来自 GU1893-v6 的完整宝石及四角星镶座，5 个网格、14,780 个三角形。
+- `public/models/jewelry-metadata.json`：GU1893-v6 完整环形模型的几何数量、米制尺寸与实际宝石热点位置。手链含 155 个网格、113,411 个原始多边形和 226,234 个三角形，未减面。
 - `docs/sapphire-redesign.md`：已实现的“星光凝成宝石”流程与模型导出说明。
 - `lib/gift-config.ts`：礼物信息记录；章节文案与交互参数在上述源文件中。
 

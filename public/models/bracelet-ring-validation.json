@@ -1,0 +1,13 @@
+{
+  "revision": "GU1893-v6",
+  "errors": [],
+  "failedChecks": [],
+  "warnings": [],
+  "sizeMeters": [
+    0.05069421976804733,
+    0.05352882295846939,
+    0.017428725957870483
+  ],
+  "triangles": 226234,
+  "deviceTested": false
+}

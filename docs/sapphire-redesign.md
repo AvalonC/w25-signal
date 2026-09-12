@@ -25,4 +25,4 @@
 blender --background --python scripts/export-jewelry.py -- /path/to/silver_pink_bracelet_v3.blend /path/to/bracelet-ring.blend
 ```
 
-第一个文件为原手链，第二个为已成环的完整 Blender 模型；省略第二个参数时读取本地 `work/bracelet-ring.blend`。源文件不随网页加载，仓库中的 GLB、USDZ 与后备图可直接使用。导出统一为米，不减面；完整手链含 288 个网格、141,478 个顶点和 144,520 个原始多边形，GLB 三角化后为 282,192 个三角形。独立宝石及镶座含 10 个网格、7,162 个三角形。
+第一个文件为原手链，第二个为已成环的完整 Blender 模型；省略第二个参数时读取本地 `work/bracelet-ring.blend`。源文件不随网页加载，仓库中的 GLB、USDZ 与后备图可直接使用。当前仓库已替换为另一个对话生成的 GU1893-v6 资源；模型文件本身未在本项目中改写。导出统一为米，不减面；完整手链含 155 个网格、113,249 个顶点和 113,411 个原始多边形，GLB 三角化后为 226,234 个三角形。独立宝石及镶座含 5 个网格、14,780 个三角形。

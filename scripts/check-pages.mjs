@@ -44,8 +44,8 @@ const ringManifest = JSON.parse(
   readFileSync(resolve(root, 'models/bracelet-ring-manifest.json'), 'utf8'),
 );
 assert.equal(ringManifest.decimated, false, 'Ring model was decimated');
-assert.ok(ringManifest.evaluatedVertices >= 140000, 'Full ring geometry missing');
-assert.ok(ringManifest.evaluatedPolygons >= 140000, 'Ring polygons missing');
+assert.ok(ringManifest.evaluatedVertices >= 110000, 'Full ring geometry missing');
+assert.ok(ringManifest.evaluatedPolygons >= 110000, 'Ring polygons missing');
 // Inspect exported geometry, not just the declared manifest. glTF triangulation
 // may split vertices at material/normal seams; compare actual triangle counts.
 function inspectGLB(name, expectedMeshes, expectedTriangles, maxSpan) {
@@ -69,14 +69,14 @@ function inspectGLB(name, expectedMeshes, expectedTriangles, maxSpan) {
   assert.ok(span > maxSpan / 2 && span < maxSpan, name + ': meter scale is incorrect');
   return gltf;
 }
-const ring = inspectGLB('bracelet-ring', 288, 282192, 0.1);
-inspectGLB('sapphire-star', 10, 7162, 0.01);
+const ring = inspectGLB('bracelet-ring', 155, 226234, 0.1);
+inspectGLB('sapphire-star', 5, 14780, 0.01);
 const metadata = JSON.parse(readFileSync(resolve(root, 'models/jewelry-metadata.json'), 'utf8'));
 assert.equal(metadata.decimated, false);
 assert.equal(metadata.units, 'meters');
 assert.equal(metadata.vertices, ringManifest.evaluatedVertices);
 assert.equal(metadata.polygons, ringManifest.evaluatedPolygons);
-assert.equal(metadata.triangles, 282192);
+assert.equal(metadata.triangles, 226234);
 const gem = ring.nodes.find((n) => n.name?.includes('four-point') && n.name.includes('brilliant'));
 assert.ok(gem, 'Original central sapphire missing');
 const gemPositions = ring.meshes[gem.mesh].primitives.map((p) => ring.accessors[p.attributes.POSITION]);
