@@ -104,8 +104,6 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
     <div className="relay-sky">
       <svg className="relay-bridge" viewBox="0 0 360 260" preserveAspectRatio="none" aria-hidden="true">
         <path d={path} className="relay-path" />
-        <path d={path} className="relay-path-lit" pathLength="1"
-          style={{ strokeDasharray: `${relay.draft.length / target.length} 1` }} />
         {relay.phase === 'cross' && <circle r="2.2" cx={x} cy={y} className="relay-traveler" />}
       </svg>
       <div className={'relay-far' + (flash >= 0 || relay.phase === 'cross' ? ' is-speaking' : '')}>
@@ -128,9 +126,6 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
         <Spark lit={hold > 0 || relay.phase === 'cross' || (flash >= 0 && flash < seed)} />
         <span>{relay.phase === 'choose' ? '你的三个愿望' : relay.phase === 'listen' ? '静静听' : relay.phase === 'cross' ? selectedName : '轻按 ·　长按 —'}</span>
       </button>
-      {glimpse && <span className="relay-glimpse" aria-label={'下一束是' + (next === '-' ? '长光' : '短光')}>
-        {next === '-' ? '—' : '·'}
-      </span>}
     </div>
     <output key={relay.phase} className="relay-verse">{verse}</output>
     {relay.phase === 'choose' && <p className="relay-invitation">轻触一个愿望，让它先走。</p>}
@@ -149,6 +144,9 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
           {i < relay.draft.length ? relay.draft[i] === '-' ? '—' : '·' : '·'}
         </i>)}
       </div>
+      {glimpse && <p className="relay-next" role="note">
+        下一束：{next === '-' ? '长光' : '短光'}
+      </p>}
       <button className="soft-button relay-listen" disabled={blocked} onClick={() => {
         cancel(); silence(); send({ type: relay.phase === 'listen' ? 'pause' : 'replay' });
       }}>{relay.phase === 'listen' ? '让光等一等' : '再听一次远方'}</button>

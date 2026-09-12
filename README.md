@@ -20,7 +20,9 @@ npm run build:pages
 npm run preview:pages
 ```
 
-打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址；手链缩略图保留原生 `rel="ar"` 链接，Apple 的 AR 标识由 iPhone Safari 自动叠加，不由项目绘制。
+打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址；入口使用原生 `rel="ar"` 链接及单一图片子元素。图片仅提供浅色底面，没有手链缩略图或自绘图标，AR 徽标由 iPhone Safari 显示；非 Safari 浏览器不会显示这个系统徽标。整行文字和图标区域均可触碰。
+
+模型、AR 文件与后备图共用 `lib/model-assets.ts` 的版本地址。替换包的 revision 变化时同步更新，避免设备继续使用上一版资源缓存。当前为 GU1893-v6，模型内容保持原替换包不变。
 
 ## 七章流程
 

@@ -87,6 +87,24 @@ test('real relay pauses under help, cancels interrupted holds, delivers once, an
     await act(() => root.update(React.createElement(EchoRelay, props)));
     await advance(6000);
     assert.deepEqual(received, [0], 'automatic arrival fires once, without a confirmation button');
+    // Reproduce the screenshot: curiosity + wonder, on the reversed second shore.
+    await act(() => root.update(React.createElement(EchoRelay, {
+      ...props, key: 'hint-regression', choices: [5, 2, 4], delivered: [5],
+    })));
+    const wonder = root.root.findAllByType('button').find((b) => b.props['aria-label']?.startsWith('惊喜。'));
+    await act(() => wonder.props.onClick());
+    await advance(8000);
+    assert.match(phase(), /relay-answer/);
+    assert.match(phase(), /relay-reversed/);
+    for (let i=0; i<2; i++) {
+      await act(() => near().props.onKeyDown(event));
+      await advance(120);
+      await act(() => near().props.onKeyUp(event));
+    }
+    const hint = root.root.findByProps({className: 'relay-next'});
+    assert.equal(hint.children.join(''), '下一束：长光');
+    assert.equal(root.root.findAllByProps({className: 'relay-glimpse'}).length, 0, 'No unlabelled dash floats in the sky');
+    assert.equal(root.root.findAllByProps({className: 'relay-path-lit'}).length, 0, 'No solid progress strip stretches between the stars');
     await act(() => root.unmount());
     assert.equal(frames.size, 0);
   } finally {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ModelSurface, type ModelSurfaceHandle } from './model-surface';
 import { BraceletStardust } from './bracelet-stardust';
 import { QuickLookLink } from './quick-look-link';
+import { BRACELET_ASSETS } from '@/lib/model-assets';
 import { useVisibleClock } from './scene-clock';
 import { braceletPhase, type CameraView, type StarArrival, type Vec3, type ViewPoint } from '@/lib/bracelet-transition';
 import metadata from '../../public/models/jewelry-metadata.json';
@@ -53,7 +54,7 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
   };
   return <section className={'bracelet-experience' + (departing ? ' is-departing' : '')} aria-label="星光手链">
     <div ref={surface} className="bracelet-viewport" style={{ '--solid-opacity': phase.solid } as CSSProperties}>
-      <ModelSurface src="models/bracelet-ring.glb" poster="model-ring-preview.png"
+      <ModelSurface src={BRACELET_ASSETS.model} poster={BRACELET_ASSETS.poster}
         label="可旋转的完整手链：四角星镶座、粉色宝石、长短银链和自然垂落的尾饰"
         orbit="18deg 55deg 115%" onReady={setLoaded} viewerRef={viewer} interactive={!departing && !paused} frozen={departing}>
         {!departing && <button slot="hotspot-gem" className="bracelet-gem-target"
@@ -69,7 +70,7 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
       <p className="bracelet-ar-note" role="status">
         {arRequested ? '正在打开现实中的预览，请稍候。' : arSupport === false ? '在 iPhone Safari 中打开，可以把它放到眼前。' : '让这束光，在你眼前停一会。'}
       </p>
-      {arRequested && <a className="bracelet-file-link" href="models/bracelet-ring.usdz">未打开？查看模型文件</a>}
+      {arRequested && <a className="bracelet-file-link" href={BRACELET_ASSETS.file}>未打开？查看模型文件</a>}
     </div>
     {departing && view && <BraceletStardust elapsed={clock} reduced={reduced} points={points} view={view}
       onPositions={(value) => { positions.current = value; }} />}

@@ -29,6 +29,7 @@ for (const path of [
   'models/bracelet-stars.json',
   'sapphire-preview.png',
   'images/sky-photorealistic.png',
+  'images/ar-quick-look-surface.svg',
 ]) {
   assert.ok(statSync(resolve(root, path)).size > 0, 'Missing asset: ' + path);
 }

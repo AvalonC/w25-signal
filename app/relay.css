@@ -2,8 +2,7 @@
 .echo-relay { width:min(100%,640px); margin:0 auto; padding:0 8px 24px; }
 .relay-sky { position:relative; height:clamp(235px,34svh,330px); margin:10px auto 0; }
 .relay-bridge { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
-.relay-path,.relay-path-lit { fill:none; stroke:#c8c9e915; stroke-width:1; }
-.relay-path-lit { stroke:#f5c6e398; transition:stroke-dasharray 650ms var(--motion-ease); }
+.relay-path { fill:none; stroke:#c8c9e938; stroke-width:1.2; stroke-linecap:round; stroke-dasharray:.1 15; }
 .relay-traveler { fill:#ffe4f4; filter:drop-shadow(0 0 5px #ffb3de); }
 .relay-far { position:absolute; left:77.2%; top:18.5%; transform:translate(-50%,-50%); text-align:center; }
 .relay-spark { display:block; width:40px; height:40px; margin:auto; fill:#8d9fb9; opacity:.55; transition:fill 120ms,filter 160ms,opacity 160ms; }
@@ -23,7 +22,7 @@
 .relay-near > span { margin-top:10px; }
 .relay-near:focus-visible,.wish-hand button:focus-visible { outline:1px solid #eed6e6; outline-offset:5px; }
 .relay-answer .relay-near:not(:active) { animation:relay-breathe 4s ease-in-out infinite; }
-.relay-glimpse { position:absolute; top:57%; left:44%; font:24px Georgia,serif; color:#edc3de9c; animation:shared-reveal var(--motion-reveal) both; }
+.relay-next { margin:6px auto 0; text-align:center; font-size:12px; line-height:1.8; color:#dbc3d7; }
 .relay-verse { display:block; min-height:3.8em; max-width:440px; margin:10px 4% 0 auto; color:#dfd1e0; font:16px/1.9 'Songti SC',serif; text-wrap:pretty; animation:shared-reveal var(--motion-reveal) var(--motion-ease) both; }
 .relay-invitation { margin:0 4% 12px; color:#b9afc6; font-size:13px; text-align:right; }
 .wish-hand { display:flex; justify-content:center; gap:clamp(8px,3vw,26px); margin:14px auto; padding:0; border:0; min-inline-size:0; }
@@ -60,6 +59,6 @@
   .relay-sky { margin-top:22px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .relay-answer .relay-near,.relay-glimpse,.relay-arrived,.relay-verse { animation:none; }
-  .relay-path-lit,.wish-hand button { transition:none; }
+  .relay-answer .relay-near,.relay-arrived,.relay-verse { animation:none; }
+  .wish-hand button { transition:none; }
 }

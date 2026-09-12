@@ -1,23 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Children, isValidElement } from 'react';
 import { braceletPhase, projectPoint, scatteredPoint, type CameraView } from '../lib/bracelet-transition.ts';
 import { QuickLookLink } from '../components/game/quick-look-link.ts';
+import { BRACELET_ASSETS, MODEL_REVISION } from '../lib/model-assets.ts';
 
 test('Quick Look is a native image-only anchor; label cannot intercept the click', () => {
   let opened = 0;
   const entry = QuickLookLink({ onOpen: () => { opened++; } });
   const [link, label] = Children.toArray((entry.props as typeof entry.props & { children: import('react').ReactNode }).children);
-  assert.ok(isValidElement<{rel: string; href: string; children: unknown; onClick: () => void}>(link));
+  assert.ok(isValidElement<{rel: string; href: string; 'aria-label': string; children: unknown; onClick: () => void}>(link));
   assert.equal(link.type, 'a'); assert.equal(link.props.rel, 'ar');
-  assert.equal(link.props.href, 'models/bracelet-ring.usdz#allowsContentScaling=0');
-  assert.ok(isValidElement(link.props.children));
+  assert.equal(link.props.href, BRACELET_ASSETS.ar);
+  assert.ok(isValidElement<{src: string; width: number}>(link.props.children));
   assert.equal(link.props.children.type, 'img', 'No span/text siblings inside a Quick Look anchor');
-  assert.ok(isValidElement(label)); assert.equal(label.type, 'span');
+  assert.ok(isValidElement<{children: string}>(label)); assert.equal(label.type, 'span');
   link.props.onClick(); assert.equal(opened, 1);
   assert.match(link.props['aria-label'], /Apple AR Quick Look/);
-  assert.equal(link.props.children.props.width, 80);
+  assert.equal(link.props.children.props.width, 56);
+  assert.equal(link.props.children.props.src, 'images/ar-quick-look-surface.svg');
+  for (const href of Object.values(BRACELET_ASSETS)) {
+    assert.equal(new URL(href, 'https://example.com/w25-signal/').searchParams.get('v'), MODEL_REVISION);
+  }
   assert.equal(label.props.children, '在现实中看一看');
+  const metadata = JSON.parse(readFileSync(new URL('../public/models/jewelry-metadata.json', import.meta.url), 'utf8'));
+  assert.equal(MODEL_REVISION, metadata.revision, 'All displayed assets must use the exported model revision');
 });
 
 test('solid fades into a held star silhouette before any scattering or chapter change', () => {
