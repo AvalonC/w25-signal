@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { Children, isValidElement } from 'react';
 import { braceletPhase, projectPoint, scatteredPoint, type CameraView } from '../lib/bracelet-transition.ts';
 import { QuickLookLink } from '../components/game/quick-look-link.ts';
@@ -19,13 +20,30 @@ test('Quick Look is a native image-only anchor; label cannot intercept the click
   link.props.onClick(); assert.equal(opened, 1);
   assert.match(link.props['aria-label'], /Apple AR Quick Look/);
   assert.equal(link.props.children.props.width, 64);
-  assert.equal(link.props.children.props.src, 'images/ar-quick-look-night.svg');
+  assert.equal(link.props.children.props.src, 'images/ar-native-transparent.png');
   for (const href of Object.values(BRACELET_ASSETS)) {
     assert.equal(new URL(href, 'https://example.com/w25-signal/').searchParams.get('v'), MODEL_REVISION);
   }
   assert.equal(label.props.children, '在现实中看一看');
   const metadata = JSON.parse(readFileSync(new URL('../public/models/jewelry-metadata.json', import.meta.url), 'utf8'));
   assert.equal(MODEL_REVISION, metadata.revision, 'All displayed assets must use the exported model revision');
+});
+
+test('native AR image has no opaque pixels covering the system badge', () => {
+  const png = readFileSync(new URL('../public/images/ar-native-transparent.png', import.meta.url));
+  assert.equal(png.subarray(1, 4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), 64);
+  assert.equal(png.readUInt32BE(20), 64);
+  assert.equal(png[24], 8); assert.equal(png[25], 6, 'RGBA image');
+  const chunks: Buffer[] = [];
+  for (let i = 8; i < png.length;) {
+    const size = png.readUInt32BE(i);
+    if (png.toString('ascii', i + 4, i + 8) === 'IDAT') chunks.push(png.subarray(i + 8, i + 8 + size));
+    i += size + 12;
+  }
+  const pixels = inflateSync(Buffer.concat(chunks));
+  assert.equal(pixels.length, 64 * (64 * 4 + 1));
+  assert.ok(pixels.every((byte) => byte === 0), 'Unfiltered RGBA pixels must all be transparent');
 });
 
 test('solid fades into a held star silhouette before any scattering or chapter change', () => {
