@@ -46,7 +46,7 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
     const rect = surface.current!.getBoundingClientRect();
     const square = Math.min(rect.width, rect.height);
     setView(viewer.current?.camera() ?? {
-      theta: 0, phi: metadata.poster.phi, radius: .145, fov: 30, orthographicSpan: metadata.poster.span,
+      theta: metadata.poster.theta, phi: metadata.poster.phi, radius: .145, fov: 30, orthographicSpan: metadata.poster.span,
       target: metadata.poster.target as Vec3, left: rect.left + (rect.width-square)/2,
       top: rect.top + (rect.height-square)/2, width: square, height: square,
     });
@@ -56,9 +56,9 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
     <div ref={surface} className="bracelet-viewport" style={{ '--solid-opacity': phase.solid } as CSSProperties}>
       <ModelSurface src={BRACELET_ASSETS.model} poster={BRACELET_ASSETS.poster}
         label="可旋转的完整手链：四角星镶座、粉色宝石、长短银链和自然垂落的尾饰"
-        orbit="18deg 55deg 115%" onReady={setLoaded} viewerRef={viewer} interactive={!departing && !paused} frozen={departing}>
+        orbit="52deg 60deg 115%" onReady={setLoaded} viewerRef={viewer} interactive={!departing && !paused} frozen={departing}>
         {!departing && <button slot="hotspot-gem" className="bracelet-gem-target"
-          data-position={metadata.hotspot.map((n) => n + 'm').join(' ')} data-normal="0 1 0"
+          data-position={metadata.hotspot.map((n) => n + 'm').join(' ')} data-normal={metadata.normal.join(' ')}
           data-visibility-attribute="visible" aria-label="触碰粉色蓝宝石，让手链化作星光"
           disabled={paused} onClick={(e) => { e.stopPropagation(); depart(); }}><span aria-hidden="true">✧</span></button>}
       </ModelSurface>

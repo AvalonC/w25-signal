@@ -1,0 +1,764 @@
+{
+  "revision": "GU1893-v6-ring-r1",
+  "method": "rigid-components",
+  "rollDegrees": 90,
+  "gemstoneFacing": "outward",
+  "sourceUnits": "millimeters",
+  "maxEdgeLengthErrorMm": 3.6627846798503727e-06,
+  "tailParts": [
+    "Terminal jump ring",
+    "Extension · oval link 01",
+    "Extension · oval link 02",
+    "Extension · oval link 03",
+    "Extension · oval link 04",
+    "Extension · oval link 05",
+    "Extension · oval link 06",
+    "Extension · oval link 07",
+    "Fan charm · domed silver pendant",
+    "Fan charm · bright raised rim",
+    "Fan charm · inset arc detail",
+    "Fan charm · suspension eye"
+  ],
+  "groups": {
+    "Chain gap 01 · link 1": {
+      "outward": [
+        0.26907652616500854,
+        -0.9631187915802002,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 01 · link 1"
+      ]
+    },
+    "Chain gap 01 · link 2": {
+      "outward": [
+        0.3211120665073395,
+        -0.9470412135124207,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 01 · link 2"
+      ]
+    },
+    "Chain gap 01 · link 3": {
+      "outward": [
+        0.37219515442848206,
+        -0.928154468536377,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 01 · link 3"
+      ]
+    },
+    "Chain gap 02 · link 1": {
+      "outward": [
+        0.5823341608047485,
+        -0.8129494786262512,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 02 · link 1"
+      ]
+    },
+    "Chain gap 02 · link 2": {
+      "outward": [
+        0.625729501247406,
+        -0.7800401449203491,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 02 · link 2"
+      ]
+    },
+    "Chain gap 02 · link 3": {
+      "outward": [
+        0.6672687530517578,
+        -0.7448170185089111,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 02 · link 3"
+      ]
+    },
+    "Chain gap 03 · link 1": {
+      "outward": [
+        0.8752278685569763,
+        -0.48371079564094543,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 03 · link 1"
+      ]
+    },
+    "Chain gap 03 · link 2": {
+      "outward": [
+        0.9002642035484314,
+        -0.4353439509868622,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 03 · link 2"
+      ]
+    },
+    "Chain gap 03 · link 3": {
+      "outward": [
+        0.922630250453949,
+        -0.38568565249443054,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 03 · link 3"
+      ]
+    },
+    "Chain gap 04 · link 1": {
+      "outward": [
+        0.9981656074523926,
+        -0.06054288521409035,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 04 · link 1"
+      ]
+    },
+    "Chain gap 04 · link 2": {
+      "outward": [
+        0.9999813437461853,
+        -0.006110526621341705,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 04 · link 2"
+      ]
+    },
+    "Chain gap 04 · link 3": {
+      "outward": [
+        0.9988309144973755,
+        0.04834004119038582,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 04 · link 3"
+      ]
+    },
+    "Chain gap 05 · link 1": {
+      "outward": [
+        0.9272747039794922,
+        0.3743816316127777,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 05 · link 1"
+      ]
+    },
+    "Chain gap 05 · link 2": {
+      "outward": [
+        0.9055172204971313,
+        0.42430952191352844,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 05 · link 2"
+      ]
+    },
+    "Chain gap 05 · link 3": {
+      "outward": [
+        0.8810737729072571,
+        0.4729788303375244,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 05 · link 3"
+      ]
+    },
+    "Chain gap 06 · link 1": {
+      "outward": [
+        0.7432422637939453,
+        0.6690223813056946,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 06 · link 1"
+      ]
+    },
+    "Chain gap 06 · link 2": {
+      "outward": [
+        0.7057167291641235,
+        0.7084941267967224,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 06 · link 2"
+      ]
+    },
+    "Chain gap 06 · link 3": {
+      "outward": [
+        0.6660979390144348,
+        0.7458643317222595,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 06 · link 3"
+      ]
+    },
+    "Chain gap 07 · link 1": {
+      "outward": [
+        0.46951451897621155,
+        0.8829247355461121,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 07 · link 1"
+      ]
+    },
+    "Chain gap 07 · link 2": {
+      "outward": [
+        0.42074957489967346,
+        0.9071768522262573,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 07 · link 2"
+      ]
+    },
+    "Chain gap 07 · link 3": {
+      "outward": [
+        0.37073659896850586,
+        0.9287380576133728,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 07 · link 3"
+      ]
+    },
+    "Chain gap 08 · link 1": {
+      "outward": [
+        0.04441647231578827,
+        0.9990131258964539,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 08 · link 1"
+      ]
+    },
+    "Chain gap 08 · link 2": {
+      "outward": [
+        -0.010038136504590511,
+        0.9999496340751648,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 08 · link 2"
+      ]
+    },
+    "Chain gap 08 · link 3": {
+      "outward": [
+        -0.06446297466754913,
+        0.9979200959205627,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 08 · link 3"
+      ]
+    },
+    "Chain gap 09 · link 1": {
+      "outward": [
+        -0.38930654525756836,
+        0.9211082458496094,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 09 · link 1"
+      ]
+    },
+    "Chain gap 09 · link 2": {
+      "outward": [
+        -0.43887659907341003,
+        0.898547351360321,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 09 · link 2"
+      ]
+    },
+    "Chain gap 09 · link 3": {
+      "outward": [
+        -0.4871448278427124,
+        0.8733211755752563,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 09 · link 3"
+      ]
+    },
+    "Chain gap 10 · link 1": {
+      "outward": [
+        -0.7474321722984314,
+        0.6643381714820862,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 10 · link 1"
+      ]
+    },
+    "Chain gap 10 · link 2": {
+      "outward": [
+        -0.7824918627738953,
+        0.6226608157157898,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 10 · link 2"
+      ]
+    },
+    "Chain gap 10 · link 3": {
+      "outward": [
+        -0.8152305483818054,
+        0.5791365504264832,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 10 · link 3"
+      ]
+    },
+    "Chain gap 11 · link 1": {
+      "outward": [
+        -0.9233692288398743,
+        0.3839130401611328,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 11 · link 1"
+      ]
+    },
+    "Chain gap 11 · link 2": {
+      "outward": [
+        -0.9429010152816772,
+        0.3330731689929962,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 11 · link 2"
+      ]
+    },
+    "Chain gap 11 · link 3": {
+      "outward": [
+        -0.9596359133720398,
+        0.28124532103538513,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 11 · link 3"
+      ]
+    },
+    "Chain gap 12 · link 1": {
+      "outward": [
+        -0.9989936351776123,
+        0.04485239461064339,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 12 · link 1"
+      ]
+    },
+    "Chain gap 12 · link 2": {
+      "outward": [
+        -0.9999539256095886,
+        -0.009601692669093609,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 12 · link 2"
+      ]
+    },
+    "Chain gap 12 · link 3": {
+      "outward": [
+        -0.9979481101036072,
+        -0.06402746587991714,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 12 · link 3"
+      ]
+    },
+    "Chain gap 13 · link 1": {
+      "outward": [
+        -0.9540583491325378,
+        -0.29962095618247986,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 13 · link 1"
+      ]
+    },
+    "Chain gap 13 · link 2": {
+      "outward": [
+        -0.9363312721252441,
+        -0.3511178493499756,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 13 · link 2"
+      ]
+    },
+    "Chain gap 13 · link 3": {
+      "outward": [
+        -0.9158268570899963,
+        -0.4015733301639557,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 13 · link 3"
+      ]
+    },
+    "Chain gap 14 · link 1": {
+      "outward": [
+        -0.7939862012863159,
+        -0.6079357862472534,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 14 · link 1"
+      ]
+    },
+    "Chain gap 14 · link 2": {
+      "outward": [
+        -0.7597111463546753,
+        -0.6502606868743896,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 14 · link 2"
+      ]
+    },
+    "Chain gap 14 · link 3": {
+      "outward": [
+        -0.7231826186180115,
+        -0.6906569004058838,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 14 · link 3"
+      ]
+    },
+    "Chain gap 15 · link 1": {
+      "outward": [
+        -0.5380949378013611,
+        -0.8428842425346375,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 15 · link 1"
+      ]
+    },
+    "Chain gap 15 · link 2": {
+      "outward": [
+        -0.49140822887420654,
+        -0.8709293603897095,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 15 · link 2"
+      ]
+    },
+    "Chain gap 15 · link 3": {
+      "outward": [
+        -0.44326382875442505,
+        -0.8963912129402161,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 15 · link 3"
+      ]
+    },
+    "Chain gap 16 · link 1": {
+      "outward": [
+        -0.21726585924625397,
+        -0.9761124849319458,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 16 · link 1"
+      ]
+    },
+    "Chain gap 16 · link 2": {
+      "outward": [
+        -0.16380153596401215,
+        -0.9864932894706726,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 16 · link 2"
+      ]
+    },
+    "Chain gap 16 · link 3": {
+      "outward": [
+        -0.10985158383846283,
+        -0.9939479827880859,
+        0.0
+      ],
+      "parts": [
+        "Chain gap 16 · link 3"
+      ]
+    },
+    "Round 01": {
+      "outward": [
+        0.48072803020477295,
+        -0.8768697381019592,
+        0.0
+      ],
+      "parts": [
+        "Round 01 · solid rounded bezel",
+        "Round 01 · terminal eye",
+        "Round 01 · terminal eye.001",
+        "Round 01 · 2.0 mm diamond"
+      ]
+    },
+    "Round 02": {
+      "outward": [
+        0.8180519342422485,
+        0.5751444101333618,
+        0.0
+      ],
+      "parts": [
+        "Round 02 · solid rounded bezel",
+        "Round 02 · terminal eye",
+        "Round 02 · terminal eye.001",
+        "Round 02 · 2.0 mm diamond"
+      ]
+    },
+    "Round 03": {
+      "outward": [
+        0.5719268321990967,
+        0.8203046321868896,
+        0.0
+      ],
+      "parts": [
+        "Round 03 · solid rounded bezel",
+        "Round 03 · terminal eye",
+        "Round 03 · terminal eye.001",
+        "Round 03 · 2.0 mm diamond"
+      ]
+    },
+    "Round 04": {
+      "outward": [
+        -0.9864217042922974,
+        0.16423214972019196,
+        0.0
+      ],
+      "parts": [
+        "Round 04 · solid rounded bezel",
+        "Round 04 · terminal eye",
+        "Round 04 · terminal eye.001",
+        "Round 04 · 2.0 mm diamond"
+      ]
+    },
+    "Round 05": {
+      "outward": [
+        -0.9830861687660217,
+        -0.183143749833107,
+        0.0
+      ],
+      "parts": [
+        "Round 05 · solid rounded bezel",
+        "Round 05 · terminal eye",
+        "Round 05 · terminal eye.001",
+        "Round 05 · 2.0 mm diamond"
+      ]
+    },
+    "Round 06": {
+      "outward": [
+        -0.8611106276512146,
+        -0.5084176063537598,
+        0.0
+      ],
+      "parts": [
+        "Round 06 · solid rounded bezel",
+        "Round 06 · terminal eye",
+        "Round 06 · terminal eye.001",
+        "Round 06 · 2.0 mm diamond"
+      ]
+    },
+    "Round 07": {
+      "outward": [
+        -0.6352153420448303,
+        -0.7723351120948792,
+        0.0
+      ],
+      "parts": [
+        "Round 07 · solid rounded bezel",
+        "Round 07 · terminal eye",
+        "Round 07 · terminal eye.001",
+        "Round 07 · 2.0 mm diamond"
+      ]
+    },
+    "Round 08": {
+      "outward": [
+        -0.332661509513855,
+        -0.9430462718009949,
+        0.0
+      ],
+      "parts": [
+        "Round 08 · solid rounded bezel",
+        "Round 08 · terminal eye",
+        "Round 08 · terminal eye.001",
+        "Round 08 · 2.0 mm diamond"
+      ]
+    },
+    "Triple bar 01": {
+      "outward": [
+        0.7822199463844299,
+        -0.6230023503303528,
+        0.0
+      ],
+      "parts": [
+        "Triple bar 01 · solid recessed setting",
+        "Triple bar 01 · flush seat 1",
+        "Triple bar 01 · flush seat 2",
+        "Triple bar 01 · flush seat 3",
+        "Triple bar 01 · terminal eye",
+        "Triple bar 01 · terminal eye.001",
+        "Triple bar 01 · 1.3 mm diamond 1",
+        "Triple bar 01 · 1.3 mm diamond 2",
+        "Triple bar 01 · 1.3 mm diamond 3"
+      ]
+    },
+    "Triple bar 02": {
+      "outward": [
+        0.9740604162216187,
+        -0.22628821432590485,
+        0.0
+      ],
+      "parts": [
+        "Triple bar 02 · solid recessed setting",
+        "Triple bar 02 · flush seat 1",
+        "Triple bar 02 · flush seat 2",
+        "Triple bar 02 · flush seat 3",
+        "Triple bar 02 · terminal eye",
+        "Triple bar 02 · terminal eye.001",
+        "Triple bar 02 · 1.3 mm diamond 1",
+        "Triple bar 02 · 1.3 mm diamond 2",
+        "Triple bar 02 · 1.3 mm diamond 3"
+      ]
+    },
+    "Triple bar 03": {
+      "outward": [
+        0.21052947640419006,
+        0.9775875210762024,
+        0.0
+      ],
+      "parts": [
+        "Triple bar 03 · solid recessed setting",
+        "Triple bar 03 · flush seat 1",
+        "Triple bar 03 · flush seat 2",
+        "Triple bar 03 · flush seat 3",
+        "Triple bar 03 · terminal eye",
+        "Triple bar 03 · terminal eye.001",
+        "Triple bar 03 · 1.3 mm diamond 1",
+        "Triple bar 03 · 1.3 mm diamond 2",
+        "Triple bar 03 · 1.3 mm diamond 3"
+      ]
+    },
+    "Triple bar 04": {
+      "outward": [
+        -0.23011237382888794,
+        0.9731640815734863,
+        0.0
+      ],
+      "parts": [
+        "Triple bar 04 · solid recessed setting",
+        "Triple bar 04 · flush seat 1",
+        "Triple bar 04 · flush seat 2",
+        "Triple bar 04 · flush seat 3",
+        "Triple bar 04 · terminal eye",
+        "Triple bar 04 · terminal eye.001",
+        "Triple bar 04 · 1.3 mm diamond 1",
+        "Triple bar 04 · 1.3 mm diamond 2",
+        "Triple bar 04 · 1.3 mm diamond 3"
+      ]
+    },
+    "Triple bar 05": {
+      "outward": [
+        -0.626069962978363,
+        0.7797669172286987,
+        0.0
+      ],
+      "parts": [
+        "Triple bar 05 · solid recessed setting",
+        "Triple bar 05 · flush seat 1",
+        "Triple bar 05 · flush seat 2",
+        "Triple bar 05 · flush seat 3",
+        "Triple bar 05 · terminal eye",
+        "Triple bar 05 · terminal eye.001",
+        "Triple bar 05 · 1.3 mm diamond 1",
+        "Triple bar 05 · 1.3 mm diamond 2",
+        "Triple bar 05 · 1.3 mm diamond 3"
+      ]
+    },
+    "Pink four-point star": {
+      "outward": [
+        0.9767530560493469,
+        0.21436768770217896,
+        0.0
+      ],
+      "parts": [
+        "Pink four-point star · concave finished setting",
+        "Pink four-point star · continuous setting lip",
+        "Pink four-point star · terminal eye",
+        "Pink four-point star · terminal eye.001",
+        "Pink four-point star · round rose brilliant"
+      ]
+    },
+    "Pink oval": {
+      "outward": [
+        -0.8747630715370178,
+        0.48455095291137695,
+        0.0
+      ],
+      "parts": [
+        "Pink oval · terminal eye",
+        "Pink oval · terminal eye.001",
+        "Pink oval · thin continuous gemstone seat",
+        "Pink oval · rounded lower cradle",
+        "Pink oval · curved lateral support",
+        "Pink oval · curved lateral support.001",
+        "Pink oval · seated pink sapphire"
+      ]
+    },
+    "Lobster clasp": {
+      "outward": [
+        0.10520841181278229,
+        -0.9944502115249634,
+        0.0
+      ],
+      "parts": [
+        "Lobster clasp · hollow teardrop shell",
+        "Lobster clasp · spring gate",
+        "Lobster clasp · gate pivot",
+        "Lobster clasp · gate seam",
+        "Lobster clasp · thumb lever",
+        "Lobster clasp · terminal bail"
+      ]
+    },
+    "Tail assembly": {
+      "outward": [
+        -1.2246468525851679e-16,
+        -1.0,
+        0.0
+      ],
+      "parts": [
+        "Terminal jump ring",
+        "Extension · oval link 01",
+        "Extension · oval link 02",
+        "Extension · oval link 03",
+        "Extension · oval link 04",
+        "Extension · oval link 05",
+        "Extension · oval link 06",
+        "Extension · oval link 07",
+        "Fan charm · domed silver pendant",
+        "Fan charm · bright raised rim",
+        "Fan charm · inset arc detail",
+        "Fan charm · suspension eye"
+      ]
+    }
+  }
+}

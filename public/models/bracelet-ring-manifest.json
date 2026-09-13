@@ -1,11 +1,11 @@
 {
-  "revision": "GU1893-v6",
+  "revision": "GU1893-v6-ring-r1",
   "source": "GU1893_factory_v6.blend",
   "objects": 155,
   "evaluatedVertices": 113249,
   "evaluatedPolygons": 113411,
   "triangles": 226234,
-  "ringRadiusMm": 23.609618018427152,
+  "ringRadiusMm": 22.911945097521794,
   "decimated": false,
   "export": "bracelet-ring.glb",
   "sapphire": {

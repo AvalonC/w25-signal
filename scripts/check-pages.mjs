@@ -20,6 +20,7 @@ for (const path of [
   'models/bracelet-wire.json',
   'models/bracelet-ring.glb',
   'models/bracelet-ring-manifest.json',
+  'models/bracelet-assembly-validation.json',
   'models/bracelet-ring.usdz',
   'models/bracelet.usdz',
   'model-poster.svg',
@@ -29,7 +30,7 @@ for (const path of [
   'models/bracelet-stars.json',
   'sapphire-preview.png',
   'images/sky-photorealistic.png',
-  'images/ar-quick-look-surface.svg',
+  'images/ar-quick-look-night.svg',
 ]) {
   assert.ok(statSync(resolve(root, path)).size > 0, 'Missing asset: ' + path);
 }
@@ -49,7 +50,7 @@ assert.ok(ringManifest.evaluatedVertices >= 110000, 'Full ring geometry missing'
 assert.ok(ringManifest.evaluatedPolygons >= 110000, 'Ring polygons missing');
 // Inspect exported geometry, not just the declared manifest. glTF triangulation
 // may split vertices at material/normal seams; compare actual triangle counts.
-function inspectGLB(name, expectedMeshes, expectedTriangles, maxSpan) {
+function inspectGLB(name, expectedMeshes, expectedTriangles, minSpan, maxSpan) {
   const bytes = readFileSync(resolve(root, 'models', name + '.glb'));
   assert.equal(bytes.toString('utf8', 0, 4), 'glTF');
   assert.equal(bytes.readUInt32LE(4), 2);
@@ -67,12 +68,26 @@ function inspectGLB(name, expectedMeshes, expectedTriangles, maxSpan) {
   const positions = primitives.map((p) => gltf.accessors[p.attributes.POSITION]);
   const span = Math.max(...[0, 1, 2].map((i) =>
     Math.max(...positions.map((p) => p.max[i])) - Math.min(...positions.map((p) => p.min[i]))));
-  assert.ok(span > maxSpan / 2 && span < maxSpan, name + ': meter scale is incorrect');
+  assert.ok(span > minSpan && span < maxSpan, name + ': meter scale is incorrect');
   return gltf;
 }
-const ring = inspectGLB('bracelet-ring', 155, 226234, 0.1);
-inspectGLB('sapphire-star', 5, 14780, 0.01);
+// The tail now hangs down instead of widening the ring in its plane.
+const ring = inspectGLB('bracelet-ring', 155, 226234, 0.04, 0.06);
+inspectGLB('sapphire-star', 5, 14780, 0.005, 0.01);
 const metadata = JSON.parse(readFileSync(resolve(root, 'models/jewelry-metadata.json'), 'utf8'));
+const assembly = JSON.parse(readFileSync(resolve(root, 'models/bracelet-assembly-validation.json'), 'utf8'));
+assert.equal(assembly.revision, metadata.revision);
+assert.equal(ringManifest.revision, metadata.revision);
+assert.equal(assembly.method, 'rigid-components');
+assert.equal(assembly.rollDegrees, 90);
+assert.equal(assembly.gemstoneFacing, 'outward');
+assert.ok(assembly.maxEdgeLengthErrorMm < .0001, 'Assembly stretched the source jewelry');
+assert.equal(assembly.tailParts.filter((name) => name.startsWith('Fan charm')).length, 4,
+  'Fan, rim, detail and eye must move together');
+assert.ok(Math.abs(Math.hypot(...metadata.normal) - 1) < .00001);
+assert.ok(Math.abs(metadata.normal[1]) < .00001, 'Gem must face outward, not up');
+assert.ok(metadata.hotspot[0] * metadata.normal[0] + metadata.hotspot[2] * metadata.normal[2] > .02,
+  'Gem hotspot normal must face away from the wrist');
 assert.equal(metadata.decimated, false);
 assert.equal(metadata.units, 'meters');
 assert.equal(metadata.vertices, ringManifest.evaluatedVertices);
@@ -87,6 +102,7 @@ for (let i = 0; i < 3; i++) {
 }
 const stars = JSON.parse(readFileSync(resolve(root, 'models/bracelet-stars.json'), 'utf8'));
 assert.equal(stars.effectOnly, true);
+assert.equal(stars.revision, metadata.revision, 'Star transition must follow the current model');
 assert.equal(stars.points.length, 1050);
 assert.ok(stars.points.every((p) => p.length === 3 && p.every((n) => Number.isFinite(n) && Math.abs(n) < .1)));
 // Tail must fall below the ring's plane, with the pendant lower than its bail.

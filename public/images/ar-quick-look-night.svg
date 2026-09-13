@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Neutral backing only; the AR glyph is supplied by Safari. -->
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="18" fill="#181622" stroke="#89738c" stroke-opacity=".65" stroke-width="1.5"/>
+</svg>

@@ -1,6 +1,6 @@
 // Change the URL when replacing a model so Safari cannot reuse an older asset.
-// The versioned links all refer to the same unmodified GU1893-v6 export pack.
-export const MODEL_REVISION = 'GU1893-v6';
+// V6 parts, rigidly assembled with outward-facing stones and an intact fan.
+export const MODEL_REVISION = 'GU1893-v6-ring-r1';
 export const BRACELET_ASSETS = {
   model: `models/bracelet-ring.glb?v=${MODEL_REVISION}`,
   poster: `model-ring-preview.png?v=${MODEL_REVISION}`,

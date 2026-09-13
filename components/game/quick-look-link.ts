@@ -4,7 +4,7 @@ import { BRACELET_ASSETS } from '../../lib/model-assets.ts';
 
 export function QuickLookLink({ onOpen }: { onOpen: () => void }) {
   // Safari's rel=ar contract: exactly one direct img/picture child. Safari
-  // supplies the native AR badge over a plain light surface. No product
+  // supplies the native AR badge over a quiet dark surface. No product
   // thumbnail or hand-drawn AR logo competes with the system badge.
   return createElement('div', { className: 'bracelet-ar-entry' },
     createElement('a', {
@@ -12,7 +12,7 @@ export function QuickLookLink({ onOpen }: { onOpen: () => void }) {
       href: BRACELET_ASSETS.ar,
       'aria-label': '在现实中查看手链（Apple AR Quick Look）', onClick: onOpen,
     }, createElement('img', {
-      src: 'images/ar-quick-look-surface.svg', alt: '在现实中查看手链', width: 56, height: 56,
+      src: 'images/ar-quick-look-night.svg', alt: '在现实中查看手链', width: 64, height: 64,
     })),
     createElement('span', { className: 'bracelet-ar-label', 'aria-hidden': true },
       '在现实中看一看'),

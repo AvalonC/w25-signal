@@ -20,9 +20,9 @@ npm run build:pages
 npm run preview:pages
 ```
 
-打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址；入口使用原生 `rel="ar"` 链接及单一图片子元素。图片仅提供浅色底面，没有手链缩略图或自绘图标，AR 徽标由 iPhone Safari 显示；非 Safari 浏览器不会显示这个系统徽标。整行文字和图标区域均可触碰。
+打开 http://localhost:4173/w25-signal/ 。同一 Wi-Fi 下可以把 localhost 换成电脑的局域网地址，在 iPhone 上测试。AR Quick Look 请优先使用部署后的 HTTPS 地址；入口使用原生 `rel="ar"` 链接及单一图片子元素。图片仅提供深紫灰色底面，没有手链缩略图或自绘图标，AR 徽标由 iPhone Safari 显示；非 Safari 浏览器不会显示这个系统徽标。整行文字和图标区域均可触碰。
 
-模型、AR 文件与后备图共用 `lib/model-assets.ts` 的版本地址。替换包的 revision 变化时同步更新，避免设备继续使用上一版资源缓存。当前为 GU1893-v6，模型内容保持原替换包不变。
+模型、AR 文件与后备图共用 `lib/model-assets.ts` 的版本地址。替换包的 revision 变化时同步更新，避免设备继续使用上一版资源缓存。当前为 `GU1893-v6-ring-r1`：从 V6 展开模型重新组装，镶座和宝石一起旋转 90° 朝向环外，扇形尾饰作为完整组件下垂；所有部件只做刚性变换，保留形状和全部面数。
 
 ## 七章流程
 
@@ -33,7 +33,7 @@ npm run preview:pages
 3. **星轨**：只触碰前三颗星组成 W；2 和 5 自动以长短光延续，随后自动转场。长光移动并留下拖尾。
 4. **纪念日**：双转盘到 **10 月 8 日**，两枚星盘旋转汇光，光散作星点，再连成宝石线框。持续转动逐渐发现“蓝宝石”“天秤与生日”“最爱的粉色”；每段含义留有阅读时间，再自然汇成祝福并进入回声。蓝宝石是这份礼物指定的诞生纪念，不按月份自动推算宝石。
 5. **回声**：让三个愿望依次渡过星海。轻触愿望决定先后，它们会捎去开头的光、放慢来信或留下下一束光的轮廓；送达后仍继续帮助后面的愿望，效果可以组合。两端星光轮流来信与回应，第二程交换两岸视角。保留短按 / 至少 1 秒长按；每组答对自动送达，逐步读出 W25。答错保留已亮的部分，可重听，也可展开提示用短/长按钮回应。
-6. **成形**：呈现由原始 Blender 完整几何弯成的闭合环形手链。保留全部网格和材质，拖动查看，点击环上的粉色蓝宝石。另有环形 USDZ 的 AR Quick Look 入口。
+6. **成形**：呈现由原始 Blender 完整部件连接成的闭合环形手链。保留全部网格和材质，拖动查看，点击环上的粉色蓝宝石。另有环形 USDZ 的 AR Quick Look 入口。
 7. **回信**：模型淡出，星光自然重排为 Project W25 并停留，再直接变成 HBD, Leah。开场选出的三个愿望写进最后的祝福。背景旋律采用轻柔的《Happy Birthday》音型；按住文字至少 3 秒，激发闪光并散回首页。
 
 按最新确认取消实物交付等待。体验可自主停留，不用倒计时强制凑满 15–20 分钟；实际时长需由真人试用校准。
@@ -60,7 +60,8 @@ npm run preview:pages
 - `public/models/bracelet-ring.glb` / `bracelet-ring.usdz`：由原始 Blender 模型闭合成环，未减面，分别用于网页查看器和 iPhone AR Quick Look。
 - `public/images/sky-photorealistic.png`：由 imagegen 生成的拟真星空底图，动态星点仍叠加在其上。
 - `public/models/sapphire-star.glb`：来自 GU1893-v6 的完整宝石及四角星镶座，5 个网格、14,780 个三角形。
-- `public/models/jewelry-metadata.json`：GU1893-v6 完整环形模型的几何数量、米制尺寸与实际宝石热点位置。手链含 155 个网格、113,411 个原始多边形和 226,234 个三角形，未减面。
+- `public/models/jewelry-metadata.json`：完整环形模型的几何数量、米制尺寸、实际宝石热点及朝外法线。手链含 155 个网格、113,411 个原始多边形和 226,234 个三角形，未减面。
+- `scripts/export-jewelry.py` / `scripts/ring_assembly.py`：从 V6 展开模型按完整部件组装，禁止逐顶点弯曲；导出同步的 GLB、USDZ、后备图和星光采样。`public/models/bracelet-assembly-validation.json` 记录全部部件的刚性变换及边长误差。
 - `docs/sapphire-redesign.md`：已实现的“星光凝成宝石”流程与模型导出说明。
 - `lib/gift-config.ts`：礼物信息记录；章节文案与交互参数在上述源文件中。
 

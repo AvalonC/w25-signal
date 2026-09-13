@@ -18,8 +18,8 @@ test('Quick Look is a native image-only anchor; label cannot intercept the click
   assert.ok(isValidElement<{children: string}>(label)); assert.equal(label.type, 'span');
   link.props.onClick(); assert.equal(opened, 1);
   assert.match(link.props['aria-label'], /Apple AR Quick Look/);
-  assert.equal(link.props.children.props.width, 56);
-  assert.equal(link.props.children.props.src, 'images/ar-quick-look-surface.svg');
+  assert.equal(link.props.children.props.width, 64);
+  assert.equal(link.props.children.props.src, 'images/ar-quick-look-night.svg');
   for (const href of Object.values(BRACELET_ASSETS)) {
     assert.equal(new URL(href, 'https://example.com/w25-signal/').searchParams.get('v'), MODEL_REVISION);
   }
