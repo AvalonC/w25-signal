@@ -6,5 +6,11 @@ import './app/atmosphere.css';
 import './app/bracelet.css';
 import './app/motion.css';
 import './app/relay.css';
+import './app/path-sky.css';
+import './app/path-journey.css';
+import './app/date-motion.css';
+import './app/journey-continuity.css';
+import './app/sapphire-discovery.css';
+import './app/path-closure.css';
 
 createRoot(document.getElementById('root')!).render(<JourneyGame />);

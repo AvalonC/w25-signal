@@ -1,0 +1,20 @@
+.sapphire-angle-discovery .sapphire-sky { touch-action:pan-y; outline-offset:-8px; }
+.sapphire-angle-discovery .sapphire-sky:focus-visible { outline:1px solid #e8c4dc66; border-radius:4px; }
+.sapphire-angle-discovery .identity-overline { letter-spacing:0; }
+.sapphire-angle-discovery .sapphire-identity { text-align:center; letter-spacing:0; }
+.sapphire-angle-discovery .sapphire-identity h2 { font-size:22px; line-height:1.55; }
+.sapphire-angle-discovery .sapphire-identity p { font-size:15px; }
+.sapphire-turn-controls { display:grid; grid-template-columns:44px minmax(0,310px) 44px; align-items:center; justify-content:center; gap:5px; margin:8px auto 0; padding-inline:6px; }
+.sapphire-turn-controls > button { display:grid; place-items:center; width:44px; height:44px; padding:0; color:#e9cee3; border-radius:4px; touch-action:manipulation; }
+.sapphire-turn-controls > button:hover { background:#efd5e90a; }
+.sapphire-turn-controls > button:focus-visible { outline:1px solid #ebcce099; outline-offset:2px; }
+.sapphire-turn-controls > button:disabled { opacity:.2; cursor:default; }
+.sapphire-angle-hint { margin:0; min-height:3.6em; display:grid; place-items:center; font:13px/1.8 Georgia,'Songti SC',serif; color:#c9b6d0; text-wrap:balance; letter-spacing:0; }
+.sapphire-exit-light { position:absolute; left:84%; top:30%; width:60px; height:60px; padding:0; transform:translate(-50%,-50%); border-radius:50%; touch-action:manipulation; }
+.sapphire-exit-light:focus-visible { outline:1px solid #ffddf0; outline-offset:5px; }
+.sapphire-exit-star { display:block; position:absolute; inset:20px; background:#fff0f9; clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%); filter:drop-shadow(0 0 8px #ffb3de); animation:sapphire-exit-breathe 3.4s ease-in-out infinite; }
+.sapphire-depart .sapphire-exit-light { opacity:0; transition:opacity 1s; }
+.sapphire-angle-discovery .sapphire-keepsakes { margin-top:8px; gap:15px; }
+@keyframes sapphire-exit-breathe { 0%,100% { opacity:.7; transform:scale(.85); } 50% { opacity:1; transform:scale(1.08); } }
+@media(max-width:360px) { .sapphire-turn-controls { gap:0; padding:0; }.sapphire-angle-discovery .sapphire-identity h2 { font-size:20px; }.sapphire-angle-discovery .sapphire-identity p { font-size:14px; } }
+@media(prefers-reduced-motion:reduce) { .sapphire-exit-star { animation:none; }.sapphire-depart .sapphire-exit-light { transition:none; } }

@@ -1,10 +1,17 @@
 /* Two shores in one continuous sky. Wishes are lights to carry, not a HUD. */
 .echo-relay { width:min(100%,640px); margin:0 auto; padding:0 8px 24px; }
-.relay-sky { position:relative; height:clamp(235px,34svh,330px); margin:10px auto 0; }
+.relay-sky { position:relative; height:clamp(320px,44svh,430px); margin:20px auto 8px; }
 .relay-bridge { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
-.relay-path { fill:none; stroke:#c8c9e938; stroke-width:1.2; stroke-linecap:round; stroke-dasharray:.1 15; }
+.relay-path { fill:none; stroke:#c8c9e91c; stroke-width:1.3; stroke-linecap:round; stroke-dasharray:.1 12; transition:stroke 700ms; }
+.relay-path.relay-route-current { stroke:#c8c9e954; }
+.relay-path.relay-route-complete { stroke:#f6c3deaa; stroke-width:2; }
+.relay-route-stop { fill:#b7bcd83d; }
+.relay-route-stop.reached { fill:#f7c9e6; filter:drop-shadow(0 0 6px #ed9dc877); }
+.relay-route-letter { font:18px Georgia,serif; fill:#9da7c03a; }
+.relay-route-letter.lit { fill:#ead7e8; }
 .relay-traveler { fill:#ffe4f4; filter:drop-shadow(0 0 5px #ffb3de); }
-.relay-far { position:absolute; left:77.2%; top:18.5%; transform:translate(-50%,-50%); text-align:center; }
+.relay-far { position:absolute; transform:translate(-50%,-20px); text-align:center; }
+.relay-far.is-faint .relay-spark { opacity:.22; filter:blur(1.4px); }
 .relay-spark { display:block; width:40px; height:40px; margin:auto; fill:#8d9fb9; opacity:.55; transition:fill 120ms,filter 160ms,opacity 160ms; }
 .relay-spark.is-lit { fill:#fff0f9; opacity:1; filter:drop-shadow(0 0 11px #ffb3debb); }
 .relay-far > span,.relay-near > span { display:block; white-space:nowrap; font-size:12px; letter-spacing:.08em; color:#b9b4ce; }
@@ -12,31 +19,33 @@
 .relay-landmarks { position:absolute; left:50%; transform:translateX(-50%); display:flex; gap:15px; color:#7b81965c; font:18px Georgia,serif; }
 .relay-landmarks i { font-style:normal; }
 .relay-landmarks .lit { color:#f3d7e9; text-shadow:0 0 12px #ffb3de44; }
-.relay-near { position:absolute; left:22.8%; top:78.8%; transform:translate(-50%,-50%); width:124px; height:108px; border:0; border-radius:50%; background:radial-gradient(ellipse,#ecbade08,transparent 65%); cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-.relay-near::before { content:''; position:absolute; inset:12px 28px 28px; border:1px solid #ffb3de; border-radius:50%; opacity:calc(var(--hold)*.55); transform:scale(calc(.7 + var(--hold)*.55)); }
+.relay-near { position:absolute; transform:translate(-50%,-17.5px); width:116px; min-height:68px; padding:0; border:0; border-radius:50%; background:transparent; cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.relay-near::before { content:''; position:absolute; top:-11px; left:30px; width:56px; height:56px; border:1px solid #ffb3de; border-radius:50%; opacity:calc(var(--hold)*.55); transform:scale(calc(.7 + var(--hold)*.55)); }
 .relay-near:disabled { cursor:default; opacity:1; }
-.relay-reversed .relay-near { left:77.2%; top:18.5%; }
-.relay-reversed .relay-far { left:22.8%; top:78.8%; }
 .relay-near .relay-spark { width:35px; height:35px; }
 .relay-near.is-long .relay-spark { filter:drop-shadow(0 0 18px #ffb3de); }
 .relay-near > span { margin-top:10px; }
 .relay-near:focus-visible,.wish-hand button:focus-visible { outline:1px solid #eed6e6; outline-offset:5px; }
 .relay-answer .relay-near:not(:active) { animation:relay-breathe 4s ease-in-out infinite; }
 .relay-next { margin:6px auto 0; text-align:center; font-size:12px; line-height:1.8; color:#dbc3d7; }
-.relay-verse { display:block; min-height:3.8em; max-width:440px; margin:10px 4% 0 auto; color:#dfd1e0; font:16px/1.9 'Songti SC',serif; text-wrap:pretty; animation:shared-reveal var(--motion-reveal) var(--motion-ease) both; }
+.relay-verse { display:block; min-height:3.8em; max-width:440px; margin:18px auto 0; color:#dfd1e0; font:16px/1.9 'Songti SC',serif; text-align:center; text-wrap:pretty; animation:shared-reveal var(--motion-reveal) var(--motion-ease) both; }
 .relay-invitation { margin:0 4% 12px; color:#b9afc6; font-size:13px; text-align:right; }
-.wish-hand { display:flex; justify-content:center; gap:clamp(8px,3vw,26px); margin:14px auto; padding:0; border:0; min-inline-size:0; }
-.wish-hand button { min-width:0; width:30%; min-height:90px; border:0; background:transparent; color:#c8bace; padding:10px 2px; transition:opacity var(--motion-release),color var(--motion-release); cursor:pointer; }
-.wish-hand button:nth-child(2) { transform:translateY(8px); }
+.wish-hand { position:absolute; inset:84% 0 0; margin:0; padding:0; border:0; min-inline-size:0; }
+.wish-hand button { position:absolute; top:0; transform:translateX(-50%); min-width:0; width:84px; height:68px; border:0; background:transparent; color:#c8bace; padding:0 2px; transition:opacity var(--motion-release),color var(--motion-release); cursor:pointer; }
+.wish-hand button:nth-child(2) { top:-10px; }
+.wish-hand .relay-spark { width:23px; height:23px; }
 .wish-hand button > span { display:block; color:#ddc8e5; text-shadow:0 0 14px #ffb3de66; font-size:18px; }
-.wish-hand strong { display:block; font:16px/2 'Songti SC',serif; letter-spacing:.16em; }
+.wish-hand strong { display:block; font:14px/1.8 'Songti SC',serif; letter-spacing:0; }
 .wish-hand small { display:block; font-size:11px; line-height:1.6; white-space:nowrap; }
-.wish-hand button:disabled { opacity:.48; cursor:default; }
+.wish-hand button:disabled { opacity:.65; cursor:default; }
 .wish-hand button.carried,.wish-hand button.delivered { opacity:1; color:#efd4e5; }
 .wish-hand button.delivered > span { color:#ffb3de; }
+.relay-help .wish-hand button { animation:relay-breathe 2s ease-in-out infinite; }
+.wish-hand button.helping .relay-spark { filter:drop-shadow(0 0 12px #f3dcff); }
 .relay-footsteps { display:flex; min-height:28px; gap:14px; justify-content:center; color:#9da7c042; }
 .relay-footsteps i { font:20px/1.4 Georgia,serif; transition:color 500ms; }
 .relay-footsteps .lit { color:#f5ccdf; }
+.relay-footsteps .lit.from-far { color:#b9dbef; }
 .echo-relay .relay-listen { display:block; margin:4px auto; min-height:44px; }
 .echo-relay .relay-access { max-width:390px; margin:4px auto 0; text-align:center; }
 .relay-access summary { min-height:44px; padding:12px 0; box-sizing:border-box; }
@@ -54,11 +63,11 @@
 @keyframes relay-breathe { 0%,100% { filter:drop-shadow(0 0 2px #ffb3de00); } 50% { filter:drop-shadow(0 0 9px #ffb3de66); } }
 @media(max-width:420px) {
   .echo-relay { padding-inline:0; }
-  .relay-verse { font-size:15px; margin-right:0; }
+  .relay-verse { font-size:15px; margin-inline:8px; }
   .wish-hand small { font-size:10px; }
   .relay-sky { margin-top:22px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .relay-answer .relay-near,.relay-arrived,.relay-verse { animation:none; }
+  .relay-answer .relay-near,.relay-help .wish-hand button,.relay-arrived,.relay-verse { animation:none; }
   .wish-hand button { transition:none; }
 }

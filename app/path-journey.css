@@ -1,0 +1,58 @@
+.free-flow .scene-path { display:block; width:100%; max-width:1000px; padding:0 14px max(22px,env(safe-area-inset-bottom)); }
+.star-path-journey { position:relative; width:100%; min-width:0; }
+/* Reserve the desktop scrollbar before a discovery grows; Safari on phones
+   uses overlay scrolling. The stone must not shift at the handoff. */
+html:has(.star-path-journey) { scrollbar-gutter:stable; }
+.path-view { position:relative; animation:shared-reveal 1.1s var(--motion-ease) both; }
+.path-home { position:relative; z-index:3; display:flex; align-items:center; gap:7px; min-height:62px; width:max-content; max-width:100%; margin:0 0 0 2%; }
+.path-home > span { font-size:11px; letter-spacing:.08em; color:#a8a9c2; pointer-events:none; }
+.path-place-whisper { padding:4px 22px 10px; font:clamp(19px,3vw,25px)/1.9 Georgia,'Songti SC',serif; text-align:center; color:#ddd3e6; }
+.path-prism-view .prism-light { height:clamp(330px,58svh,650px); }
+.path-prism-view.path-found .prism-light { height:clamp(270px,44svh,510px); transition:height 1.2s; }
+.path-discovery-return { position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:6px 14px 20px; animation:shared-reveal 1.5s both; }
+.path-discovery-return > p:first-child { font:clamp(17px,2.7vw,22px)/1.9 Georgia,'Songti SC',serif; color:#ead9e8; }
+.path-discovery-return small { color:#a3a0b8; font-size:12px; }
+.path-wish-verse { max-width:420px; margin:15px auto 0; padding:0 16px; font:14px/1.9 Georgia,'Songti SC',serif; text-align:center; color:#bcaec7; }
+.path-date-view { min-height:490px; }
+.free-flow .path-date-view .date-wheels { position:absolute; top:100px; left:0; right:0; width:100%; max-width:580px; margin:0 auto; padding:0 10px; gap:25px; z-index:2; }
+.path-date-view .dial-block { flex:1; min-width:0; max-width:240px; }
+.path-date-view .date-dial { width:100%; height:auto; aspect-ratio:1; }
+.path-date-view .date-dial svg { width:100%; height:100%; }
+.path-date-view .dial-arrows { gap:8px; justify-content:center; }
+.path-date-view .dial-arrows span { font-size:11px; }
+.path-date-view .dial-arrows button { min-width:44px; min-height:44px; }
+.path-date-light { width:100%; height:clamp(370px,57svh,520px); opacity:0; pointer-events:none; }
+.path-date-light.is-visible { opacity:1; }
+.path-date-memory { margin:15px 0 0; text-align:center; color:#a9a4bf; font:14px/2 Georgia,'Songti SC',serif; letter-spacing:.18em; }
+.path-infusion-sky,.path-view-sapphire .sapphire-sky { position:relative; height:clamp(290px,42svh,400px); max-height:none; }
+.path-infusion-view { max-width:760px; margin:0 auto; }
+.path-view-sapphire .path-place-whisper { height:4.5em; display:flex; align-items:center; justify-content:center; }
+.path-infusion-sky .star-sapphire-canvas { position:absolute; inset:0; }
+.path-stone-target { position:absolute; top:47%; left:50%; transform:translate(-50%,-50%); width:46%; height:46%; border-radius:50%; }
+.path-stone-target > span { position:absolute; left:-10%; right:-10%; bottom:-22px; color:#b9a7c5; font:13px/1.8 Georgia,'Songti SC',serif; }
+.light-near .path-stone-target { box-shadow:0 0 45px #f4badb1a; }
+.path-carried-light { position:absolute; left:var(--light-x); top:var(--light-y); transform:translate(-50%,-50%) scale(var(--light-scale,1)); opacity:var(--light-opacity,1); min-width:76px; min-height:76px; padding:0; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.path-carried-light > * { pointer-events:none; }
+.path-gesture-whisper { display:block; color:#b9a9c0; text-align:center; font-size:13px; padding:0 12px; }
+.path-paused *,.path-motion-paused * { animation-play-state:paused!important; }
+.path-light-thread { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+.path-light-thread path { fill:none; stroke:#ffcae8; stroke-width:1.6px; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+.path-light-thread circle { fill:#ffe4f6; }
+.is-infusing .path-stone-target { box-shadow:none; cursor:default; }
+.path-infusion-view .path-gesture-whisper { min-height:1.9em; }
+.path-view-sapphire .sapphire-discovery-copy { min-height:110px; padding-top:8px; }
+.path-view-sapphire .sapphire-discovery-controls { min-height:86px; }
+.path-view-sapphire .rotation-guide { bottom:6%; }
+.path-home:has(button:disabled) { opacity:.55; }
+.scene-1 .continue > .path-company { flex-shrink:0; }
+@media(max-width:420px) {
+  .path-place-whisper { padding-inline:12px; font-size:19px; }
+  .free-flow .path-date-view .date-wheels { gap:14px; top:102px; }
+  .path-date-view .dial-block { max-width:160px; }
+  .path-date-view .date-dial strong { font-size:25px; }
+  .path-date-view .date-dial small { font-size:11px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .path-view,.path-discovery-return { animation:none; }
+  .path-prism-view.path-found .prism-light { transition:none; }
+}

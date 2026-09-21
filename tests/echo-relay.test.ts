@@ -10,22 +10,42 @@ void test('wish effects combine; delivery order changes the help on the first cr
   assert.equal(wishLight([3]).lead, 0);
 });
 
-void test('three wishes cross in the chosen order without confirmation or duplicate delivery', () => {
+void test('three wishes progress from complete reply, to helping, to alternating with the far shore', () => {
   const choices = [0, 3, 5], delivered: number[] = [];
   for (const wish of [5, 0, 3]) {
     let state = relayStep(freshRelay(), { type: 'choose', wish }, choices, delivered);
-    assert.equal(state.phase, 'listen');
+    assert.equal(state.phase, delivered.length === 2 ? 'echo' : 'listen');
     assert.equal(relayStep(state, { type: 'send', symbol: '.' }, choices, delivered), state);
-    state = relayStep(state, { type: 'heard' }, choices, delivered);
+    if (delivered.length === 2) {
+      assert.equal(state.draft, '');
+      state = relayStep(state, { type: 'echoed' }, choices, delivered);
+      assert.equal(state.draft, '.');
+    } else {
+      state = relayStep(state, { type: 'heard' }, choices, delivered);
+      if (delivered.length === 1) {
+        assert.equal(state.phase, 'help');
+        assert.equal(relayStep(state, { type: 'send', symbol: '.' }, choices, delivered), state);
+        assert.equal(relayStep(state, { type: 'help', wish: 7 }, choices, delivered), state);
+        state = relayStep(state, { type: 'help', wish: delivered[0] }, choices, delivered);
+        assert.equal(state.listenFrom, 2, 'the helper reconnects the interrupted letter');
+        assert.equal(state.helper, delivered[0], 'a delivered wish is still available to help');
+        state = relayStep(state, { type: 'heard' }, choices, delivered);
+      }
+      assert.equal(state.draft, '', 'wishes illuminate the opening but the player replies in full');
+    }
     const target = MORSE_CODES[delivered.length];
     assert.ok(state.draft.length < target.length);
     const before = state.draft;
     state = relayStep(state, { type: 'send', symbol: target[before.length] === '.' ? '-' : '.' }, choices, delivered);
     assert.equal(state.draft, before, 'a wrong pulse preserves the earned prefix');
     assert.equal(state.misses, 1);
-    for (const symbol of target.slice(before.length))
-      state = relayStep(state, { type: 'send', symbol: symbol as '.' | '-' }, choices, delivered);
-    assert.equal(state.phase, 'cross', 'the final correct pulse sends the wish automatically');
+    while (state.draft.length < target.length) {
+      if (state.phase === 'echo') {
+        assert.equal(relayStep(state, { type: 'send', symbol: '.' }, choices, delivered), state, 'extra player taps cannot replace a far-shore turn');
+        state = relayStep(state, { type: 'echoed' }, choices, delivered);
+      } else state = relayStep(state, { type: 'send', symbol: target[state.draft.length] as '.' | '-' }, choices, delivered);
+    }
+    assert.equal(state.phase, 'cross', 'the final pulse sends the wish automatically');
     assert.equal(relayStep(state, { type: 'send', symbol: '.' }, choices, delivered), state);
     delivered.push(wish);
     const empty = freshRelay();
@@ -34,18 +54,41 @@ void test('three wishes cross in the chosen order without confirmation or duplic
   assert.deepEqual(delivered, [5, 0, 3]);
 });
 
-void test('replay and interrupted listening preserve the reply, and wishes cannot solve the whole crossing', () => {
-  const choices = [0, 1, 4], delivered = [0, 1];
-  let state = relayStep(freshRelay(), { type: 'choose', wish: 4 }, choices, delivered);
+void test('replay and paused listening preserve a reply without skipping the listening phase', () => {
+  const choices = [0, 1, 4], delivered: number[] = [];
+  let state = relayStep(freshRelay(), { type: 'choose', wish: 0 }, choices, delivered);
   state = relayStep(state, { type: 'heard' }, choices, delivered);
-  assert.equal(state.draft, '...');
+  assert.equal(state.draft, '');
+  state = relayStep(state, { type: 'send', symbol: '.' }, choices, delivered);
   state = relayStep(state, { type: 'replay' }, choices, delivered);
   assert.equal(state.phase, 'listen');
   state = relayStep(state, { type: 'pause' }, choices, delivered);
-  assert.equal(state.draft, '...');
+  assert.equal(state.draft, '.');
+  assert.equal(state.phase, 'listen');
+  assert.equal(state.listeningPaused, true);
+  assert.equal(relayStep(state, { type: 'heard' }, choices, delivered), state);
+  assert.equal(relayStep(state, { type: 'send', symbol: '-' }, choices, delivered), state);
+  state = relayStep(state, { type: 'pause' }, choices, delivered);
+  state = relayStep(state, { type: 'heard' }, choices, delivered);
+  assert.equal(state.draft, '.');
   assert.equal(state.phase, 'answer');
   const empty = freshRelay();
   assert.equal(relayStep(empty, { type: 'choose', wish: 7 }, choices, []), empty);
+});
+
+void test('replaying the shared final letter never awards pulses and returns to the same turn', () => {
+  const choices = [0, 1, 4], delivered = [0, 1];
+  let state = relayStep(freshRelay(), { type: 'choose', wish: 4 }, choices, delivered);
+  assert.equal(state.phase, 'echo');
+  assert.equal(relayStep(state, { type: 'replay' }, choices, delivered), state);
+  state = relayStep(state, { type: 'echoed' }, choices, delivered);
+  state = relayStep(state, { type: 'replay' }, choices, delivered);
+  state = relayStep(state, { type: 'heard' }, choices, delivered);
+  assert.equal(state.phase, 'answer');
+  assert.equal(state.draft, '.');
+  state = relayStep(state, { type: 'send', symbol: '.' }, choices, delivered);
+  assert.equal(state.phase, 'echo');
+  assert.equal(relayStep(state, { type: 'send', symbol: '.' }, choices, delivered), state);
 });
 
 void test('new delivery order persists, while old or corrupt optional order falls back safely', () => {

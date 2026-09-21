@@ -1,4 +1,5 @@
 import { MOTION } from './motion.ts';
+import { freshPath, readPath, visitPath, type StarPathState } from './star-path.ts';
 export const PINK = '#ffb3de';
 export const SAPPHIRE_QUOTES = [
   '愿你像蓝宝石一样，温柔，也坚韧。',
@@ -34,6 +35,8 @@ export interface Journey {
   decoded: number;
   echoWishes?: number[];
   color: boolean;
+  path?: StarPathState;
+  pathClosed?: boolean;
 }
 export const fresh = (): Journey => ({
   version: 2,
@@ -49,6 +52,7 @@ export const fresh = (): Journey => ({
   rotation: 0,
   decoded: 0,
   color: false,
+  path: freshPath(),
 });
 export const validChoices = (v: unknown): v is number[] =>
   Array.isArray(v) &&
@@ -99,6 +103,30 @@ export function readSave(raw: string | null, legacy?: string | null): Journey {
         s.echoWishes.length !== s.decoded || !s.echoWishes.every((i: number) => s.choices.includes(i)))) {
         delete s.echoWishes;
       }
+      if (s.pathClosed !== undefined && (typeof s.pathClosed !== 'boolean' || s.stage < 6)) {
+        delete s.pathClosed;
+      }
+      // Keep version 2 so existing visits survive the new shared exploration.
+      // Validate the old chapter gates first: adding optional path data must
+      // never bypass the stone/rotation/decoded requirements above.
+      if (s.stage >= 2 && s.stage <= 4) {
+        const oldStage = s.stage;
+        const legacyPath = s.path === undefined;
+        let path = readPath(s.path, s);
+        if (legacyPath && oldStage === 4) {
+          path = visitPath(path, path.dateFound ? 'sapphire' : 'date');
+        }
+        s.path = path;
+        s.stage = 2;
+        s.color = path.color;
+        if (path.dateFound) {
+          s.month = 10;
+          s.day = 8;
+        }
+      } else if (s.stage < 2) {
+        // A fresh/replayed opening never inherits discoveries from a past run.
+        s.path = freshPath();
+      }
       return s;
     }
     const old = JSON.parse(legacy || 'null');
@@ -123,7 +151,16 @@ export function restart(s: Journey, replay: boolean): Journey {
   };
 }
 export function finish(s: Journey): Journey {
-  return { ...s, stage: 7, completed: true, history: [...s.choices] };
+  return { ...s, stage: 7, pathClosed: true, completed: true, history: [...s.choices] };
+}
+export function revisitJourney(s: Journey, stage: 6 | 7): Journey {
+  if (!s.completed || s.history.length !== 3) return s;
+  return {
+    ...fresh(), completed: true, history: [...s.history], choices: [...s.history],
+    stage, color: true, month: 10, day: 8, stars: 13, stone: true, rotation: 150,
+    decoded: 3, echoWishes: [...s.history], pathClosed: true,
+    path: { place: 'sapphire', color: true, dateFound: true, infused: true },
+  };
 }
 export function symbolFromHold(ms: number) {
   return ms >= 1000 ? '-' : '.';

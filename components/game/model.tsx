@@ -65,7 +65,8 @@ export function WireBracelet({ onGem, onScatter, paused = false }: {
     </div>
     <div className="bracelet-actions" inert={departing || paused} aria-hidden={departing}>
       <p className="bracelet-caption">{loaded ? '拖动看一看，让光经过每一面。' : '星光在这里，慢慢靠近。'}</p>
-      <button className="bracelet-send" onClick={depart}>触碰宝石，让星光继续</button>
+      <p className="bracelet-delivery">把目光从屏幕移开。<br />最后一束光，正等着来到你手里。</p>
+      <button className="bracelet-send" onClick={depart}>礼物已在身边，读完这封信</button>
       <QuickLookLink onOpen={() => setArRequested(true)} />
       <p className="bracelet-ar-note" role="status">
         {arRequested ? '正在打开现实中的预览，请稍候。' : arSupport === false ? '在 iPhone Safari 中打开，可以把它放到眼前。' : '让这束光，在你眼前停一会。'}

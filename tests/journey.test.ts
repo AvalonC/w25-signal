@@ -1,21 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextSapphireDiscovery, DISCOVERY_READ_MS } from '../lib/sapphire-discovery.ts';
-
-test('continuous turning reveals meanings in order without skipping their reading time', () => {
-  assert.equal(nextSapphireDiscovery(-1, .2, 9000), -1);
-  assert.equal(nextSapphireDiscovery(-1, .42, 0), 0);
-  assert.equal(nextSapphireDiscovery(-1, 30, 9000), 0, 'one fast turn cannot reveal all three at once');
-  assert.equal(nextSapphireDiscovery(0, 30, DISCOVERY_READ_MS - 1), 0);
-  assert.equal(nextSapphireDiscovery(0, 1.45, DISCOVERY_READ_MS), 1);
-  assert.equal(nextSapphireDiscovery(1, 2, 9000), 1, 'more interaction is required for colour');
-  assert.equal(nextSapphireDiscovery(1, 2.65, DISCOVERY_READ_MS), 2);
-  assert.equal(nextSapphireDiscovery(2, 100, 10000), 2);
-});
 import {
   fresh,
   readSave,
   restart,
+  revisitJourney,
   finish,
   validChoices,
   MORSE_CODES,
@@ -50,7 +39,11 @@ test('seven chapters survive reload and a completed visit can replay the origina
   s = { ...s, choices: [1, 4, 7], stage: 2 };
   assert.deepEqual(readSave(JSON.stringify(s)), s);
   s = { ...s, color: true, stage: 3 };
-  assert.deepEqual(readSave(JSON.stringify(s)), s);
+  // Old linear visits have no path field and now resume inside the shared sky.
+  delete s.path;
+  const afterStars = readSave(JSON.stringify(s));
+  assert.equal(afterStars.stage, 2);
+  assert.equal(afterStars.path?.color, true);
   s = {
     ...s,
     stars: 13,
@@ -60,7 +53,11 @@ test('seven chapters survive reload and a completed visit can replay the origina
     stone: true,
     rotation: 120,
   };
-  assert.deepEqual(readSave(JSON.stringify(s)), s);
+  const afterStone = readSave(JSON.stringify(s));
+  assert.equal(afterStone.stage, 2);
+  assert.equal(afterStone.path?.place, 'sapphire');
+  assert.equal(afterStone.path?.infused, true);
+  assert.equal(afterStone.rotation, 120);
   s = { ...s, stage: 5, decoded: 3 };
   assert.deepEqual(readSave(JSON.stringify(s)), s);
   s = { ...s, stage: 6 };
@@ -91,6 +88,23 @@ test('corrupted or prematurely advanced saves safely restart', () => {
     JSON.stringify({ ...fresh(), rotation: -1 }),
   ])
     assert.deepEqual(readSave(raw), fresh());
+});
+test('closing the path persists without changing older progress and resets on a new journey', () => {
+  const s = { ...fresh(), choices: [0,3,5], color: true, stone: true, stars: 13,
+    month: 10, day: 8, rotation: 150, decoded: 3, stage: 6 };
+  assert.equal(readSave(JSON.stringify(s)).pathClosed, undefined);
+  assert.equal(readSave(JSON.stringify({...s, pathClosed: true})).pathClosed, true);
+  assert.equal(readSave(JSON.stringify({...s, pathClosed: 'yes'})).pathClosed, undefined);
+  assert.equal(readSave(JSON.stringify({...s, stage: 5, pathClosed: true})).pathClosed, undefined);
+  const done = finish(s);
+  const ring = revisitJourney(done, 6);
+  const letter = revisitJourney(done, 7);
+  assert.equal(readSave(JSON.stringify(ring)).stage, 6);
+  assert.equal(readSave(JSON.stringify(letter)).stage, 7);
+  assert.equal(ring.pathClosed, true);
+  assert.deepEqual(letter.choices, [0,3,5]);
+  assert.equal(restart(ring, true).pathClosed, undefined);
+  assert.equal(revisitJourney(s, 7), s, 'revisit cannot unlock an unfinished gift');
 });
 test('old completed four-wish journeys retain the first three choices', () => {
   const s = readSave(

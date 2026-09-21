@@ -1,0 +1,35 @@
+.guiding-light { position:relative; z-index:1; width:min(100%,760px); margin:auto; padding:22px 18px; text-align:center; }
+.guiding-verse { font:25px/1.9 'Songti SC',serif; color:#ddd5e5; letter-spacing:0; margin:12px auto; }
+.guiding-sky { position:relative; height:min(55svh,480px); min-height:300px; }
+.guiding-route { position:absolute; inset:0; width:100%; height:100%; fill:none; stroke:#becde14a; stroke-width:1.2; stroke-dasharray:1 7; }
+.guiding-route path { vector-effect:non-scaling-stroke; transition:stroke 1.2s; }
+.guiding-route .guiding-joined { opacity:.1; }
+.guiding-arriving .guiding-route path { stroke:#f2d8eec4; opacity:1; }
+.guiding-carrier,.guiding-target { position:absolute; transform:translate(-50%,-50%); display:grid; place-items:center; width:76px; height:76px; padding:0; border:0; background:transparent; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.guiding-carrier { cursor:grab; }
+.guiding-carrier:active { cursor:grabbing; }
+.guiding-target { touch-action:manipulation; color:#e5cadf; }
+.guiding-target > span { font:36px Georgia; opacity:.4; animation:guiding-reply 6s linear infinite; }
+.guiding-target.is-near > span { opacity:1; animation:none; text-shadow:0 0 16px #ead1ed; }
+.guiding-arriving .guiding-carrier { transition:left 1s ease,top 1s ease; }
+.guiding-arriving .guiding-target { opacity:.2; }
+.guiding-cue,.guiding-far-whisper { font:14px/1.9 'Songti SC',serif; color:#bdb4cd; }
+.guiding-cue { display:block; min-height:3.8em; padding:0 8px; }
+.guiding-far-whisper { position:absolute; top:7%; left:36%; right:2%; font-size:12px; color:#a8acc1; pointer-events:none; }
+.guiding-compact { max-width:500px; padding:0; }
+.guiding-compact .guiding-sky { height:152px; min-height:152px; }
+.guiding-compact .guiding-cue { font-size:13px; }
+.journey-sound-invite { position:relative; z-index:2; display:flex; gap:9px; align-items:center; margin:0 auto 24px; padding:8px 12px; min-height:44px; font:13px/1.8 'Songti SC',serif; color:#bcb6ca; }
+.journey-wishes { display:flex; justify-content:center; gap:18px; align-items:center; min-height:66px; margin:0 auto; color:#c7bfd1; font:13px/1.9 'Songti SC',serif; }
+.journey-wishes .path-company { flex:none; }
+.journey-revisit { position:relative; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; padding:0 12px 28px; }
+.journey-revisit button { min-height:44px; padding:8px; font-size:13px; color:#c9b9cf; }
+.free-flow .scene-6 .scene-heading h1,.free-flow .scene-5 .scene-heading h1,.free-flow .scene-1 .scene-heading h1 { font-size:25px; letter-spacing:0; }
+.free-flow .scene-1 .word-cloud { margin-bottom:0; }
+.blessing-skip { position:fixed; z-index:9; bottom:12%; left:50%; transform:translateX(-50%); font:13px/1.8 'Songti SC',serif; color:#c5b5cc; padding:10px 18px; min-height:44px; }
+.relay-arrived .reveal-copy { margin:20px auto; text-align:center; }
+.relay-arrived .journey-wishes { margin-top:16px; }
+.bracelet-delivery { margin:4px auto; font:16px/1.9 'Songti SC',serif; color:#e6cede; text-align:center; }
+@keyframes guiding-reply { 0%,5%,18%,34%,47%,63%,100%{opacity:.2} 6%,12%,19%,32%,48%,61%{opacity:.9} }
+@media(max-width:420px) { .guiding-verse { font-size:22px; } .guiding-light { padding-inline:12px; } .journey-wishes { gap:10px; font-size:12px; } .free-flow .scene-1 .scene-heading h1,.free-flow .scene-5 .scene-heading h1,.free-flow .scene-6 .scene-heading h1 { font-size:22px; } }
+@media(prefers-reduced-motion:reduce) { .guiding-target > span { animation:none; opacity:.8; } .guiding-arriving .guiding-carrier { transition:none; } }
