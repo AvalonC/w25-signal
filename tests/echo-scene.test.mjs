@@ -26,6 +26,7 @@ registerHooks({
   },
 });
 const { EchoRelay } = await import('../components/game/echo-relay.tsx');
+const { RelayReveal } = await import('../components/game/relay-reveal.tsx');
 
 test('real relay performs three different crossings, pauses clocks, visibly shares the final letter and delivers once', async () => {
   const original = Object.fromEntries(['document','window','performance','requestAnimationFrame','cancelAnimationFrame'].map((key) => [key, globalThis[key]]));
@@ -58,6 +59,19 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
   const event = { key:' ', repeat:false, preventDefault() {} };
   try {
     await act(() => { root = create(React.createElement(EchoRelay, props)); });
+    assert.match(phase(), /relay-arrival/);
+    const entryStart = near().props.style;
+    await act(() => wishButton('勇气').props.onClick());
+    assert.match(phase(), /relay-arrival/, 'a wish cannot skip the arrival');
+    await advance(900);
+    assert.notEqual(near().props.style.left, entryStart.left, 'the star follows the pink entry light');
+    await act(() => root.update(React.createElement(EchoRelay, {...props, paused:true})));
+    const frozenEntry = near().props.style.left;
+    await advance(4000);
+    assert.equal(near().props.style.left, frozenEntry);
+    await act(() => root.update(React.createElement(EchoRelay, props)));
+    await advance(2100);
+    assert.match(phase(), /relay-choose/);
     const wish = root.root.findAllByType('button').find((b) => b.props['aria-label']?.startsWith('勇气。'));
     await act(() => wish.props.onClick());
     assert.match(phase(), /relay-listen/);
@@ -74,6 +88,10 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
     await act(() => document.dispatchEvent(new Event('visibilitychange')));
     await advance(6000);
     assert.match(phase(), /relay-answer/);
+    await act(() => root.root.findAllByType('button').find((b) => b.props['aria-label'] === '回应方法与辅助按钮').props.onClick());
+    assert.match(phase(), /is-paused/, 'help appears over the sky and pauses its clocks');
+    assert.equal(root.root.findAllByType('details').length, 0, 'help cannot expand the page');
+    await act(() => root.root.findAllByType('button').find((b) => b.props['aria-label'] === '关闭回应方法').props.onClick());
     await act(() => near().props.onKeyDown(event));
     await advance(1200);
     await act(() => window.dispatchEvent(new Event('blur')));
@@ -172,6 +190,45 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
     assert.deepEqual(received, [0, 2, 5]);
     await advance(3000);
     assert.deepEqual(received, [0, 2, 5], 'the final shared crossing also delivers only once');
+    assert.equal(root.root.findAllByType('line').filter((line) => line.props.className === 'relay-sent-mark').length, 13, 'all thirteen completed pulses remain for the reveal');
+
+    let proceeded = 0;
+    const revealProps = { choices: props.choices, paused: false, onContinue() { proceeded++; } };
+    await act(() => root.update(React.createElement(RelayReveal, revealProps)));
+    const revealButton = () => root.root.findAllByType('button').find((b) => b.props.className === 'relay-reveal-continue');
+    await act(() => revealButton().props.onClick());
+    assert.equal(proceeded, 0, 'the light must finish forming before the player continues');
+    const line = () => root.root.findAllByType('line')[0];
+    const lineStart = line().props.x1;
+    await advance(1700);
+    assert.notEqual(line().props.x1, lineStart, 'the actual previous light positions move into letter strokes');
+    await act(() => root.update(React.createElement(RelayReveal, {...revealProps, paused:true})));
+    const frozenLine = line().props.x1;
+    await advance(6000);
+    assert.equal(line().props.x1, frozenLine);
+    await act(() => root.update(React.createElement(RelayReveal, revealProps)));
+    globalThis.document.hidden = true;
+    await act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await advance(6000);
+    assert.equal(line().props.x1, frozenLine);
+    globalThis.document.hidden = false;
+    await act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await advance(4600);
+    assert.equal(revealButton().props.disabled, false);
+    const returnedStar = root.root.findByProps({className:'relay-returned-control'});
+    assert.equal(returnedStar.props.style.opacity, 1, 'the star and companions return after W25 is formed');
+    assert.equal(proceeded, 0, 'forming W25 never automatically changes chapter');
+    await act(() => revealButton().props.onClick());
+    await act(() => revealButton().props.onClick());
+    assert.equal(proceeded, 1);
+
+    globalThis.window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+    await act(() => root.update(React.createElement(EchoRelay, {...props, key:'reduced-arrival'})));
+    await advance(480);
+    assert.match(phase(), /relay-choose/, 'reduced motion has a short, non-travelling arrival');
+    await act(() => root.update(React.createElement(RelayReveal, {...revealProps, key:'reduced-reveal'})));
+    await advance(1100);
+    assert.equal(revealButton().props.disabled, false, 'reduced motion completes the reveal without a long flight');
     await act(() => root.unmount());
     assert.equal(frames.size, 0);
   } finally {

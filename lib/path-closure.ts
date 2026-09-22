@@ -1,7 +1,7 @@
 import { projectPoint, smooth, type Vec3 } from './bracelet-transition.ts';
 
 export type ClosurePart = { group: number; symbol: '.' | '-'; node: string; stones: Vec3[] };
-// Gem centres are taken from the unchanged GU1893-v6-ring-r1 GLB accessors.
+// Gem centres follow the GU1893-v6 stone stations; r2 only articulates the clasp.
 // A long mark is one actual three-diamond bar, not three separate Morse dots.
 export const CLOSURE_PARTS: ClosurePart[] = [
   { group: 0, symbol: '.', node: 'Round 01', stones: [[.011342515237629414, 0, .020719912834465504]] },
@@ -18,7 +18,7 @@ export const CLOSURE_PARTS: ClosurePart[] = [
   { group: 2, symbol: '.', node: 'Round 07', stones: [[-.014987555798143148, 0, .018254974856972694]] },
   { group: 2, symbol: '.', node: 'Round 08', stones: [[-.007848966401070356, 0, .022240767255425453]] },
 ];
-export const CLOSURE_GEM: Vec3 = [-.020408865064382553, 0, -.011287346482276917];
+export const CLOSURE_GEM: Vec3 = [.023025190457701683, 2.2717066942845587e-12, -.005053333472460508];
 export const CLOSURE_CODES = ['.--', '..---', '.....'] as const;
 export const CLOSURE_LETTERS = ['W', '2', '5'] as const;
 export const CLOSURE_ORBIT = '0deg 12deg 0.12m';

@@ -29,7 +29,9 @@ void test('W25 marks map to the unchanged GLB round and triple-bar diamond centr
     assert.ok(next > angle, 'The reveal must travel along the physical chain instead of reordering its marks');
     angle = next;
   }
-  assert.deepEqual(CLOSURE_GEM, centre('Pink oval · seated pink sapphire'));
+  const metadata = JSON.parse(readFileSync(new URL('../public/models/jewelry-metadata.json', import.meta.url), 'utf8'));
+  assert.deepEqual(CLOSURE_GEM, metadata.hotspot, 'Final pink light belongs to the right-hand four-point star setting');
+  assert.ok(Math.hypot(...CLOSURE_GEM.map((n, i) => n - centre('Pink four-point star · round rose brilliant')[i])) < .00002);
 });
 
 void test('closure reveals one real mark at a time, retains completed groups, and settles at the sapphire', () => {

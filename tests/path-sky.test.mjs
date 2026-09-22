@@ -28,10 +28,10 @@ registerHooks({
 const { PathSky } = await import('../components/game/path-sky.tsx');
 
 async function scene(initial, body) {
-  const keys = ['document', 'window', 'IS_REACT_ACT_ENVIRONMENT'];
+  const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-  let root;
-  const captures = new Set(), visits = [];
+  let root, now = 0, frameId = 0;
+  const captures = new Set(), visits = [], frames = new Map();
   const host = {
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 500 }),
     setPointerCapture: (id) => captures.add(id),
@@ -40,7 +40,19 @@ async function scene(initial, body) {
   };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.window = new EventTarget();
+  window.matchMedia = () => ({ matches: !!initial.reduced, addEventListener() {}, removeEventListener() {} });
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
+  Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
+    now: () => now, mark() {}, measure() {}, clearMarks() {}, clearMeasures() {},
+  } });
+  globalThis.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
+  globalThis.cancelAnimationFrame = (id) => frames.delete(id);
+  const advance = async (ms) => {
+    for (let i=0; i<ms; i+=40) {
+      now += 40; const callbacks = [...frames.values()]; frames.clear();
+      await act(() => callbacks.forEach((callback) => callback(now)));
+    }
+  };
   let props = { color: false, dateFound: false, choices: [0, 3, 5], paused: false, onVisit: (place) => visits.push(place), ...initial };
   const carrier = () => root.root.findAllByType('button').find((button) => button.props.className.startsWith('path-carrier'));
   const pointer = (x, y, pointerId = 1) => ({
@@ -53,11 +65,12 @@ async function scene(initial, body) {
   };
   try {
     await act(() => { root = create(React.createElement(PathSky, props), { createNodeMock: () => host }); });
-    await body({ root, carrier, captures, visits, pointer, drag,
+    await body({ root, carrier, captures, visits, pointer, drag, advance,
       update: async (next) => { props = { ...props, ...next }; await act(() => root.update(React.createElement(PathSky, props))); },
     });
   } finally {
     if (root) await act(() => root.unmount());
+    assert.equal(frames.size, 0, 'unmount clears the approach clock');
     for (const key of keys) {
       if (original[key]) Object.defineProperty(globalThis, key, original[key]);
       else delete globalThis[key];
@@ -66,13 +79,16 @@ async function scene(initial, body) {
 }
 
 test('carried light visits a destination only after an uncancelled release', async () => {
-  await scene({}, async ({ carrier, captures, visits, pointer, drag }) => {
+  await scene({}, async ({ carrier, captures, visits, pointer, drag, advance }) => {
     await drag(92, 180);
     assert.deepEqual(visits, [], 'reaching the prism while holding must not enter it');
     assert.equal(captures.has(1), true);
     assert.match(carrier().props.className, /path-carrier-near/);
     await act(() => carrier().props.onPointerUp(pointer(92, 180)));
+    assert.deepEqual(visits, [], 'the star first travels above the prism');
+    await advance(960);
     assert.deepEqual(visits, ['prism']);
+    assert.equal(carrier().props.style.top, '20%');
     assert.equal(captures.size, 0);
     await act(() => carrier().props.onPointerUp(pointer(92, 180)));
     assert.deepEqual(visits, ['prism'], 'a stale duplicate release cannot enter twice');
@@ -81,7 +97,7 @@ test('carried light visits a destination only after an uncancelled release', asy
 
 test('pointer cancellation, capture loss, blur and a hidden document discard the pending visit', async () => {
   for (const interruption of ['cancel', 'capture', 'blur', 'hidden']) {
-    await scene({}, async ({ carrier, captures, visits, pointer, drag }) => {
+    await scene({}, async ({ carrier, captures, visits, pointer, drag, advance }) => {
       await drag(92, 180);
       await act(() => {
         if (interruption === 'cancel') carrier().props.onPointerCancel(pointer(92, 180));
@@ -99,6 +115,7 @@ test('pointer cancellation, capture loss, blur and a hidden document discard the
       assert.deepEqual(visits, [], `${interruption} must prevent a stale release after returning`);
       await drag(304, 120);
       await act(() => carrier().props.onPointerUp(pointer(304, 120)));
+      await advance(960);
       assert.deepEqual(visits, ['date'], 'a fresh gesture still works after interruption');
     });
   }
@@ -119,7 +136,7 @@ test('opening help cancels a pending visit and disabled tap alternatives respect
 });
 
 test('the sapphire needs both discoveries for dragging and direct touch', async () => {
-  await scene({ dateFound: true }, async ({ root, carrier, visits, pointer, drag, update }) => {
+  await scene({ dateFound: true }, async ({ root, carrier, visits, pointer, drag, update, advance }) => {
     const sapphire = () => root.root.findAllByType('button').find((button) => button.props.className.includes('path-place-sapphire'));
     assert.equal(sapphire().props.disabled, true);
     await act(() => sapphire().props.onClick());
@@ -130,6 +147,31 @@ test('the sapphire needs both discoveries for dragging and direct touch', async 
     assert.equal(sapphire().props.disabled, false);
     await drag(248, 345);
     await act(() => carrier().props.onPointerUp(pointer(248, 345)));
+    await advance(960);
     assert.deepEqual(visits, ['sapphire']);
+  });
+});
+
+test('the approach pauses for help and hidden tabs and cannot be redirected by another tap', async () => {
+  await scene({}, async ({ root, advance, visits, update }) => {
+    const place = (name) => root.root.findAllByType('button').find((button) => button.props.className.includes('path-place-'+name));
+    await act(() => place('prism').props.onClick()); await advance(320);
+    await act(() => place('date').props.onClick());
+    await update({paused:true}); await advance(5000); assert.deepEqual(visits, []);
+    await update({paused:false}); document.hidden=true;
+    await act(() => document.dispatchEvent(new Event('visibilitychange'))); await advance(5000);
+    assert.deepEqual(visits, []);
+    document.hidden=false; await act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await advance(640); assert.deepEqual(visits, ['prism']);
+    await advance(2000); assert.deepEqual(visits, ['prism']);
+  });
+});
+
+test('returning from the prism starts on the left and returning from the date starts on the right', async () => {
+  await scene({anchor:'prism'}, async ({carrier}) => {
+    assert.equal(carrier().props.style.left,'23%'); assert.equal(carrier().props.style.top,'59%');
+  });
+  await scene({anchor:'date'}, async ({carrier}) => {
+    assert.equal(carrier().props.style.left,'76%'); assert.equal(carrier().props.style.top,'46%');
   });
 });

@@ -1,5 +1,5 @@
 {
-  "revision": "GU1893-v6-ring-r1",
+  "revision": "GU1893-v6-ring-r2",
   "method": "rigid-components",
   "rollDegrees": 90,
   "gemstoneFacing": "outward",
@@ -760,5 +760,64 @@
         "Fan charm · suspension eye"
       ]
     }
+  },
+  "clasp": {
+    "bodyRollDegrees": 90,
+    "bail": "original swivel joint",
+    "gate": "closed; rigid with body",
+    "terminalRingPlane": "XZ",
+    "claspAperturePlane": "XY",
+    "apertureCrossings": 1,
+    "terminalCentrelineCrossings": [
+      {
+        "positionMeters": [
+          -0.0015699942596256733,
+          -0.022891946136951447,
+          0.0
+        ],
+        "insideClaspAperture": false
+      },
+      {
+        "positionMeters": [
+          0.0015700019430369139,
+          -0.022891946136951447,
+          0.0
+        ],
+        "insideClaspAperture": true
+      }
+    ],
+    "minimumSurfaceClearanceMm": 0.44636649545282125,
+    "checks": [
+      {
+        "part": "Lobster clasp · hollow teardrop shell",
+        "triangleIntersections": 0,
+        "clearanceMethod": "bidirectional vertex-to-surface sampling",
+        "minimumSurfaceClearanceMm": 0.44636649545282125
+      },
+      {
+        "part": "Lobster clasp · spring gate",
+        "triangleIntersections": 0,
+        "clearanceMethod": "bidirectional vertex-to-surface sampling",
+        "minimumSurfaceClearanceMm": 0.5502537824213505
+      },
+      {
+        "part": "Lobster clasp · gate pivot",
+        "triangleIntersections": 0,
+        "clearanceMethod": "bidirectional vertex-to-surface sampling",
+        "minimumSurfaceClearanceMm": 0.969100627116859
+      },
+      {
+        "part": "Lobster clasp · gate seam",
+        "triangleIntersections": 0,
+        "clearanceMethod": "bidirectional vertex-to-surface sampling",
+        "minimumSurfaceClearanceMm": 0.8159370045177639
+      },
+      {
+        "part": "Lobster clasp · thumb lever",
+        "triangleIntersections": 0,
+        "clearanceMethod": "bidirectional vertex-to-surface sampling",
+        "minimumSurfaceClearanceMm": 1.0741191217675805
+      }
+    ]
   }
 }

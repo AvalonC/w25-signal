@@ -2,7 +2,8 @@
 import { useEffect, useRef } from 'react';
 import type { StarArrival } from '@/lib/bracelet-transition';
 type Point = { x: number; y: number };
-function glyph(text: string, w: number, h: number): Point[] {
+export type WishField = {nodes:{word:string;x:number;y:number;selected:boolean;order:number}[];carrier:Point;departing:boolean};
+function glyph(text: string, w: number, h: number, wish = false): Point[] {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -15,7 +16,7 @@ function glyph(text: string, w: number, h: number): Point[] {
     120,
   );
   g.fillStyle = 'white';
-  g.font = '300 ' + font + 'px Georgia, serif';
+  g.font = wish ? '500 28px "PingFang SC", "Microsoft YaHei", sans-serif' : '300 ' + font + 'px Georgia, serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   lines.forEach((s, i) =>
@@ -23,7 +24,7 @@ function glyph(text: string, w: number, h: number): Point[] {
   );
   const pixels = g.getImageData(0, 0, w, h).data,
     points: Point[] = [];
-  const step = Math.max(3, Math.round(font / 17));
+  const step = wish ? 2 : Math.max(3, Math.round(font / 17));
   for (let y = 0; y < h; y += step)
     for (let x = 0; x < w; x += step)
       if (pixels[(y * w + x) * 4 + 3] > 110) points.push({ x, y });
@@ -34,17 +35,21 @@ export function Starfield({
   burst = false,
   charge = 0,
   arrival,
+  wishes,
+  paused = false,
 }: {
   text?: string;
   burst?: boolean;
   charge?: number;
   arrival?: StarArrival | null;
+  wishes?: WishField | null;
+  paused?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null),
-    props = useRef({ text, burst, charge, arrival });
+    props = useRef({ text, burst, charge, arrival, wishes, paused });
   useEffect(() => {
-    props.current = { text, burst, charge, arrival };
-  }, [text, burst, charge, arrival]);
+    props.current = { text, burst, charge, arrival, wishes, paused };
+  }, [text, burst, charge, arrival, wishes, paused]);
   useEffect(() => {
     const c = ref.current!,
       g = c.getContext('2d');
@@ -56,6 +61,8 @@ export function Starfield({
       targets: Point[] = [],
       previous = 0;
     let lastArrival = 0;
+    const wishGlyphs = new Map<string,Point[]>();
+    let phaseTime=0,lastTime=0;
     const reduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches;
@@ -63,7 +70,7 @@ export function Starfield({
       const n = Math.sin(i * 127.1 + 311.7) * 43758.5453;
       return n - Math.floor(n);
     };
-    const stars = Array.from({ length: 1050 }, (_, i) => ({
+    const stars = Array.from({ length: 2300 }, (_, i) => ({
       x: rand(i) * innerWidth,
       y: rand(i + 2000) * innerHeight,
       seed: rand(i + 100),
@@ -84,7 +91,9 @@ export function Starfield({
     resize();
     const draw = (time: number) => {
       frame = requestAnimationFrame(draw);
-      if (document.hidden || time - previous < (reduced ? 100 : 32)) return;
+      if (document.hidden || props.current.paused) {lastTime=time;return;}
+      if(time - previous < (reduced ? 100 : 32))return;
+      phaseTime+=Math.min(time-lastTime,60);lastTime=time;
       previous = time;
       const p = props.current;
       if (p.arrival && p.arrival.id !== lastArrival) {
@@ -102,22 +111,41 @@ export function Starfield({
       g.clearRect(0, 0, w, h);
       stars.forEach((s, i) => {
         const t =
-          targets.length && i < 850
-            ? targets[Math.min(targets.length - 1, Math.floor((i / 850) * targets.length))]
+          targets.length && i < 2080
+            ? {...targets[Math.min(targets.length - 1, Math.floor((i / 2080) * targets.length))]}
             : { x: rand(i) * w, y: rand(i + 2000) * h };
         const goal = p.burst
           ? { x: rand(i + 777) * w, y: rand(i + 999) * h }
           : t;
-        const ease = reduced ? 1 : p.burst ? 0.12 : 0.037;
+        if(p.wishes&&i<2080){
+          const node=p.wishes.nodes[Math.floor(i/260)];
+          if(node){
+            if(node.selected){
+              const orbit=phaseTime*.0008+node.order*Math.PI*2/3;
+              const r=p.wishes.departing?15:30;
+              goal.x=p.wishes.carrier.x+Math.cos(orbit)*r+Math.sin(i*2.7)*2.1;
+              goal.y=p.wishes.carrier.y+Math.sin(orbit)*r*.6+Math.cos(i*3.3)*2.1;
+            }else if(p.wishes.nodes.filter(n=>n.selected).length===3){
+              goal.x=rand(i)*w;goal.y=rand(i+2000)*h;
+            }else{
+              let dots=wishGlyphs.get(node.word);
+              if(!dots){dots=glyph(node.word,110,64,true);wishGlyphs.set(node.word,dots);}
+              const dot=dots[Math.floor((i%260)/260*dots.length)]??{x:55,y:32};
+              goal.x=node.x+dot.x-55;goal.y=node.y+dot.y-32;
+            }
+          }
+        }
+        const ease = reduced ? 1 : p.burst ? 0.12 : p.wishes ? .055 : 0.037;
         s.x += (goal.x - s.x) * ease;
         s.y += (goal.y - s.y) * ease;
-        const inText = !!targets.length && i < 850 && !p.burst;
+        const inText = (!!targets.length && i < 2080 || !!p.wishes && i<2080) && !p.burst;
+        const companion=!!p.wishes?.nodes[Math.floor(i/260)]?.selected;
         g.globalAlpha = inText
           ? 0.62 + 0.3 * Math.sin(time * 0.001 + s.seed * 8) ** 2
           : 0.12 + (0.28 + s.tone * 0.2) * Math.sin(time * 0.0003 + s.seed * 8) ** 2;
         if (!inText && i > 230 && !p.burst) return;
         g.fillStyle = inText
-          ? '#ffe2f2'
+          ? p.wishes&&!companion?'#e3e8f3':'#ffe2f2'
           : s.tone < 0.16
             ? '#d8e7ff'
             : s.tone > 0.91
@@ -127,12 +155,12 @@ export function Starfield({
         g.arc(
           s.x,
           s.y,
-          s.r * (inText ? 0.7 + p.charge * 0.6 : 1),
+          companion ? .55 : s.r * (inText ? 0.65 + p.charge * 0.6 : 1),
           0,
           Math.PI * 2,
         );
         g.fill();
-        if (inText && i % 35 === 0) {
+        if (inText && !p.wishes && i % 75 === 0) {
           g.globalAlpha = 0.5 + p.charge * 0.5;
           const r = 3 + p.charge * 6;
           g.fillRect(s.x - r, s.y - 0.4, r * 2, 0.8);

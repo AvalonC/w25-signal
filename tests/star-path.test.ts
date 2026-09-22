@@ -14,11 +14,21 @@ test('both exploration orders retain discoveries and meet at the same sapphire',
       assert.equal(path.place, place, 'a discovery must not push the player out of its scene');
       path = visitPath(path, 'sky');
     }
-    assert.deepEqual(path, { place: 'sky', color: true, dateFound: true, infused: false });
+    assert.deepEqual(path, { place: 'sky', color: true, dateFound: true, infused: false, anchor: order[1] });
     path = visitPath(path, 'sapphire');
     assert.equal(path.infused, false, 'visiting the stone is not yet carrying light into it');
-    assert.deepEqual(infusePath(path), { place: 'sapphire', color: true, dateFound: true, infused: true });
+    assert.deepEqual(infusePath(path), { place: 'sapphire', color: true, dateFound: true, infused: true, anchor: order[1] });
   }
+});
+
+test('return anchors survive storage without changing old saves or granting discoveries', () => {
+  const left = visitPath(completePrismPath(visitPath(freshPath(),'prism')),'sky');
+  const right = visitPath(completeDatePath(visitPath(left,'date')),'sky');
+  assert.equal(readPath(JSON.parse(JSON.stringify(left))).anchor,'prism');
+  assert.equal(readPath(JSON.parse(JSON.stringify(right))).anchor,'date');
+  assert.equal(readPath({...freshPath(),anchor:'elsewhere'}).anchor,undefined);
+  assert.equal(readPath({...freshPath(),anchor:'sapphire'}).color,false);
+  assert.deepEqual(readPath(freshPath()),freshPath());
 });
 
 test('sapphire and light entry cannot skip either discovery', () => {

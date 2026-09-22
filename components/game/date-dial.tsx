@@ -70,9 +70,14 @@ export function DateDial({
   const asleep = paused || hidden;
   if (asleep && turning) setTurning(false);
   useEffect(() => {
-    const visibility = () => setHidden(document.hidden);
+    const cancel = () => {
+      const id = drag.current?.id; drag.current = null; setTurning(false);
+      if (id !== undefined && surface.current?.hasPointerCapture(id)) surface.current.releasePointerCapture(id);
+    };
+    const visibility = () => { setHidden(document.hidden); if (document.hidden) cancel(); };
     document.addEventListener('visibilitychange', visibility);
-    return () => document.removeEventListener('visibilitychange', visibility);
+    window.addEventListener('blur', cancel);
+    return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('blur', cancel); };
   }, []);
   useEffect(() => {
     if (!asleep) return;
@@ -189,7 +194,7 @@ export function DateDial({
                     y2={120 + 104 * Math.sin(a)}
                     className={i + 1 === value ? 'dial-active' : ''}
                   />
-                  <text
+                  {(kind === 'month' || [1,5,10,15,20,25,31].includes(i+1) || i+1 === value) && <text
                     x={120 + 80 * Math.cos(a)}
                     y={120 + 80 * Math.sin(a)}
                     className={i + 1 === value ? 'dial-label-active' : 'dial-label'}
@@ -197,7 +202,7 @@ export function DateDial({
                     dominantBaseline="central"
                   >
                     {kind === 'month' ? ZODIAC[i] : ROMAN[i + 1]}
-                  </text>
+                  </text>}
                 </g>
               );
             })}

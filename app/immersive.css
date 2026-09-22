@@ -1,0 +1,106 @@
+/* One scene occupies the visual viewport; content uses the remaining space. */
+html:has(.immersive-journey),body:has(.immersive-journey) { height:100%; overflow:hidden; overscroll-behavior:none; scrollbar-gutter:auto; }
+.immersive-journey.cosmos { height:100svh; height:100dvh; min-height:0; width:100%; overflow:hidden; display:flex; flex-direction:column; isolation:isolate; }
+.immersive-journey .sky-header { flex:0 0 auto; width:100%; margin:0; padding:calc(6px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 2px max(16px,env(safe-area-inset-left)); min-height:54px; }
+.immersive-journey .sky-brand span { font-size:10px; letter-spacing:0; }
+.immersive-journey.stage-0 .sky-brand,.immersive-journey.stage-1 .sky-brand { visibility:hidden; }
+.immersive-journey .scene { width:100%; flex:1 1 0; min-height:0; max-height:100%; max-width:1000px; margin:0 auto; padding:8px 18px max(12px,env(safe-area-inset-bottom)); display:flex; flex-direction:column; position:relative; animation:none; overflow:hidden; }
+.immersive-journey .scene-path { padding-top:0; }
+.journey-boot { flex:1; display:grid; place-items:end center; padding-bottom:14dvh; z-index:1; }
+.journey-boot button { min-width:64px; min-height:64px; font:26px Georgia; color:#f5d8eb; }
+.immersive-journey .start-sky { flex:1; height:auto; min-height:0; }
+.immersive-journey .guiding-light { flex:1; height:100%; min-height:0; padding:0; max-width:850px; }
+.immersive-journey .guiding-sky { height:100%; min-height:0; }
+.immersive-journey .guiding-route { opacity:.15; }
+.immersive-journey .guiding-carrier { transform:translate(-50%,-50%) translate(calc((1 - var(--launch,1))*23vw),calc((1 - var(--launch,1))*75dvh)); }
+.immersive-journey .guiding-carrier::after { content:''; position:absolute; top:65%; width:1px; height:calc((1 - var(--launch,1))*100px); background:linear-gradient(#ebd3eebb,transparent); transform:rotate(-12deg); transform-origin:top; pointer-events:none; }
+.immersive-journey .guiding-carrier .path-company-star { animation:main-light-drift 4.6s ease-in-out infinite; }
+.immersive-journey .guiding-target { width:84px; height:84px; }
+.immersive-journey .guiding-target > span { font-size:24px; }
+.wish-sky,.wish-world { flex:1; height:100%; min-height:0; width:100%; position:relative; }
+.wish-star { position:absolute; width:112px; height:64px; transform:translate(-50%,-50%); padding:0; touch-action:none; border:0; border-radius:50%; background:none; }
+.wish-star i { display:block; position:absolute; inset:8px; border:1px solid transparent; border-radius:50%; }
+.wish-star:focus-visible { outline:1px solid #e8d7ef; outline-offset:2px; }
+.wish-star:not(:disabled):hover i { border-color:#dec9e62b; }
+.wish-star.is-gathered { pointer-events:none; }
+.wish-carrier { position:absolute; transform:translate(-50%,-50%); width:72px; height:72px; pointer-events:none; }
+.wish-sky.is-departing .wish-star { pointer-events:none; }
+.immersive-journey .scene-6 { padding:4px 18px max(10px,env(safe-area-inset-bottom)); }
+.immersive-journey .path-closure { height:100%; min-height:0; display:flex; flex-direction:column; align-items:center; }
+.immersive-journey .closure-whisper { flex:none; font-size:17px; line-height:1.7; min-height:0; margin:4px 0 8px; }
+.immersive-journey .closure-world { flex:1 1 auto; width:100%; min-height:0; max-height:58dvh; max-width:480px; aspect-ratio:auto; }
+.immersive-journey .closure-reading { flex:none; min-height:0; padding:6px 0 0; width:100%; }
+.immersive-journey .closure-code { margin:0; gap:22px; }
+.immersive-journey .closure-code button { min-height:56px; gap:7px; }
+.immersive-journey .closure-meaning { margin:4px auto; font-size:13px; }
+.immersive-journey .closure-invitation { margin:10px 0; }
+.immersive-journey .closure-continue { min-height:44px; font-size:14px; }
+.immersive-journey .bracelet-experience { flex:1; min-height:0; display:flex; flex-direction:column; }
+.immersive-journey .bracelet-viewport { flex:1; min-height:120px; height:auto; margin:0; max-height:none; }
+.immersive-journey .bracelet-actions { flex:none; gap:8px; padding:0; }
+.immersive-journey .bracelet-caption { font-size:12px; }
+.immersive-journey .bracelet-delivery { font-size:15px; line-height:1.7; margin:0; }
+.immersive-journey .bracelet-send { min-height:44px; padding:8px 14px; border-radius:4px; font-size:14px; letter-spacing:0; }
+.immersive-journey .bracelet-ar-entry { width:250px; grid-template-columns:50px 1fr; column-gap:10px; margin:0; }
+.immersive-journey .bracelet-ar-link { min-height:50px; }
+.immersive-journey .bracelet-ar-link img { width:50px; height:50px; }
+.immersive-journey .bracelet-ar-label { font-size:13px; }
+.immersive-journey .bracelet-ar-note { font-size:11px; line-height:1.5; }
+.immersive-journey .journey-revisit { padding:2px 0 0; gap:20px; flex:none; }
+.immersive-journey .journey-revisit button { font-size:12px; min-height:44px; }
+.immersive-journey .sapphire-constellation { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; padding:0; }
+.immersive-journey .sapphire-sky { flex:1; height:auto; min-height:130px; max-height:none; }
+.immersive-journey .sapphire-discovery-copy { flex:none; min-height:85px; padding:0 10px; }
+.immersive-journey .sapphire-discovery-copy .motion-verse { font-size:18px; line-height:1.7; }
+.immersive-journey .sapphire-identity h2 { font-size:19px; margin:4px 0; }
+.immersive-journey .sapphire-identity p { font-size:13px; line-height:1.7; }
+.immersive-journey .identity-overline { font-size:10px; }
+.immersive-journey .sapphire-discovery-controls { flex:none; min-height:0; padding:0 0 4px; }
+.immersive-journey .sapphire-angle-hint { min-height:44px; font-size:12px; }
+.immersive-journey .sapphire-turn-controls { margin-top:2px; }
+.immersive-journey .sapphire-keepsakes { margin:3px auto; font-size:11px; }
+.immersive-journey .path-view-sapphire .path-place-whisper,
+.immersive-journey .path-infusion-view .path-place-whisper { flex:0 0 30px; min-height:30px; padding:0 8px; font-size:13px; line-height:1.6; }
+.immersive-journey .path-infusion-view .path-gesture-whisper { flex:0 0 24px; min-height:24px; padding:0 8px; line-height:1.6; }
+.immersive-journey .path-infusion-view .path-wish-verse { flex:0 0 26px; min-height:26px; margin:0; padding:0 8px; line-height:1.5; overflow:hidden; }
+.immersive-journey .path-view-sapphire .sapphire-discovery-copy { min-height:54px; }
+.immersive-journey .path-view-sapphire .sapphire-discovery-controls { min-height:50px; }
+.cipher-reveal { display:flex; flex-direction:column; flex:1; min-height:0; width:100%; max-width:760px; margin:auto; align-items:center; }
+.cipher-whisper { font:17px/1.8 'Songti SC',serif; text-align:center; padding:12px 0; }
+.cipher-canvas { flex:1; min-height:100px; width:100%; }
+.cipher-key-row { flex:none; display:flex; flex-direction:column; align-items:center; max-width:370px; }
+.cipher-key { min-width:120px; min-height:64px; display:grid; gap:4px; place-content:center; font:22px Georgia; color:#eac3df; letter-spacing:4px; padding:8px; }
+.cipher-key small { font:12px/1.6 Georgia; letter-spacing:0; color:#c7c1d8; }
+.cipher-note { font:13px/1.8 'Songti SC',serif; color:#b8b4c9; text-align:center; min-height:3.6em; margin:8px auto; }
+.cipher-continue { flex:none; display:flex; align-items:center; justify-content:center; gap:12px; min-height:48px; padding:8px 12px; color:#f5d3e8; font-size:14px; }
+.cipher-continue:disabled { opacity:.15; }
+.birthday-letter { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:10px 0 0; }
+.birthday-title { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:130px; }
+.birthday-title h1 { font:32px/1.7 Georgia; color:#f7ddea; text-shadow:0 0 22px #ffc4e13a; }
+.birthday-title span { display:block; color:#e8bbd9; font:20px/1.8 Georgia; padding-top:14px; }
+.birthday-lines { flex:none; display:grid; gap:18px; text-align:center; font:16px/1.9 'Songti SC',serif; color:#ddd0df; padding:0 4px; }
+.birthday-signature { font-size:13px; color:#b4adc1; margin-top:6px; }
+.birthday-return { flex:1; min-height:60px; max-height:130px; width:72px; display:grid; place-items:center; color:#ffd2e8; font:26px Georgia; touch-action:none; }
+.birthday-return span { filter:drop-shadow(0 0 calc(4px + var(--return-charge)*20px) #eab4d4); transform:scale(calc(1 + var(--return-charge)*.6)); }
+.letter-home { flex:none; display:flex; justify-content:center; align-items:center; gap:8px; min-height:44px; padding:8px 12px; font-size:12px; color:#b3a9bf; }
+.birthday-letter.is-returning { opacity:0; transition:opacity 900ms; }
+.immersive-journey.stage-7 .starfield { opacity:.24; }
+.immersive-journey .sky-dialog[data-slot=dialog-content] { max-height:calc(100dvh - 40px); overflow-y:auto; padding:22px; gap:12px; }
+.journey-paused * { animation-play-state:paused!important; }
+@keyframes main-light-drift { 0%,100%{transform:translate(0,0) rotate(-8deg) scale(.9)} 38%{transform:translate(4px,-5px) rotate(10deg) scale(1.06)} 70%{transform:translate(-3px,2px) rotate(-3deg) scale(.97)} }
+@media(max-height:700px) {
+ .immersive-journey .sky-header { min-height:48px; padding-top:env(safe-area-inset-top); }
+ .immersive-journey .scene { padding-top:2px; padding-bottom:max(8px,env(safe-area-inset-bottom)); }
+ .immersive-journey .closure-whisper { font-size:15px; }
+ .immersive-journey .bracelet-actions { gap:3px; }
+ .immersive-journey .bracelet-caption { display:none; }
+ .immersive-journey .sapphire-discovery-copy { min-height:72px; }
+ .immersive-journey .sapphire-identity h2 { font-size:17px; }
+ .birthday-lines { font-size:14px; gap:12px; }
+ .birthday-title h1 { font-size:28px; }
+ .birthday-title { min-height:100px; }
+ .cipher-whisper { font-size:15px; }
+ .cipher-key { min-height:54px; }
+}
+@media(min-width:800px) { .immersive-journey .scene { padding-inline:40px; } .wish-world { max-width:800px; margin:auto; } .birthday-letter { max-width:600px; margin:auto; width:100%; } .immersive-journey .bracelet-viewport { max-height:56dvh; } }
+@media(prefers-reduced-motion:reduce) { .immersive-journey .guiding-carrier { transform:translate(-50%,-50%); } .immersive-journey .guiding-carrier::after { display:none; } .immersive-journey .guiding-carrier .path-company-star { animation:none; } }

@@ -2,6 +2,30 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshRelay, relayStep, wishLight, deliveredWishes } from '../lib/echo-relay.ts';
 import { MORSE_CODES, fresh, readSave } from '../lib/journey.ts';
+import { RELAY_SHORES, RELAY_WISHES, RELAY_MARKS, relayArrival, relayCurve, relayReveal } from '../lib/relay-motion.ts';
+
+void test('entry, completed routes and W25 reveal use the same world coordinates', () => {
+  assert.equal(relayArrival(2599).ready, false);
+  const arrival = relayArrival(2600);
+  assert.deepEqual(arrival.main, RELAY_SHORES[0]);
+  assert.deepEqual(arrival.companions, RELAY_WISHES);
+  for (let i=0; i<3; i++) {
+    assert.deepEqual(relayCurve(i, 0), RELAY_SHORES[i]);
+    assert.deepEqual(relayCurve(i, 1), RELAY_SHORES[i+1]);
+  }
+  assert.equal(RELAY_MARKS.length, 13);
+  const start = relayReveal(0), end = relayReveal(5500);
+  assert.equal(start.gather, 0);
+  assert.deepEqual(start.main, RELAY_SHORES[3]);
+  assert.deepEqual(start.companions, RELAY_WISHES);
+  assert.equal(end.ready, true);
+  assert.equal(end.gather, 1);
+  assert.equal(end.returnLight, 1);
+  assert.deepEqual(end.main, [180,215]);
+  assert.equal(relayReveal(5499).ready, false);
+  assert.equal(relayReveal(1000,true).ready, true);
+  assert.equal(relayArrival(400,true).ready, true);
+});
 
 void test('wish effects combine; delivery order changes the help on the first crossing', () => {
   assert.deepEqual(wishLight([0, 3, 5]), { lead: 1, unit: 433, glimpse: true });

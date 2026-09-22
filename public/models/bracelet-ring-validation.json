@@ -1,11 +1,11 @@
 {
-  "revision": "GU1893-v6-ring-r1",
+  "revision": "GU1893-v6-ring-r2",
   "errors": [],
   "failedChecks": [],
   "warnings": [],
   "sizeMeters": [
     0.04767181724309921,
-    0.047540344297885895,
+    0.048590339720249176,
     0.02175000123679638
   ],
   "triangles": 226234,

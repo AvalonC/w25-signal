@@ -1,7 +1,10 @@
 /* The persistent sky connects discoveries without adding chapter cards. */
-.path-exploration { width:min(100%,660px); margin:0 auto; }
-.path-verse { min-height:3.6em; max-width:26em; margin:6px auto 0; padding:0 14px; color:#dcd9e9; font:16px/1.9 'Songti SC',serif; text-wrap:pretty; }
-.path-sky { position:relative; isolation:isolate; height:clamp(350px,56svh,540px); width:100%; margin:0 auto; }
+.path-exploration { display:flex; flex-direction:column; width:min(100%,660px); height:100%; min-height:0; margin:0 auto; }
+.path-verse { flex:0 0 auto; max-width:26em; margin:4px auto 0; padding:0 14px; color:#dcd9e9; font:15px/1.8 'Songti SC',serif; text-wrap:pretty; }
+.path-sky { position:relative; isolation:isolate; flex:1; height:0; min-height:0; width:100%; margin:0 auto; }
+.path-map-world { position:absolute; inset:0; will-change:transform; }
+.path-flying .path-carrier { pointer-events:none; }
+.path-flying .path-company-star { animation:none; filter:drop-shadow(0 0 12px #dfd6eeaa); }
 .path-map { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
 .path-route { fill:none; stroke:#a7b6db50; stroke-width:1.4px; stroke-dasharray:1 9; stroke-linecap:round; vector-effect:non-scaling-stroke; transition:stroke 1400ms,stroke-dasharray 1400ms; }
 .path-route-found { stroke:#e2d5e9ad; stroke-dasharray:1 6; }
@@ -52,7 +55,7 @@ button.path-company { cursor:pointer; touch-action:manipulation; -webkit-tap-hig
 button.path-company-compact:active .path-companion-orbit { inset:6px; }
 .path-dragging .path-companion-trail,.path-carrier-near .path-companion-trail,.is-carrying .path-companion-trail { opacity:.34; }
 .path-carrier-near .path-company { filter:drop-shadow(0 0 7px #ffd9ed70); transform:scale(1.06); }
-.path-whisper { min-height:2em; margin:0 auto 14px; padding:0 8px; text-align:center; font:12px/1.8 'Songti SC',serif; letter-spacing:.06em; color:#b4b0c9; }
+.path-whisper { flex:0 0 auto; margin:0 auto 8px; padding:0 8px; text-align:center; font:12px/1.8 'Songti SC',serif; letter-spacing:0; color:#b4b0c9; }
 .path-paused *,.path-motion-paused *,.is-paused .path-company * { animation-play-state:paused!important; }
 @keyframes path-light-breath { 0%,100% { opacity:.82; transform:scale(.94); } 50% { opacity:1; transform:scale(1.04); } }
 @keyframes path-companion-orbit { from { transform:rotate(var(--companion-angle)); } to { transform:rotate(calc(var(--companion-angle) + 360deg)); } }
@@ -67,8 +70,9 @@ button.path-company-compact:active .path-companion-orbit { inset:6px; }
   .path-verse { font-size:15px; padding-inline:4px; }
   .path-place { width:96px; }
   .path-place span { font-size:11px; letter-spacing:0; }
-  .path-sky { height:clamp(350px,54svh,450px); }
+  .path-place { min-height:96px; }.path-place svg { width:62px; height:62px; }
 }
+@media(max-height:700px) { .path-place{min-height:92px}.path-place svg{width:58px;height:58px}.path-place span{font-size:11px;margin-top:5px}.path-verse{font-size:14px;line-height:1.65}.path-whisper{font-size:11px} }
 @media(prefers-reduced-motion:reduce) {
   .path-company-star,.path-companion,.path-companion-orbit,.path-date-outer,.path-date-inner,.path-date-needle { animation:none; }
   .path-route,.path-place,.path-place::before,.path-place svg,.path-company,.path-company::before,.path-companion-orbit,.path-companion-trail { transition:none; }

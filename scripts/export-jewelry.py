@@ -13,7 +13,7 @@ source=os.path.abspath(args[0])
 out=os.path.abspath(args[1]) if len(args)>1 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'public')
 os.makedirs(os.path.join(out,'models'),exist_ok=True)
 work=os.path.join(os.path.dirname(out),'work');os.makedirs(work,exist_ok=True)
-REVISION='GU1893-v6-ring-r1'
+REVISION='GU1893-v6-ring-r2'
 
 def save_json(name,value):
     with open(os.path.join(out,'models',name+'.json'),'w',encoding='utf8') as f:json.dump(value,f,indent=2,ensure_ascii=False)
@@ -116,6 +116,19 @@ def render(objects,name,save_blend=None):
     bpy.ops.render.render(write_still=True)
     return {'target':[center.x,center.z,-center.y],'span':span*1.2,'theta':theta,'phi':phi}
 
+def render_clasp(objects):
+    scene=bpy.context.scene
+    ring=next(o for o in objects if o.name=='Terminal jump ring')
+    a,b=bounds([ring]);center=(a+b)/2+Vector((.0015,0,0))
+    cam=scene.camera;cam.data.ortho_scale=.012
+    scene.render.resolution_x=1200;scene.render.resolution_y=900
+    scene.cycles.samples=64
+    for name,direction in [('model-clasp-detail',(0,-.9,1)),('model-clasp-top',(0,0,1))]:
+        cam.location=center+Vector(direction).normalized()*.024
+        cam.rotation_euler=(center-cam.location).to_track_quat('-Z','Y').to_euler()
+        scene.render.filepath=os.path.join(out,name+'.png')
+        bpy.ops.render.render(write_still=True)
+
 objects=load();sourcecounts=counts(objects);wire=[]
 for obj in objects:
     me=obj.data;edges=[list(e.vertices) for e in me.edges];chosen=edges[::max(1,math.ceil(len(edges)/160))]
@@ -148,6 +161,7 @@ for i in range(1050):
 save_json('bracelet-stars',{'points':points,'effectOnly':True,'source':'bracelet-ring.glb','revision':REVISION})
 glb(objects,'bracelet-ring');usdz(objects,'bracelet-ring')
 metadata['poster']=render(objects,'model-ring-preview',os.path.join(work,'bracelet-ring.blend'))
+render_clasp(objects)
 save_json('jewelry-metadata',metadata)
 manifest={'revision':REVISION,'source':os.path.basename(source),'objects':sourcecounts['objects'],'evaluatedVertices':sourcecounts['vertices'],'evaluatedPolygons':sourcecounts['polygons'],'triangles':sourcecounts['triangles'],'ringRadiusMm':radius,'decimated':False,'export':'bracelet-ring.glb'}
 objects=load()

@@ -5,6 +5,9 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { NOUNS } from '@/lib/journey';
+import { PATH_ANCHORS, type StarPathState } from '@/lib/star-path';
+import { softStep } from '@/lib/motion';
+import { useVisibleClock } from './scene-clock';
 
 export type PathPlace = 'sky' | 'prism' | 'date' | 'sapphire';
 type Destination = Exclude<PathPlace, 'sky'>;
@@ -73,22 +76,28 @@ function PlaceDrawing({ place }: { place: Destination }) {
   </svg>;
 }
 
-export function PathSky({ color, dateFound, choices, paused, onVisit }: {
+export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = 'origin' }: {
   color: boolean;
   dateFound: boolean;
   choices: number[];
   paused: boolean;
   onVisit: (place: Destination) => void;
+  anchor?: StarPathState['anchor'];
 }) {
   const skyRef = useRef<HTMLDivElement>(null);
   const lightRef = useRef<HTMLButtonElement>(null);
   const gesture = useRef<{ id: number; dx: number; dy: number } | null>(null);
-  const positionRef = useRef<Point>({ x: 26, y: 78 });
+  const positionRef = useRef<Point>({ ...PATH_ANCHORS[anchor ?? 'origin'] });
   const [position, setPosition] = useState<Point>(positionRef.current);
   const [dragging, setDragging] = useState(false);
   const [near, setNear] = useState<Destination | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [flight, setFlight] = useState<{ place: Destination; from: Point } | null>(null);
+  const flightTime = useVisibleClock(!!flight && !paused);
+  const committed = useRef(false), visit = useRef(onVisit); visit.current = onVisit;
   const ready = color && dateFound;
+  const blocked = paused || !!flight;
 
   const clearGesture = useCallback(() => {
     const current = gesture.current;
@@ -104,15 +113,27 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
 
   useEffect(() => {
     const onVisibility = () => { setHidden(document.hidden); if (document.hidden) clearGesture(); };
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const motion = () => setReduced(media?.matches ?? false);
+    motion(); media?.addEventListener('change', motion);
     onVisibility();
     window.addEventListener('blur', clearGesture);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('blur', clearGesture);
       document.removeEventListener('visibilitychange', onVisibility);
+      media?.removeEventListener('change', motion);
       gesture.current = null;
     };
   }, [clearGesture]);
+  useEffect(() => {
+    if (!flight || paused || document.hidden || flightTime < (reduced ? 240 : 900) || committed.current) return;
+    committed.current = true; visit.current(flight.place);
+  }, [flight, flightTime, paused, reduced]);
+  const travel = (place: Destination) => {
+    if (blocked || document.hidden || (place === 'sapphire' && !ready)) return;
+    clearGesture(); setFlight({ place, from: { ...positionRef.current } });
+  };
 
   function nearest(point: Point) {
     const box = skyRef.current?.getBoundingClientRect();
@@ -134,7 +155,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
     setNear(nearest(next));
   }
   function begin(event: PointerEvent<HTMLButtonElement>) {
-    if (paused || document.hidden || gesture.current || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (blocked || document.hidden || gesture.current || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const box = skyRef.current?.getBoundingClientRect();
     if (!box) return;
     gesture.current = { id: event.pointerId, dx: (event.clientX - box.left) / box.width * 100 - positionRef.current.x, dy: (event.clientY - box.top) / box.height * 100 - positionRef.current.y };
@@ -144,7 +165,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
   function move(event: PointerEvent<HTMLButtonElement>) {
     const current = gesture.current;
     const box = skyRef.current?.getBoundingClientRect();
-    if (paused || !current || current.id !== event.pointerId || !box) return;
+    if (blocked || !current || current.id !== event.pointerId || !box) return;
     moveTo({ x: (event.clientX - box.left) / box.width * 100 - current.dx, y: (event.clientY - box.top) / box.height * 100 - current.dy });
   }
   function cancel(event: PointerEvent<HTMLButtonElement>) {
@@ -153,10 +174,15 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
   }
   function release(event: PointerEvent<HTMLButtonElement>) {
     if (gesture.current?.id !== event.pointerId) return;
-    const destination = paused ? null : nearest(positionRef.current);
+    const destination = blocked ? null : nearest(positionRef.current);
     cancel(event);
-    if (destination) onVisit(destination);
+    if (destination) travel(destination);
   }
+  const fly = softStep(flightTime / (reduced ? 240 : 900));
+  const destination = flight ? { ...PLACES[flight.place], y: PLACES[flight.place].y - (flight.place === 'prism' ? 16 : 0) } : position;
+  const shown = flight ? { x: flight.from.x + (destination.x-flight.from.x)*fly,
+    y: flight.from.y + (destination.y-flight.from.y)*fly - (reduced ? 0 : Math.sin(fly*Math.PI)*10) } : position;
+  const approach = flight && !reduced ? softStep((flightTime-230)/670) : 0;
   const words = ready ? '光与日子都在了。让它们在那颗星里相遇。' : color ? '你喜欢的光，正等着属于你的那一天。' : dateFound ? '那一天已经醒来。还缺一束你喜欢的光。' : '路还没有连起来。两处微光，在远方等你。';
   const labels: Record<Destination, string> = {
     prism: color ? '粉光，已在同行' : '光分开的地方',
@@ -165,7 +191,10 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
   };
   return <section className={`path-exploration${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
     <p className="path-verse" aria-live="polite">{words}</p>
-    <div ref={skyRef} className={`path-sky${dragging ? ' path-dragging' : ''}`}>
+    <div ref={skyRef} className={`path-sky${dragging ? ' path-dragging' : ''}${flight ? ' path-flying' : ''}`}>
+      <div className="path-map-world" style={{transformOrigin:`${destination.x}% ${destination.y}%`,
+        transform:`translate(${(50-destination.x)*approach}%,${(47-destination.y)*approach}%) scale(${1+approach*1.6})`,
+        opacity:1-approach*.38}}>
       <svg className="path-map" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <path className={`path-route${color ? ' path-route-found' : ''}`} d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" />
         <path className={`path-route${dateFound ? ' path-route-found' : ''}`} d="M26 78C48 82 78 78 81 61M83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" />
@@ -176,20 +205,21 @@ export function PathSky({ color, dateFound, choices, paused, onVisit }: {
         if (place === 'sapphire' && !dateFound) return null;
         const available = place !== 'sapphire' || ready;
         const found = place === 'prism' ? color : place === 'date' ? dateFound : ready;
-        return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place ? ' path-place-near' : ''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={paused || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (!paused && available) onVisit(place); }}>
+        return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place || flight?.place === place ? ' path-place-near' : ''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={blocked || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (available) travel(place); }}>
           <PlaceDrawing place={place} /><span>{labels[place]}</span>
         </button>;
       })}
-      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${position.x}%`, top: `${position.y}%` }} disabled={paused} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onKeyDown={(event) => {
-        if (paused) return;
+      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%` }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
+        if (blocked) return;
         const shifts: Record<string, Point> = { ArrowLeft: { x: -6, y: 0 }, ArrowRight: { x: 6, y: 0 }, ArrowUp: { x: 0, y: -6 }, ArrowDown: { x: 0, y: 6 } };
         const shift = shifts[event.key];
         if (shift) { event.preventDefault(); moveTo({ x: positionRef.current.x + shift.x, y: positionRef.current.y + shift.y }); }
-        else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); const destination = nearest(positionRef.current); if (destination) onVisit(destination); }
+        else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); const destination = nearest(positionRef.current); if (destination) travel(destination); }
       }}>
         <CompanionLight choices={choices} pink={color} />
       </button>
+      </div>
     </div>
-    <p className="path-whisper">{near ? `松开，让光去往${near === 'prism' ? '棱镜' : near === 'date' ? '星盘' : '宝石'}。` : '带着光走一走。也可以轻触远方。'}</p>
+    <p className="path-whisper">{flight ? '带着光，慢慢靠近。' : near ? `松开，让光去往${near === 'prism' ? '棱镜' : near === 'date' ? '星盘' : '宝石'}。` : '带着光走一走。也可以轻触远方。'}</p>
   </section>;
 }

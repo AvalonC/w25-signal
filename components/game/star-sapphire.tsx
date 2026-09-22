@@ -61,14 +61,14 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
         if(scatter<.01 && gather>0 && !reduced){
           for(const side of [-1,1]){
             const sx=cx+side*w*.26,sy=cy+side*25;
-            const ray=g.createLinearGradient(sx,sy,cx,cy);ray.addColorStop(0,'#d6e5ff00');ray.addColorStop(1,'#e4ecffb0');
+            const ray=g.createLinearGradient(sx,sy,cx,cy);ray.addColorStop(0,`rgba(${rgb},0)`);ray.addColorStop(1,`rgba(${rgb},.9)`);
             g.strokeStyle=ray;g.globalAlpha=Math.sin(gather*Math.PI)*.55;g.lineWidth=.8;
             g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo(cx,cy-60*side,cx,cy);g.stroke();
           }g.globalAlpha=1;
         }
         const energy=gather*(1-scatter);
         const bloom=g.createRadialGradient(cx,cy,0,cx,cy,scale*(.28+energy*.55));
-        bloom.addColorStop(0,`rgba(242,244,255,${energy*.7})`);bloom.addColorStop(.16,`rgba(204,220,255,${energy*.15})`);bloom.addColorStop(1,'#dce8ff00');g.fillStyle=bloom;g.fillRect(0,0,w,h);
+        bloom.addColorStop(0,`rgba(${rgb},${energy*.85})`);bloom.addColorStop(.16,`rgba(${rgb},${energy*.28})`);bloom.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=bloom;g.fillRect(0,0,w,h);
       }
       edges.forEach(([a,b],index)=>{const u=project(vertices[a]),v=project(vertices[b]);const glint=Math.max(0,Math.cos(turn*1.7+index*.8))**12;g.strokeStyle=`rgba(${rgb},${(.18+glint*.32)*softStep((form-.45)/.55)*(1-exit)*(.65+(u.z+1)*.12)})`;g.lineWidth=.6+glint*.3;g.beginPath();g.moveTo(u.x,u.y);g.lineTo(v.x,v.y);g.stroke();});
       if(p.infusion>0 && p.infusion<1 && !reduced){

@@ -8,11 +8,11 @@ import { PrismLight } from './prism-light';
 import { StarSapphire } from './star-sapphire';
 import { SapphireScene } from './sapphire-scene';
 import { useVisibleClock } from './scene-clock';
-import { MOTION } from '@/lib/motion';
+import { MOTION, softStep } from '@/lib/motion';
 import { NOUNS } from '@/lib/journey';
 import { SAPPHIRE_INTRO } from '@/lib/sapphire-discovery';
 import { visitPath, completePrismPath, completeDatePath, infusePath, type StarPathState } from '@/lib/star-path';
-import { infusionFrame } from '@/lib/light-infusion';
+import { infusionFrame, prismEntranceFrame, prismReturnFrame, PRISM_RETURN_MS } from '@/lib/light-infusion';
 
 type Props = {
   path: StarPathState; choices: number[]; month: number; day: number; rotation: number; paused: boolean;
@@ -30,7 +30,7 @@ export function StarPathJourney(props: Props) {
     return () => document.removeEventListener('visibilitychange', changed);
   }, []);
   const visit = (place: StarPathState['place']) => {
-    if (paused) return;
+    if (paused || document.hidden) return;
     const next = visitPath(path, place);
     if (next.place === path.place) return;
     onTap(); onPath(next);
@@ -42,23 +42,15 @@ export function StarPathJourney(props: Props) {
       <span aria-hidden="true">回到星路</span>
     </nav>}
     <div key={path.place} className={'path-view path-view-' + path.place} inert={paused}>
-      {path.place === 'sky' && <PathSky choices={choices} color={path.color} dateFound={path.dateFound}
+      {path.place === 'sky' && <PathSky choices={choices} color={path.color} dateFound={path.dateFound} anchor={path.anchor}
         paused={paused} onVisit={visit} />}
-      {path.place === 'prism' && <PrismPlace found={path.color} paused={paused} onTap={onTap}
-        onFound={() => onPath(completePrismPath(path))}>
-        {path.color && <div className="path-discovery-return">
-          <p>看不见的路，被你喜欢的颜色照亮了。</p>
-          <CompanionLight choices={choices} pink onClick={() => visit('sky')} label="带着粉光回到星路" />
-          <small>轻触同行的光，带它回去。</small>
-          <p className="path-wish-verse">{NOUNS[choices[0]]?.[2]}</p>
-        </div>}
-      </PrismPlace>}
+      {path.place === 'prism' && <PrismPlace found={path.color} paused={paused} onTap={onTap} choices={choices}
+        onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
-        paused={paused} onDate={props.onDate} onTap={onTap} onFound={() => onPath(completeDatePath(path))}>
+        pink={path.color} paused={paused} onDate={props.onDate} onTap={onTap} onFound={() => onPath(completeDatePath(path))}>
         {path.dateFound && <div className="path-discovery-return">
-          <p>十月八日的星光，在这里留下了形状。</p>
           <CompanionLight choices={choices} pink={path.color} onClick={() => visit('sky')} label="带着这一天的星光回到星路" />
-          <small>轻触同行的光，记住它的位置。</small>
+          <small>轻触这束光，记住它的位置。</small>
           <p className="path-wish-verse">{NOUNS[choices[1]]?.[2]}</p>
         </div>}
       </DatePlace>}
@@ -72,47 +64,85 @@ export function StarPathJourney(props: Props) {
   </section>;
 }
 
-function PrismPlace({ found, paused, onFound, onTap, children }: {
-  found: boolean; paused: boolean; onFound: () => void; onTap: () => void; children: React.ReactNode;
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!media) return;
+    const update = () => setReduced(media.matches); update(); media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return reduced;
+}
+
+function PrismPlace({ found, paused, onFound, onTap, choices, onReturn }: {
+  found: boolean; paused: boolean; onFound: () => void; onTap: () => void; choices: number[]; onReturn: () => void;
 }) {
   const [value, setValue] = useState(found ? 68 : 16);
   const [bloom, setBloom] = useState(false);
+  const reduced = useReducedMotion();
+  const entered = useRef(found);
+  const entryTime = useVisibleClock(!paused && !entered.current);
+  const entry = prismEntranceFrame(entryTime, reduced);
+  const arriving = !entered.current && !entry.done;
+  const approach = reduced ? 1 : softStep(entryTime/900);
+  useEffect(() => { if (entry.done) entered.current = true; }, [entry.done]);
   const aligned = Math.abs(value - 68) <= 3;
-  const dwell = useVisibleClock(aligned && !paused && !found && !bloom, aligned ? 'aligned' : 'search');
+  const dwell = useVisibleClock(aligned && !paused && !found && !bloom && !arriving, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(bloom && !paused && !found);
+  const release = prismReturnFrame(Math.max(0, elapsed - MOTION.prismBloom), reduced);
+  const emerging = bloom && elapsed >= MOTION.prismBloom;
   const sent = useRef(false);
   const callbacks = useRef({ onFound, onTap }); callbacks.current = { onFound, onTap };
   useEffect(() => {
-    if (paused || found) return;
+    if (paused || found || document.hidden) return;
     if (!bloom && dwell >= 600) { setValue(68); setBloom(true); callbacks.current.onTap(); }
-    if (bloom && elapsed >= MOTION.prismBloom && !sent.current) {
+    if (bloom && elapsed >= MOTION.prismBloom + (reduced ? 240 : PRISM_RETURN_MS) && !sent.current) {
       sent.current = true; callbacks.current.onFound();
     }
-  }, [dwell, elapsed, bloom, found, paused]);
-  return <div className={'path-prism-view' + (found ? ' path-found' : '')}>
-    <PrismLight value={value} bloom={found ? MOTION.prismBloom : elapsed} paused={paused} locked={bloom || found}
+  }, [dwell, elapsed, bloom, found, paused, reduced]);
+  return <div className={'path-prism-view' + (found ? ' path-found' : '') + (arriving ? ' prism-arriving' : '')}>
+    <div className="path-prism-stage" style={{'--prism-approach':approach} as CSSProperties}>
+    <PrismLight value={value} bloom={found ? MOTION.prismBloom : Math.min(MOTION.prismBloom, elapsed)}
+      entrance={arriving ? entry.light : 1} paused={paused} locked={bloom || found || arriving}
       onChange={(n) => {
         // A quick sweep must not jump over the small colour window completely.
         setValue((previous) => previous < 65 && n > 71 || previous > 71 && n < 65
           ? 68 : Math.min(100, Math.max(0, n)));
       }} />
-    {children}
+    {arriving && <span className="prism-arrival-light" aria-hidden="true" style={{left:`${entry.x}%`,top:`${entry.y}%`,opacity:entry.opacity,transform:`translate(-50%,-50%) scale(${entry.scale})`}}>
+      <CompanionLight choices={choices} pink={false} />
+    </span>}
+    {(emerging || found) && <div className="prism-return-light" style={{left:`${found ? 23 : release.x}%`,top:`${found ? 72 : release.y}%`,opacity:found ? 1 : release.opacity}}>
+      <CompanionLight choices={choices} pink onClick={found ? () => { if (!paused) onReturn(); } : undefined}
+        label="带着粉光回到星路" />
+    </div>}
+    </div>
+    <div className="path-prism-message" aria-live="polite">
+      {found ? <><p>看不见的路，被你喜欢的颜色照亮了。</p><small>轻触粉光，带它回去。</small><p className="path-wish-verse">{NOUNS[choices[0]]?.[2]}</p></>
+        : arriving ? <p>跟着这束光，慢慢靠近。</p> : emerging ? <p>喜欢的颜色，正向你飞来。</p> : <p className="sr-only">左右转动棱镜，让粉色的光停留。</p>}
+    </div>
   </div>;
 }
 
-function DatePlace({ month, day, found, paused, onDate, onFound, onTap, children }: {
-  month: number; day: number; found: boolean; paused: boolean;
+function DatePlace({ month, day, found, paused, pink, onDate, onFound, onTap, children }: {
+  month: number; day: number; found: boolean; paused: boolean; pink: boolean;
   onDate: (month: number, day: number) => void; onFound: () => void; onTap: () => void; children: React.ReactNode;
 }) {
   const [gathering, setGathering] = useState(false);
+  const reduced = useReducedMotion();
+  const [entered, setEntered] = useState(found);
+  const entryTime = useVisibleClock(!entered && !paused);
+  const approach = found ? 1 : softStep(entryTime/(reduced ? 280 : 1100));
+  useEffect(() => { if (approach >= 1) setEntered(true); }, [approach]);
   const aligned = month === 10 && day === 8;
-  const dwell = useVisibleClock(aligned && !paused && !found && !gathering, aligned ? 'aligned' : 'search');
+  const dwell = useVisibleClock(aligned && !paused && !found && !gathering && entered, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(gathering && !paused && !found);
   const sky = useRef<HTMLDivElement>(null), done = useRef(false);
   const callbacks = useRef({ onFound, onTap }); callbacks.current = { onFound, onTap };
-  const { orbits, light, weave } = SAPPHIRE_INTRO;
+  const { orbits, light, weave } = reduced ? { orbits: 500, light: 400, weave: 800 } : SAPPHIRE_INTRO;
   useEffect(() => {
-    if (paused || found) return;
+    if (paused || found || document.hidden) return;
     if (!gathering && dwell >= 650) { setGathering(true); callbacks.current.onTap(); }
     if (gathering && elapsed >= orbits + light + weave && !done.current) {
       done.current = true; callbacks.current.onFound();
@@ -121,26 +151,44 @@ function DatePlace({ month, day, found, paused, onDate, onFound, onTap, children
   useLayoutEffect(() => {
     if (!gathering || !sky.current) return;
     const rect = sky.current.getBoundingClientRect();
-    sky.current.closest('.birth-chapter')?.querySelectorAll<HTMLElement>('.dial-block').forEach((dial, i) => {
-      const start = dial.getBoundingClientRect();
+    sky.current.closest('.birth-chapter')?.querySelectorAll<HTMLElement>('.dial-block').forEach((dial) => {
+      const start = (dial.querySelector<HTMLElement>('.date-dial') ?? dial).getBoundingClientRect();
       dial.style.setProperty('--orbit-to-x', `${rect.left + rect.width * .5 - (start.left + start.width / 2)}px`);
-      dial.style.setProperty('--orbit-to-y', `${(i === 0 ? -25 : 55) + rect.top + rect.height * .47 - (start.top + start.height / 2)}px`);
+      dial.style.setProperty('--orbit-to-y', `${rect.top + rect.height * .47 - (start.top + start.height / 2)}px`);
     });
   }, [gathering]);
   const forming = found || elapsed >= orbits + light;
-  return <div className={'path-date-view birth-chapter' + (gathering || found ? ' is-unveiling' : '')}>
+  const gather = softStep(elapsed / orbits);
+  const energy = Math.max(0, Math.sin(Math.PI * Math.min(1, elapsed / (orbits + light))));
+  return <div className={'path-date-view birth-chapter' + (gathering || found ? ' is-unveiling' : '') + (pink ? ' date-pink' : '')}
+    style={{ '--date-rgb': pink ? '255,179,222' : '229,237,255', '--date-enter':approach,
+      '--gather-clock': `${-elapsed}ms`, '--gather-duration': `${orbits}ms` } as CSSProperties}>
     <p className="path-place-whisper">{found ? '这一天的光，还在。' : gathering ? '两段时光，正在相遇。' : '让时光，停在你来到世上的那天。'}</p>
-    {!found && <div className="date-wheels" inert={gathering || paused} aria-hidden={gathering}>
-      <DateDial label="月" value={month} max={12} kind="month" paused={paused || gathering} aligned={month === 10} onChange={(n) => { if (!paused) { onDate(n, day); onTap(); } }} />
-      <DateDial label="日" value={day} max={31} kind="day" paused={paused || gathering} aligned={day === 8} onChange={(n) => { if (!paused) { onDate(month, n); onTap(); } }} />
+    <div className="path-date-stage">
+    {!found && <div className="date-wheels" inert={gathering || paused || !entered} aria-hidden={gathering}>
+      <DateDial label="月" value={month} max={12} kind="month" paused={paused || gathering || !entered} aligned={month === 10} onChange={(n) => { if (!paused && entered) { onDate(n, day); onTap(); } }} />
+      <DateDial label="日" value={day} max={31} kind="day" paused={paused || gathering || !entered} aligned={day === 8} onChange={(n) => { if (!paused && entered) { onDate(month, n); onTap(); } }} />
     </div>}
     <div ref={sky} className={'path-date-light' + (gathering || found ? ' is-visible' : '')} aria-hidden="true">
       <StarSapphire formation={found ? 1 : forming ? Math.min(1, (elapsed - orbits - light) / weave) : 0}
         release={0} angle={.32} paused={paused || (!gathering && !found)} demonstrate={false}
         origin="light" light={Math.min(1, elapsed / orbits)}
-        dust={found ? 1 : Math.max(0, Math.min(1, (elapsed - orbits) / light))} tint={0} libra={found} />
+        dust={found ? 1 : Math.max(0, Math.min(1, (elapsed - orbits) / light))} tint={pink ? 1 : 0} libra={found} />
     </div>
-    {!found && !gathering && <p className="path-date-memory">十月 · 八日</p>}
+    {gathering && !found && <svg className="date-confluence" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"
+      style={{ opacity: energy, '--gather-glow': reduced ? .3 : energy } as CSSProperties}>
+      {[-1,1].map((side) => <g key={side}>
+        <path d={`M${50+side*24} ${47+side*10}C${50+side*38*(1-gather)} ${47-side*28} ${50-side*22} ${47+side*24} 50 47`} />
+        {!reduced && Array.from({length:7},(_,i) => {
+          const t=((elapsed*.00038+i/7)%1), bend=Math.sin(t*Math.PI)*(1-gather)*side*18;
+          return <circle key={i} cx={50+side*24*(1-t)+bend} cy={47+side*10*(1-t)-Math.sin(t*Math.PI)*side*20}
+            r={.15+(i%3)*.07} opacity={Math.sin(t*Math.PI)*.85} />;
+        })}
+      </g>)}
+      <circle className="date-confluence-heart" cx="50" cy="47" r={1+gather*2.8} />
+      <circle className="date-confluence-ring" cx="50" cy="47" r={4+gather*16} />
+    </svg>}
+    </div>
     {children}
   </div>;
 }

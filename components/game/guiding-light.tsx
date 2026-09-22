@@ -1,6 +1,6 @@
 'use client';
 /* oxlint-disable react/react-compiler */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { CompanionLight } from './path-sky';
 import { useVisibleClock } from './scene-clock';
 
@@ -16,6 +16,7 @@ export function GuidingLight({ choices = [], compact = false, paused = false, on
   const gesture = useRef<number | null>(null), started = useRef(false), done = useRef(false);
   const callback = useRef(onArrive); callback.current = onArrive;
   const time = useVisibleClock(leaving && !paused);
+  const entry = useVisibleClock(!paused, 'entry');
   const cancel = useCallback(() => {
     const id = gesture.current; gesture.current = null;
     if (id !== null && light.current?.hasPointerCapture(id)) light.current.releasePointerCapture(id);
@@ -50,7 +51,6 @@ export function GuidingLight({ choices = [], compact = false, paused = false, on
   };
   return <section className={'guiding-light' + (compact ? ' guiding-compact' : '') +
     (leaving ? ' guiding-arriving' : '') + (paused || hidden ? ' path-paused' : '')} aria-label={compact ? '带着三个愿望出发' : '接住一束光，走向远方的回应'}>
-    {!compact && <h1 className="guiding-verse">那边，似乎有人在等。</h1>}
     <div ref={area} className="guiding-sky">
       <svg className="guiding-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <path d={compact ? 'M20 64C37 74 45 55 51 51M58 44C65 41 72 34 80 30' : 'M27 74C54 79 42 53 49 49M57 40C72 40 63 23 72 27'} />
@@ -60,7 +60,8 @@ export function GuidingLight({ choices = [], compact = false, paused = false, on
         disabled={paused || leaving} onClick={arrive} aria-label={compact ? '带着三个愿望，前往星路' : '把这束光带向远方，开始旅程'}>
         <span aria-hidden="true">✧</span>
       </button>
-      <button ref={light} className="guiding-carrier" style={{left: `${point.x}%`, top: `${point.y}%`}}
+      <button ref={light} className="guiding-carrier" style={{left: `${point.x}%`, top: `${point.y}%`,
+        '--launch': compact||reduced?1:Math.min(1,entry/1800) } as CSSProperties}
         disabled={paused || leaving} aria-label="接住这束光，拖到远方的星；也可轻触远方或按回车"
         onPointerDown={(e) => {
           if (paused || started.current || document.hidden || gesture.current !== null || e.button > 0) return;
@@ -78,8 +79,6 @@ export function GuidingLight({ choices = [], compact = false, paused = false, on
         onClick={(e) => { if (e.detail === 0) arrive(); }}>
         <CompanionLight choices={choices} pink={false} />
       </button>
-      {!compact && <span className="guiding-far-whisper" aria-hidden="true">一瞬。停留。光在回应。</span>}
     </div>
-    <output className="guiding-cue">{leaving ? '光记住了你，也记住了来时的路。' : near ? '松开，让两束光相遇。' : compact ? '带着三个愿望，走向那束光。' : '接住近处的光，带它走向远方。'}</output>
   </section>;
 }

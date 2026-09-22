@@ -92,6 +92,10 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
   await scene({ path: { ...freshPath(), place: 'prism' } }, async ({ root, advance, current, discoveries, pause, pointer }) => {
     const prism = () => root.root.findByProps({ className: 'prism-light' });
     const key = async (name) => act(() => prism().props.onKeyDown({ key: name, preventDefault() {} }));
+    assert.equal(prism().props['aria-disabled'], true, 'the main light must enter before the prism responds');
+    await advance(800); await pause(true); await advance(5000);
+    assert.equal(prism().props['aria-disabled'], true, 'help pauses the incoming light');
+    await pause(false); await advance(1100);
     await act(() => prism().props.onPointerDown(pointer(0, 0)));
     await act(() => prism().props.onPointerMove(pointer(162.5, 0)));
     assert.equal(prism().props['aria-valuenow'], 68);
@@ -109,16 +113,24 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
     assert.equal(prism().props['aria-disabled'], true, 'the player has found the angle and light is spreading');
     await pause(true); await advance(8000);
     assert.equal(current().path.color, false, 'help pauses the light-spreading animation');
-    await pause(false); await advance(4000);
+    await pause(false); await advance(3400);
+    assert.equal(current().path.color, false, 'the pink main star must first fly out of the spectrum');
+    assert.equal(root.root.findAllByProps({className:'prism-return-light'}).length, 1);
+    await advance(1600);
     assert.equal(current().path.color, true);
     assert.equal(current().path.place, 'prism', 'the player decides when to bring the light home');
     await advance(5000);
     assert.equal(discoveries.length, 1);
+    await act(() => root.root.findByProps({'aria-label':'带着粉光回到星路'}).props.onClick());
+    assert.equal(current().path.anchor,'prism');
+    const carrier = root.root.findAllByType('button').find((button) => button.props.className.startsWith('path-carrier'));
+    assert.equal(carrier.props.style.left,'23%');
   });
 });
 
 test('October eighth gathers the dials once, retains its place, and pauses when the player leaves the tab', async () => {
   await scene({ path: { ...freshPath(), place: 'date' }, month: 10, day: 7 }, async ({ root, advance, current, discoveries }) => {
+    assert.equal(root.root.findAllByProps({className:'path-date-memory'}).length,0,'no birthday answer is printed below the dials');
     await advance(1200);
     assert.equal(current().path.dateFound, false, 'a neighbouring date must not unlock the stone');
     await act(() => root.root.findByProps({ 'aria-label': '日加一' }).props.onClick());
@@ -138,6 +150,22 @@ test('October eighth gathers the dials once, retains its place, and pauses when 
     await advance(12000);
     assert.equal(discoveries.length, 1);
     assert.equal(root.root.findAllByProps({ className: 'date-wheels' }).length, 0);
+    const stone = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
+    assert.equal(stone.props.tint,0,'date-first gathering remains white');
+    await act(() => root.root.findByProps({'aria-label':'带着这一天的星光回到星路'}).props.onClick());
+    assert.equal(current().path.anchor,'date');
+  });
+});
+
+test('a birthday found after the colour gathers pink and reduced motion still preserves the discovery', async () => {
+  await scene({reduced:true,path:{...freshPath(),place:'date',color:true},month:10,day:8},async({root,advance,current,discoveries})=>{
+    await advance(800);
+    const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
+    assert.equal(stone().props.tint,1);
+    assert.equal(current().path.dateFound,false);
+    await advance(2600);
+    assert.equal(current().path.dateFound,true); assert.equal(stone().props.tint,1);
+    assert.equal(discoveries.length,1);
   });
 });
 

@@ -6,7 +6,13 @@ export interface StarPathState {
   color: boolean;
   dateFound: boolean;
   infused: boolean;
+  anchor?: 'origin' | 'prism' | 'date' | 'sapphire';
 }
+
+export const PATH_ANCHORS = {
+  origin: { x: 26, y: 78 }, prism: { x: 23, y: 59 },
+  date: { x: 76, y: 46 }, sapphire: { x: 62, y: 76 },
+} as const;
 
 interface LegacyPathProgress {
   color: boolean;
@@ -39,14 +45,18 @@ export function readPath(value: unknown, legacy?: LegacyPathProgress): StarPathS
   const dateFound = saved.dateFound === true;
   const place = saved.place === 'prism' || saved.place === 'date' ||
     (saved.place === 'sapphire' && color && dateFound) ? saved.place : 'sky';
-  return { place, color, dateFound, infused: saved.infused === true && color && dateFound };
+  const anchor = saved.anchor === 'origin' || saved.anchor === 'prism' ||
+    saved.anchor === 'date' || saved.anchor === 'sapphire' ? saved.anchor : undefined;
+  return { place, color, dateFound, infused: saved.infused === true && color && dateFound,
+    ...(anchor ? { anchor } : {}) };
 }
 
 /** A discovery stays available on return; the stone needs light and a birthday. */
 export function visitPath(path: StarPathState, place: StarPathPlace): StarPathState {
   const safe = readPath(path);
   if (place === 'sapphire' && !(safe.color && safe.dateFound)) return safe;
-  return readPath({ ...safe, place });
+  return readPath({ ...safe, place,
+    ...(place === 'sky' && safe.place !== 'sky' ? { anchor: safe.place } : {}) });
 }
 
 /** Let the player remain with the dispersed light until they choose the way back. */
