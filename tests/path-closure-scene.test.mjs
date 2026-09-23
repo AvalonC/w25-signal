@@ -18,7 +18,7 @@ registerHooks({
     // The WebGL custom element is tested visually; keep its real slotted children here.
     if (url.endsWith('/model-surface.tsx')) return { format: 'module', shortCircuit: true,
       source: `import {createElement} from 'react';export function ModelSurface(p){return createElement('div',{'data-model':p.src},p.children)}` };
-    if (url.endsWith('/jewelry-metadata.json')) return { format: 'module', shortCircuit: true,
+    if (url.endsWith('/jewelry-metadata.json') || url.endsWith('/bracelet-stars.json')) return { format: 'module', shortCircuit: true,
       source: `export default ${readFileSync(new URL(url), 'utf8')}` };
     if (url.endsWith('.tsx')) return { format: 'module', shortCircuit: true,
       source: ts.transpileModule(readFileSync(new URL(url), 'utf8'), {
@@ -30,7 +30,7 @@ registerHooks({
 const { PathClosure } = await import('../components/game/path-closure.tsx');
 const { CLOSURE_START, CLOSURE_TARGET, closureTimeline } = await import('../lib/path-closure.ts');
 
-async function scene(reduced, body, fromRelay = false, dimensions = {width:300,height:300}) {
+async function scene(reduced, body, fromRelay = false, dimensions = {width:300,height:300}, showcase=false) {
   const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, completions = 0;
@@ -43,13 +43,13 @@ async function scene(reduced, body, fromRelay = false, dimensions = {width:300,h
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.window = new EventTarget();
   window.matchMedia = () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} });
-  globalThis.document = Object.assign(new EventTarget(), { hidden: false });
+  globalThis.document = Object.assign(new EventTarget(), { hidden: false, createElement:()=>({relList:{supports:()=>false}}) });
   Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
     now: () => now, mark() {}, measure() {}, clearMarks() {}, clearMeasures() {},
   } });
   globalThis.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
   globalThis.cancelAnimationFrame = (id) => frames.delete(id);
-  const render = (paused = false) => React.createElement(PathClosure, { choices: [0, 3, 5], paused, fromRelay, onComplete: () => { completions++; } });
+  const render = (paused = false) => React.createElement(PathClosure, { choices: [0, 3, 5], paused, fromRelay, showcase, onComplete: () => { completions++; } });
   const advance = async (ms) => {
     for (let i = 0; i < ms; i += 40) {
       now += 40; const callbacks = [...frames.values()]; frames.clear();
@@ -123,8 +123,23 @@ test('real model groups remain inspectable and the handoff needs one explicit ac
     const glowing = root.root.findAll((node) => typeof node.props.slot === 'string' && node.props.slot.startsWith('hotspot-morse') && node.props.className.includes('is-lit'));
     assert.equal(glowing.length, 11, 'two round diamonds and three actual triple-diamond bars light together');
     const finish = next().props.onClick;
+    const model=root.root.find(node=>typeof node.props.orbit==='string'&&node.props.viewerRef);
     await act(() => { finish(); finish(); });
-    assert.equal(completions(), 1);
+    assert.equal(completions(),0,'the player first sees the camera lift before interactive presentation');
+    assert.equal(model.props.interactive,false);
+    assert.equal(model.props.interpolationDecay,0,'only the visible clock drives the camera');
+    await advance(1000);
+    assert.notEqual(model.props.orbit,'0deg 12deg 0.12m');
+    const frozenOrbit=model.props.orbit;
+    await pause(true);await advance(4000);assert.equal(model.props.orbit,frozenOrbit);assert.equal(completions(),0);
+    await pause(false);await visibility(true);await advance(4000);assert.equal(model.props.orbit,frozenOrbit);
+    await visibility(false);await advance(1800);
+    assert.equal(completions(),1);
+    assert.equal(model.props.interactive,true);
+    assert.equal(model.props.interpolationDecay,undefined);
+    assert.equal(root.root.find(node=>typeof node.props.orbit==='string'&&node.props.viewerRef),model,'the same viewer survives the change of controls');
+    assert.equal(root.root.findByProps({className:'bracelet-actions'}).props.inert,false);
+    await advance(4000);assert.equal(completions(),1);
   });
 });
 
@@ -136,6 +151,8 @@ test('reduced motion retains all model groups and the same explicit completion g
     assert.equal(root.root.findByProps({ className: 'closure-continue' }).props.disabled, false);
     assert.equal(completions(), 0);
     await act(() => root.root.findByProps({ className: 'closure-continue' }).props.onClick());
+    assert.equal(completions(),0);
+    await advance(480);
     assert.equal(completions(), 1);
   });
 });
@@ -218,4 +235,16 @@ test('the travelling star, reflected route and real diamond hotspots share one m
     assert.equal(star().props.style.opacity,0);
     assert.equal(root.root.findAll(n=>n.props.slot==='hotspot-closure-gem')[0].props.style.opacity,1,'the travelling light settles on the right-hand star setting');
   });
+});
+
+
+test('a saved interactive bracelet opens directly without replaying its closure or camera handoff', async()=>{
+  await scene(false,async({root,advance,completions})=>{
+    const model=root.root.find(node=>typeof node.props.orbit==='string'&&node.props.viewerRef);
+    assert.equal(root.root.findByType('section').props['data-presentation'],'interactive');
+    assert.equal(model.props.interactive,true);
+    assert.equal(model.props.orbit,'52deg 60deg calc(0m + 115%)');
+    assert.equal(root.root.findByProps({className:'bracelet-actions'}).props.inert,false);
+    await advance(4000);assert.equal(completions(),0,'loading an old completed save never marks it complete again');
+  },false,{width:300,height:500},true);
 });

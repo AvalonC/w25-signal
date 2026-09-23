@@ -30,11 +30,11 @@ function registerViewer() {
   });
   return registration;
 }
-export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', target, onReady, onViewChange, children, viewerRef, interactive = true, frozen = false }: {
+export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', target, onReady, onViewChange, children, viewerRef, interactive = true, frozen = false, interpolationDecay }: {
   src: string; poster: string; label: string; orbit?: string;
   onReady?: (ready: boolean) => void; onViewChange?: (view: CameraView | null) => void; children?: ReactNode;
   viewerRef?: Ref<ModelSurfaceHandle>; interactive?: boolean;
-  frozen?: boolean; target?: string;
+  frozen?: boolean; target?: string; interpolationDecay?: number;
 }) {
   const element = useRef<HTMLElement | null>(null);
   const callback = useRef(onReady);
@@ -108,6 +108,7 @@ export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', ta
       key: src + attempt, ref: element, src, alt: label,
       'camera-controls': interactive ? '' : undefined, 'disable-pan': '', 'disable-zoom': '',
       'camera-orbit': orbit, 'camera-target': target, 'interaction-prompt': 'none',
+      'interpolation-decay': interpolationDecay ?? 50,
       'touch-action': 'pan-y', exposure: '1.15',
       'min-camera-orbit': 'auto 12deg auto', 'max-camera-orbit': 'auto 85deg auto',
       'environment-image': 'neutral', 'shadow-intensity': '0',

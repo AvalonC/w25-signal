@@ -179,3 +179,14 @@ test('model failure, source replacement, and unmount clear stale projections and
     assert.equal(views.length, beforeUnmount);
   });
 });
+
+
+test('scripted camera movement temporarily disables damping and restores the actual viewer default',async()=>{
+  await scene(async({root,change})=>{
+    const element=()=>root().root.findByType('model-viewer');
+    assert.equal(element().props['interpolation-decay'],50);
+    await change({interpolationDecay:0});assert.equal(element().props['interpolation-decay'],0);
+    await change({interpolationDecay:undefined,interactive:true});assert.equal(element().props['interpolation-decay'],50);
+    assert.equal(element().props['camera-controls'],'');
+  });
+});

@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { CompanionLight } from './path-sky';
-import { ModelSurface } from './model-surface';
+import { ModelSurface, type ModelSurfaceHandle } from './model-surface';
+import { BraceletActions, BraceletDissolve, useBraceletDelivery } from './model';
+import { handoffFrame, HANDOFF_DURATION, HANDOFF_REDUCED_DURATION } from '@/lib/bracelet-handoff';
 import { useVisibleClock } from './scene-clock';
 import { BRACELET_ASSETS } from '@/lib/model-assets';
-import { smooth, type CameraView, type Vec3 } from '@/lib/bracelet-transition';
+import { smooth, type CameraView, type StarArrival, type Vec3 } from '@/lib/bracelet-transition';
 import { CLOSURE_CODES, CLOSURE_GEM, CLOSURE_LETTERS, CLOSURE_ORBIT, CLOSURE_PARTS,
   closureArrival, closureFrame, closureNear, closurePoint, closureRingPosition } from '@/lib/path-closure';
 import { closureSweep, closureSweepPath } from '@/lib/closure-sweep';
@@ -20,8 +22,9 @@ const words = ['一瞬的光，和两次长长的停留。', '两点、三划，
 const posterView: CameraView = { ...metadata.poster, target:metadata.poster.target as Vec3,
   orthographicSpan:metadata.poster.span, radius:.145, fov:30, left:0, top:0, width:100, height:100 };
 
-export function PathClosure({ choices, paused = false, fromRelay = false, onComplete }: {
-  choices: number[]; paused?: boolean; fromRelay?: boolean; onComplete: () => void;
+export function PathClosure({ choices, paused = false, fromRelay = false, showcase = false, onComplete, onScatter = () => {}, onGem = () => {} }: {
+  choices: number[]; paused?: boolean; fromRelay?: boolean; showcase?:boolean; onComplete: () => void;
+  onScatter?:()=>void; onGem?:(arrival:StarArrival)=>void;
 }) {
   const [closed, setClosed] = useState(false), [loaded, setLoaded] = useState(false);
   const [reduced, setReduced] = useState(false), [hidden, setHidden] = useState(false);
@@ -29,12 +32,23 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
   const [dragging, setDragging] = useState(false), [selected, setSelected] = useState<number | null>(null);
   const [size,setSize] = useState(300), [view,setView] = useState<CameraView | null>(null);
   const [joinAngle,setJoinAngle] = useState(345);
+  const [presenting,setPresenting]=useState(false),[arrived,setArrived]=useState(showcase);
+  const [footerHeight,setFooterHeight]=useState(240);
+  const reading=useRef<HTMLDivElement>(null),actions=useRef<HTMLDivElement>(null),viewer=useRef<ModelSurfaceHandle>(null);
+  const presentation=presenting||arrived||showcase;
   const world = useRef<HTMLDivElement>(null), area = useRef<HTMLDivElement>(null), light = useRef<HTMLButtonElement>(null);
   const pointer = useRef<{ id: number; dx: number; dy: number } | null>(null);
-  const begun = useRef(false), sent = useRef(false);
+  const begun = useRef(false), sent = useRef(false), handed=useRef(false);
   const callback = useRef(onComplete); callback.current = onComplete;
-  const opening = useVisibleClock(!closed && !paused && !hidden);
-  const elapsed = useVisibleClock(closed && !paused && !hidden);
+  const opening = useVisibleClock(!closed && !presentation && !paused && !hidden);
+  const elapsed = useVisibleClock(closed && !presentation && !paused && !hidden);
+  const handoffTime=useVisibleClock(presenting&&!arrived&&!paused&&!hidden);
+  const handoff=handoffFrame(arrived||showcase?reduced?HANDOFF_REDUCED_DURATION:HANDOFF_DURATION:handoffTime,reduced);
+  const delivery=useBraceletDelivery({onGem,onScatter,paused:paused||hidden,enabled:arrived||showcase,reduced,viewer,surface:area});
+  useEffect(()=>{
+    if(!presenting||arrived||paused||hidden||document.hidden||!handoff.ready||handed.current)return;
+    handed.current=true;setArrived(true);callback.current();
+  },[presenting,arrived,paused,hidden,handoff.ready]);
   const phase = closureFrame(elapsed, reduced), sweep = closureSweep(elapsed, reduced);
   const overview = reduced ? 1 : smooth(opening / 2200);
   // A single square stage and one projection serve the route, star, hit targets,
@@ -49,6 +63,12 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
   const arrival = closureArrival(opening, reduced, anchor);
   const entryReady = fromRelay ? arrival.ready : reduced || opening >= 2200;
   const group = selected ?? phase.group;
+  useLayoutEffect(()=>{
+    const measure=()=>{const a=reading.current?.getBoundingClientRect().height??0,b=actions.current?.getBoundingClientRect().height??0;if(a||b)setFooterHeight(Math.ceil(Math.max(a,b)));};
+    measure();const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);
+    if(reading.current)observer?.observe(reading.current);if(actions.current)observer?.observe(actions.current);
+    return()=>observer?.disconnect();
+  },[]);
   const clear = useCallback(() => {
     const previous = pointer.current;
     pointer.current = null;
@@ -91,7 +111,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
   };
   const finish = () => {
     if (paused || document.hidden || !closed || !phase.ready || sent.current) return;
-    sent.current = true; callback.current();
+    sent.current = true; setPresenting(true);
   };
   const position = (event: PointerEvent<HTMLButtonElement>, offset = pointer.current) => {
     const rect = area.current!.getBoundingClientRect();
@@ -101,7 +121,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
   const isNear = (value: Point) => closureNear(value,size,size,target);
   const showPart = (index: number) => closed && (selected === null ? phase.lit[index] : CLOSURE_PARTS[index].group === selected);
   const strength = (index:number,stone:number) => !closed ? 0 : selected === null ? sweep.stoneStrengths[index][stone] : CLOSURE_PARTS[index].group === selected ? .8 : 0;
-  const stoneStyle=(index:number,stone:number)=>({ '--mapped-light':strength(index,stone) } as CSSProperties);
+  const stoneStyle=(index:number,stone:number)=>({ '--mapped-light':strength(index,stone)*(presentation?handoff.closureOpacity:1) } as CSSProperties);
   const showGem = closed && selected === null ? phase.gemstone : 0;
   const joinProgress=(joinAngle-345+(380-joinAngle)*phase.join)/35;
   const start = closed ? project(closureRingPosition(345+35*joinProgress)) : fromRelay && !entryReady ? arrival.point : point ?? anchor;
@@ -113,24 +133,32 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
   const trail=pathOf(travelled);
   const tail=pathOf(travelled.slice(-12));
   const select=(index:number)=>{if(!paused&&!document.hidden&&phase.ready)setSelected(selected===index?null:index);};
-  return <section className={'path-closure' + (closed ? ' is-closed' : '') + (dragging ? ' is-carrying' : '') +
-    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '') + (fromRelay ? ' from-relay' : '')} aria-label="让星路在手链上闭合"
-    style={{ '--closure-arrival-copy': fromRelay ? arrival.copy : 1 } as CSSProperties}>
-    <output className="closure-whisper">{!closed ? '走过的光，原来围成了一圈。'
+  return <section className={'path-closure bracelet-experience' + (closed ? ' is-closed' : '') + (dragging ? ' is-carrying' : '') +
+    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '') + (fromRelay ? ' from-relay' : '') + (presentation ? ' is-presenting' : '') + (arrived||showcase ? ' is-showcase' : '') + (delivery.departing ? ' is-departing' : '')} aria-label={presentation?'星光手链':'让星路在手链上闭合'}
+    data-presentation={arrived||showcase?'interactive':presenting?'moving':'closure'}
+    style={{ '--closure-arrival-copy': fromRelay&&!presentation ? arrival.copy : 1, '--closure-footer-height':footerHeight+'px', '--bracelet-ar-reveal':presentation?handoff.arOpacity:0 } as CSSProperties}>
+    <output className="closure-whisper" style={{opacity:presentation?handoff.closureOpacity:undefined}} aria-hidden={presentation}>{!closed ? '走过的光，原来围成了一圈。'
       : phase.settled ? '那些长短的回应，一直藏在它身上。' : group >= 0 ? words[group] : '最后一段星路，被你接通了。'}</output>
     <div className="closure-world" ref={world}>
     <div className="closure-stage" ref={area} style={{width:size,height:size,'--closure-overview':overview,
-      '--closure-solid':closed?phase.solid:0,'--closure-trace':closed?1-phase.solid*.92:1} as CSSProperties}>
-      <div className="closure-object" aria-hidden={!closed}>
-        <ModelSurface src={BRACELET_ASSETS.model} poster={BRACELET_ASSETS.poster} orbit={CLOSURE_ORBIT}
-          target="0m 0m 0m" label="长短钻石链节组成 W25 的真实手链" onReady={setLoaded} onViewChange={setView} interactive={false}>
+      '--closure-solid':(presentation?1:closed?phase.solid:0)*delivery.phase.solid,'--closure-trace':closed?1-phase.solid*.92:1} as CSSProperties}>
+      <div className="closure-object" aria-hidden={!closed&&!presentation}>
+        <ModelSurface src={BRACELET_ASSETS.model} poster={BRACELET_ASSETS.poster} orbit={presentation?handoff.orbit:CLOSURE_ORBIT}
+          target={presentation?metadata.poster.target.map(value=>value*handoff.cameraProgress+'m').join(' '):'0m 0m 0m'}
+          label={presentation?'可旋转的完整手链：四角星镶座、粉色宝石、长短银链和自然垂落的尾饰':'长短钻石链节组成 W25 的真实手链'}
+          onReady={setLoaded} onViewChange={setView} viewerRef={viewer} frozen={delivery.departing}
+          interactive={(arrived||showcase)&&!paused&&!hidden&&!delivery.departing} interpolationDecay={presenting&&!arrived?0:undefined}>
           {CLOSURE_PARTS.flatMap((part, index) => part.stones.map((stone, j) => <span key={part.node+'-'+j}
             slot={'hotspot-morse-'+index+'-'+j} data-position={stone.map((n) => n+'m').join(' ')}
             className={markClass(index)} style={stoneStyle(index,j)} aria-hidden="true" />))}
           <span slot="hotspot-closure-gem" data-position={CLOSURE_GEM.map((n) => n+'m').join(' ')}
-            className="closure-gem" style={{ opacity: showGem }} aria-hidden="true" />
+            className="closure-gem" style={{ opacity: showGem*(presentation?handoff.closureOpacity:1) }} aria-hidden="true" />
+          {(arrived||showcase)&&!delivery.departing&&<button slot="hotspot-gem" className="bracelet-gem-target"
+            data-position={metadata.hotspot.map(value=>value+'m').join(' ')} data-normal={metadata.normal.join(' ')}
+            data-visibility-attribute="visible" aria-label="触碰粉色蓝宝石，让手链化作星光"
+            disabled={paused||hidden} onClick={event=>{event.stopPropagation();delivery.depart();}}><span aria-hidden="true">✧</span></button>}
         </ModelSurface>
-        {!loaded && <svg className="closure-poster-lights" viewBox="0 0 100 100" aria-hidden="true">
+        {!loaded&&!presentation && <svg className="closure-poster-lights" viewBox="0 0 100 100" aria-hidden="true">
           {CLOSURE_PARTS.flatMap((part,index)=>part.stones.map((stone,j)=>{
             const p=closurePoint(stone,posterView);
             return <circle key={part.node+'-'+j} cx={p.x} cy={p.y} r={.8} className={markClass(index)} style={stoneStyle(index,j)} />;
@@ -138,7 +166,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
           {(()=>{const p=closurePoint(CLOSURE_GEM,posterView);return <circle cx={p.x} cy={p.y} r={2.4} className="closure-gem" style={{opacity:showGem}} />;})()}
         </svg>}
       </div>
-      <div className="closure-plane">
+      <div className="closure-plane" inert={presentation} aria-hidden={presentation} style={{opacity:presentation?handoff.closureOpacity:1}}>
       <div className="closure-sky" aria-hidden="true">
         <svg className="closure-ring" viewBox="0 0 100 100">
           <path className="closure-route-soft" d={pathOf(route.map(project))} />
@@ -196,7 +224,8 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
       </div>
     </div>
     </div>
-    <div className="closure-reading">
+    <div className="closure-footer">
+    <div className="closure-reading" ref={reading} inert={presentation} aria-hidden={presentation} style={{opacity:presentation?handoff.closureOpacity:1}}>
       {!closed ? <p className="closure-invitation">把同行的光，带到最后一个星点。</p> : <>
         <div className="closure-code" aria-label="W25 与手链上的三组长短链节">
           {CLOSURE_CODES.map((code,i)=><button type="button" key={code} disabled={paused||!phase.ready}
@@ -212,5 +241,11 @@ export function PathClosure({ choices, paused = false, fromRelay = false, onComp
         </button>
       </>}
     </div>
+    <div className="closure-showcase-controls" ref={actions} inert={!(arrived||showcase)||paused||hidden||delivery.departing} aria-hidden={!(arrived||showcase)}
+      style={{opacity:presentation?handoff.actionsOpacity:0,pointerEvents:arrived||showcase?'auto':'none'}}>
+      <BraceletActions loaded={loaded} paused={paused||hidden} departing={delivery.departing} enabled={arrived||showcase} onDeliver={delivery.depart}/>
+    </div>
+    </div>
+    <BraceletDissolve delivery={delivery} reduced={reduced}/>
   </section>;
 }

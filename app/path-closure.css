@@ -67,3 +67,11 @@
   .closure-stone,.closure-object model-viewer { transition:none; }
   .closure-carried .path-companion-orbit { animation:none; }
 }
+
+.closure-footer { position:relative; flex:0 0 auto; width:100%; height:var(--closure-footer-height,240px); }
+.closure-footer > .closure-reading,.closure-showcase-controls { position:absolute; top:0; left:0; right:0; }
+.path-closure.is-showcase .closure-object { pointer-events:auto; }
+.path-closure.is-showcase model-viewer { cursor:grab; }
+.path-closure.is-showcase model-viewer:active { cursor:grabbing; }
+.closure-showcase-controls .bracelet-ar-entry,.closure-showcase-controls .bracelet-ar-note,.closure-showcase-controls .bracelet-file-link { opacity:var(--bracelet-ar-reveal,1); }
+.path-closure.is-departing .closure-showcase-controls { visibility:hidden; }

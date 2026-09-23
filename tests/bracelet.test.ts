@@ -7,19 +7,20 @@ import { braceletPhase, projectPoint, scatteredPoint, type CameraView } from '..
 import { QuickLookLink } from '../components/game/quick-look-link.ts';
 import { BRACELET_ASSETS, MODEL_REVISION } from '../lib/model-assets.ts';
 
-test('Quick Look is a native image-only anchor; label cannot intercept the click', () => {
+void test('Quick Look is a native image-only anchor; label cannot intercept the click', () => {
   let opened = 0;
   const entry = QuickLookLink({ onOpen: () => { opened++; } });
   const [link, label] = Children.toArray((entry.props as typeof entry.props & { children: import('react').ReactNode }).children);
   assert.ok(isValidElement<{rel: string; href: string; 'aria-label': string; children: unknown; onClick: () => void}>(link));
   assert.equal(link.type, 'a'); assert.equal(link.props.rel, 'ar');
   assert.equal(link.props.href, BRACELET_ASSETS.ar);
-  assert.ok(isValidElement<{src: string; width: number}>(link.props.children));
+  assert.ok(isValidElement<{src: string; width: number; height: number}>(link.props.children));
   assert.equal(link.props.children.type, 'img', 'No span/text siblings inside a Quick Look anchor');
   assert.ok(isValidElement<{children: string}>(label)); assert.equal(label.type, 'span');
   link.props.onClick(); assert.equal(opened, 1);
   assert.match(link.props['aria-label'], /Apple AR Quick Look/);
   assert.equal(link.props.children.props.width, 64);
+  assert.equal(link.props.children.props.height, 64);
   assert.equal(link.props.children.props.src, 'images/ar-native-transparent.png');
   for (const href of Object.values(BRACELET_ASSETS)) {
     assert.equal(new URL(href, 'https://example.com/w25-signal/').searchParams.get('v'), MODEL_REVISION);
@@ -29,7 +30,39 @@ test('Quick Look is a native image-only anchor; label cannot intercept the click
   assert.equal(MODEL_REVISION, metadata.revision, 'All displayed assets must use the exported model revision');
 });
 
-test('native AR image has no opaque pixels covering the system badge', () => {
+void test('compact layouts keep Safari native AR badge above its 51px rendering threshold', () => {
+  // WebKit ARKitBadgeSystemImage: smallDimension=35, smallOffset=8.
+  // A 50px image is a valid tap target, but WebKit intentionally paints no badge.
+  const minimumBadgeBox = 35 + 2 * 8;
+  const styles = ['../app/bracelet.css', '../app/immersive.css'].map((file) =>
+    readFileSync(new URL(file, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''));
+  const declarations = (selector: string) => {
+    const result: Record<string, string> = {};
+    for (const css of styles) {
+      for (const rule of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
+        if (!rule[1].split(',').map((part) => part.trim()).includes(selector)) continue;
+        for (const declaration of rule[2].split(';')) {
+          const [name, value] = declaration.split(':').map((part) => part.trim());
+          if (name && value) result[name] = value;
+        }
+      }
+    }
+    return result;
+  };
+  const image = declarations('.bracelet-ar-link img');
+  const compactImage = {...image, ...declarations('.immersive-journey .bracelet-ar-link img')};
+  for (const layout of [image, compactImage]) {
+    for (const dimension of ['width', 'height', 'min-width', 'min-height']) {
+      assert.ok(Number.parseFloat(layout[dimension]) >= minimumBadgeBox, dimension + ' must allow the native AR badge');
+    }
+  }
+  const compactEntry = {...declarations('.bracelet-ar-entry'), ...declarations('.immersive-journey .bracelet-ar-entry')};
+  assert.ok(Number.parseFloat(compactEntry['grid-template-columns']) >= Number.parseFloat(compactImage.width),
+    'Reserve the image column so the label cannot cover the badge');
+  assert.equal(declarations('.bracelet-ar-label')['pointer-events'], 'none', 'The full row forwards taps to the native anchor');
+});
+
+void test('native AR image has no opaque pixels covering the system badge', () => {
   const png = readFileSync(new URL('../public/images/ar-native-transparent.png', import.meta.url));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
   assert.equal(png.readUInt32BE(16), 64);
@@ -46,7 +79,7 @@ test('native AR image has no opaque pixels covering the system badge', () => {
   assert.ok(pixels.every((byte) => byte === 0), 'Unfiltered RGBA pixels must all be transparent');
 });
 
-test('solid fades into a held star silhouette before any scattering or chapter change', () => {
+void test('solid fades into a held star silhouette before any scattering or chapter change', () => {
   assert.equal(braceletPhase(0).solid, 1);
   assert.equal(braceletPhase(0).stars, 0);
   assert.ok(braceletPhase(900).solid > 0 && braceletPhase(900).stars > 0);
@@ -63,7 +96,7 @@ test('solid fades into a held star silhouette before any scattering or chapter c
   assert.equal(braceletPhase(1800, true).spread, 0, 'Reduced motion does not scatter');
 });
 
-test('camera projection keeps silhouette aligned at rotated poses and mobile aspect ratios', () => {
+void test('camera projection keeps silhouette aligned at rotated poses and mobile aspect ratios', () => {
   const view: CameraView = { theta:0, phi:Math.PI/2, radius:1, target:[0,0,0], fov:90, left:20, top:120, width:300, height:400 };
   const center = projectPoint([0,0,0], view);
   assert.deepEqual(center, {x:170,y:320});

@@ -4,6 +4,7 @@ import { BRACELET_ASSETS } from '../../lib/model-assets.ts';
 
 export function QuickLookLink({ onOpen }: { onOpen: () => void }) {
   // Keep a real, transparent raster image for Safari's native AR badge.
+  // Its rendered box must stay >=51px: WebKit uses a 35px badge + 8px on each side.
   // Do not put a background, clipping, filter or decoration on the image:
   // its pixels and the browser-owned badge must remain unobstructed.
   return createElement('div', { className: 'bracelet-ar-entry' },

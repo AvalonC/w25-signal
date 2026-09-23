@@ -41,9 +41,8 @@ html:has(.immersive-journey),body:has(.immersive-journey) { height:100%; overflo
 .immersive-journey .bracelet-caption { font-size:12px; }
 .immersive-journey .bracelet-delivery { font-size:15px; line-height:1.7; margin:0; }
 .immersive-journey .bracelet-send { min-height:44px; padding:8px 14px; border-radius:4px; font-size:14px; letter-spacing:0; }
-.immersive-journey .bracelet-ar-entry { width:250px; grid-template-columns:50px 1fr; column-gap:10px; margin:0; }
-.immersive-journey .bracelet-ar-link { min-height:50px; }
-.immersive-journey .bracelet-ar-link img { width:50px; height:50px; }
+.immersive-journey .bracelet-ar-entry { width:250px; grid-template-columns:64px 1fr; column-gap:10px; margin:0; }
+.immersive-journey .bracelet-ar-link { min-height:64px; }
 .immersive-journey .bracelet-ar-label { font-size:13px; }
 .immersive-journey .bracelet-ar-note { font-size:11px; line-height:1.5; }
 .immersive-journey .journey-revisit { padding:2px 0 0; gap:20px; flex:none; }

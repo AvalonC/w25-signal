@@ -10,7 +10,6 @@ import {StarPathJourney} from './star-path-journey';
 import {EchoRelay} from './echo-relay';
 import {RelayDeparture} from './relay-departure';
 import {PathClosure} from './path-closure';
-import {WireBracelet} from './model';
 import {CipherReveal} from './cipher-reveal';
 import {freshPath} from '@/lib/star-path';
 import {deliveredWishes} from '@/lib/echo-relay';
@@ -111,10 +110,11 @@ export default function JourneyGame(){
           onTone={ms=>{if(soundRef.current)tone(ms);}} onTouch={symbol=>{if(symbol)feedback(symbol==='.'?30:140,soundRef.current);else tap();}}
           onDelivered={wish=>setS(p=>({...p,decoded:p.decoded+1,echoWishes:[...deliveredWishes(p.choices,p.decoded,p.echoWishes),wish]}))}/>:
           <RelayDeparture choices={s.choices} paused={help||revisit} onContinue={()=>{setRelayFlight(true);patch({stage:6,pathClosed:false});}}/>) }
-        {s.stage===6&&!s.pathClosed&&<PathClosure choices={s.choices} paused={help||revisit} fromRelay={relayFlight} onComplete={()=>{tap();patch({pathClosed:true});}}/>}
-        {s.stage===6&&s.pathClosed&&<>
-          <WireBracelet paused={help||revisit} onScatter={()=>{tap();setModelBurst(true);}} onGem={points=>{setArrival(points);setModelBurst(false);setEndingMode('cipher');setS(p=>finish(p));}}/>
-          {s.completed&&<nav className="journey-revisit" aria-label="重访星间来信"><button onClick={showLetter}>读生日回信</button><button onClick={home}>回到星空</button></nav>}
+        {s.stage===6&&<>
+          <PathClosure choices={s.choices} paused={help||revisit} fromRelay={relayFlight} showcase={!!s.pathClosed}
+            onComplete={()=>{tap();patch({pathClosed:true});}} onScatter={()=>{tap();setModelBurst(true);}}
+            onGem={points=>{setArrival(points);setModelBurst(false);setEndingMode('cipher');setS(p=>finish(p));}}/>
+          {s.completed&&<nav className="journey-revisit" aria-label="重访星间来信" inert={!s.pathClosed} aria-hidden={!s.pathClosed} style={{visibility:s.pathClosed?'visible':'hidden'}}><button onClick={showLetter}>读生日回信</button><button onClick={home}>回到星空</button></nav>}
         </>}
         {s.stage===7&&(endingMode==='cipher'?<CipherReveal paused={help||revisit} onDone={()=>{tap();setEndingMode('letter');setLetterVisit(n=>n+1);}}/>:
           <section key={letterVisit} className={'birthday-letter'+(returning?' is-returning':'')} aria-label="给 Leah 的生日回信">
