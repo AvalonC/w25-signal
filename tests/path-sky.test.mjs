@@ -236,3 +236,23 @@ test('reduced motion preserves the handoff and enables choices after a short res
     assert.equal(fields.at(-1).orbit,handoff.orbit);
   });
 });
+
+test('a presented map stays inert and leaves particles alone until it becomes the active sky',async()=>{
+  await scene({anchor:'prism',color:true,presentation:{progress:0,labels:0,carrierHidden:true}},async({root,carrier,fields,visits,advance,update,pointer,captures})=>{
+    const section=root.root.findByType('section'),mask=root.root.findByType('mask').props.id;
+    const date=()=>root.root.findAllByType('button').find(node=>node.props.className.includes('path-place-date'));
+    const drawing=()=>root.root.findAll(node=>node.type?.name==='DestinationDrawing'&&node.props.place==='date')[0];
+    assert.deepEqual(fields,[]);assert.equal(carrier().props.disabled,true);assert.equal(carrier().props.style.visibility,'hidden');
+    assert.equal(drawing().props.progress,0);
+    await act(()=>date().props.onClick());await act(()=>carrier().props.onPointerDown(pointer(92,295)));
+    await act(()=>carrier().props.onKeyDown({key:'ArrowUp',preventDefault(){}}));
+    assert.equal(captures.size,0);assert.deepEqual(visits,[]);assert.equal(carrier().props.style.top,'59%');
+    await update({presentation:{progress:.7,labels:.2,carrierHidden:true}});await advance(2400);
+    assert.equal(drawing().props.progress,.7);assert.deepEqual(fields,[]);assert.equal(carrier().props.disabled,true);
+    await update({presentation:undefined});
+    assert.equal(root.root.findByType('section'),section);assert.equal(root.root.findByType('mask').props.id,mask);
+    assert.equal(drawing().props.progress,1);assert.equal(carrier().props.disabled,false);assert.equal(carrier().props.style.visibility,undefined);
+    assert.deepEqual(fields.at(-1).carrier,{x:92,y:295});
+    await act(()=>date().props.onClick());await advance(960);assert.deepEqual(visits,['date']);
+  });
+});

@@ -4,7 +4,7 @@ import { registerHooks } from 'node:module';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { act, create } from 'react-test-renderer';
 
 // Mount the actual scenes and their clocks; only canvas painting and host DOM are absent.
@@ -32,7 +32,7 @@ async function scene(initial, body) {
   const keys = ['document', 'window', 'ResizeObserver', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, current;
-  const frames = new Map(), discoveries = [];
+  const frames = new Map(), discoveries = [], fields=[];
   const host = () => ({
     getContext: () => null,
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 500 }),
@@ -53,11 +53,12 @@ async function scene(initial, body) {
   function Harness({ paused = false }) {
     const [path, setPath] = useState(initial.path);
     const [date, setDate] = useState({ month: initial.month ?? 1, day: initial.day ?? 1 });
-    current = { path, ...date };
+    useLayoutEffect(()=>{current={path,...date};},[path,date]);
     return React.createElement(StarPathJourney, {
       path, ...date, paused, choices: [0, 3, 5], rotation: 0,
       onPath: (next) => { discoveries.push(next); setPath(next); },
       onDate: (month, day) => setDate({ month, day }),
+      onField:field=>fields.push(field),
       onRotation() {}, onComplete() {}, onTap() {},
     });
   }
@@ -71,8 +72,9 @@ async function scene(initial, body) {
   try {
     await act(() => { root = create(React.createElement(Harness), { createNodeMock: host }); });
     await body({
-      root, advance, discoveries, current: () => current,
+      root, advance, discoveries, fields, current: () => current,
       pause: async (paused) => act(() => root.update(React.createElement(Harness, { paused }))),
+      visibility:async(hidden)=>act(()=>{document.hidden=hidden;document.dispatchEvent(new Event('visibilitychange'));}),
       pointer: (clientX, clientY, pointerId = 1) => ({
         clientX, clientY, pointerId, isPrimary: true, pointerType: 'touch', button: 0,
         currentTarget: host(), preventDefault() {},
@@ -130,11 +132,11 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
     assert.equal(current().path.place,'prism','click begins a return flight, not an immediate cut');
     await advance(500);await pause(true);await advance(5000);
     assert.equal(current().path.place,'prism','help pauses the return camera');
-    await pause(false);await advance(900);
+    await pause(false);await advance(1840);
     assert.equal(current().path.anchor,'prism');
-    await advance(960);
     const carrier = root.root.findAllByType('button').find((button) => button.props.className.startsWith('path-carrier'));
     assert.equal(carrier.props.style.left,'23%');
+    assert.equal(carrier.props.disabled,false,'the revealed map is immediately usable, without a second arrival');
   });
 });
 
@@ -164,7 +166,7 @@ test('October eighth gathers the dials once, retains its place, and pauses when 
     assert.equal(stone.props.tint,0,'date-first gathering remains white');
     await act(() => root.root.findByProps({'aria-label':'带着这一天的星光回到星路'}).props.onClick());
     assert.equal(current().path.place,'date');
-    await advance(1400);
+    await advance(2320);
     assert.equal(current().path.anchor,'date');
   });
 });
@@ -240,4 +242,77 @@ test('reduced motion uses a short quiet arrival and still hands off exactly once
       assert.equal(current().path.infused, true);
       assert.equal(discoveries.length, 1);
     });
+});
+
+test('the return reveals one persistent map, blocks background visits, and freezes all motion for help and hidden tabs',async()=>{
+  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true}},async({root,advance,current,pause,visibility,fields})=>{
+    const sky=()=>root.root.find(node=>node.type==='section'&&node.props.className.startsWith('path-exploration'));
+    const carrier=()=>root.root.findAllByType('button').find(node=>node.props.className.startsWith('path-carrier'));
+    const place=name=>root.root.findAllByType('button').find(node=>node.props.className.includes('path-place-'+name));
+    const returning=()=>root.root.findByProps({className:'path-returning-carrier'});
+    const journey=()=>root.root.find(node=>node.type==='section'&&node.props.className.startsWith('star-path-journey'));
+    await act(()=>root.root.findByProps({'aria-label':'带着粉光回到星路'}).props.onClick());
+    const originalSky=sky(),mask=root.root.findByType('mask').props.id;
+    assert.equal(carrier().props.style.left,'23%');assert.equal(carrier().props.style.top,'59%');
+    assert.equal(carrier().props.style.visibility,'hidden');assert.equal(carrier().props.disabled,true);
+    assert.equal(root.root.findByProps({className:'path-map-layer'}).props.inert,true);
+    await act(()=>place('date').props.onClick());assert.equal(current().path.place,'prism');
+    await advance(640);
+    const before={star:{...returning().props.style},camera:{...journey().props.style},map:root.root.findAll(node=>node.type?.name==='PathSky')[0].props.presentation};
+    await pause(true);await advance(5000);
+    assert.deepEqual(returning().props.style,before.star);assert.deepEqual(journey().props.style,before.camera);
+    await pause(false);await visibility(true);await advance(5000);
+    assert.deepEqual(returning().props.style,before.star);assert.deepEqual(journey().props.style,before.camera);
+    assert.deepEqual(root.root.findAll(node=>node.type?.name==='PathSky')[0].props.presentation,before.map);
+    assert.equal(fields.filter(Boolean).length,0,'the background must not claim the active particle field');
+    await visibility(false);await advance(1700);
+    assert.equal(current().path.place,'sky');assert.equal(current().path.anchor,'prism');
+    assert.equal(sky(),originalSky,'finishing the retreat keeps the same mounted map');
+    assert.equal(root.root.findByType('mask').props.id,mask,'route masks also keep their identity');
+    assert.equal(carrier().props.disabled,false);assert.equal(carrier().props.style.visibility,undefined);
+    assert.ok(fields.filter(Boolean).length>0,'the existing map takes over particle output immediately');
+    assert.equal(root.root.findAllByProps({className:'path-returning-carrier'}).length,0);
+    await act(()=>place('date').props.onClick());await advance(960);
+    assert.equal(current().path.place,'date','the first available click starts the next visit');
+  });
+});
+
+test('a second discovery return gets a fresh clock instead of completing immediately',async()=>{
+  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true}},async({root,advance,current,discoveries})=>{
+    const returnLight=name=>root.root.findByProps({'aria-label':name});
+    const date=()=>root.root.findAllByType('button').find(node=>node.props.className.includes('path-place-date'));
+    await act(()=>returnLight('带着粉光回到星路').props.onClick());await advance(2360);
+    assert.equal(current().path.place,'sky');
+    await act(()=>date().props.onClick());await advance(960);assert.equal(current().path.place,'date');
+    await advance(3000);
+    await act(()=>returnLight('带着这一天的星光回到星路').props.onClick());
+    assert.equal(current().path.place,'date');
+    await advance(1200);assert.equal(current().path.place,'date','the second flight still needs its own full duration');
+    const carrier=root.root.findAllByType('button').find(node=>node.props.className.startsWith('path-carrier'));
+    assert.equal(carrier.props.disabled,true);assert.equal(carrier.props.style.left,'76%');
+    await advance(1160);assert.equal(current().path.place,'sky');assert.equal(current().path.anchor,'date');
+    assert.equal(discoveries.filter(path=>path.place==='sky').length,2,'each return commits exactly once');
+    await advance(3000);assert.equal(discoveries.filter(path=>path.place==='sky').length,2);
+  });
+});
+
+test('the pink road draws first, then reveals the next destination and its nearby verse',async()=>{
+  for(const dateFound of [false,true])await scene({path:{...freshPath(),place:'prism',color:true,dateFound}},async({root,advance,pause,visibility})=>{
+    const road=()=>root.root.findByProps({className:'prism-road-core'});
+    const copy=()=>root.root.findByProps({className:'prism-road-copy'});
+    const icon=()=>root.root.find(node=>node.type?.name==='DestinationDrawing');
+    assert.equal(road().props['data-progress'],0);assert.equal(copy().props.style.opacity,0);assert.equal(icon().props.progress,0);
+    assert.equal(icon().props.place,dateFound?'sapphire':'date');
+    assert.equal(root.root.findAllByProps({className:'path-prism-message'}).length,0,'the verse belongs to the emerging road');
+    await advance(1000);
+    assert.ok(road().props['data-progress']>0&&road().props['data-progress']<1);
+    assert.equal(copy().props.style.opacity,0);assert.equal(icon().props.progress,0);
+    const before=road().props['data-progress'];
+    await pause(true);await advance(3000);assert.equal(road().props['data-progress'],before);
+    await pause(false);await visibility(true);await advance(3000);assert.equal(road().props['data-progress'],before);
+    await visibility(false);await advance(800);
+    assert.ok(copy().props.style.opacity>0&&copy().props.style.opacity<1);
+    assert.ok(icon().props.progress>0&&icon().props.progress<1);
+    await advance(700);assert.equal(road().props['data-progress'],1);assert.equal(copy().props.style.opacity,1);assert.equal(icon().props.progress,1);
+  });
 });

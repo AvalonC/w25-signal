@@ -11,6 +11,7 @@ import { useVisibleClock } from './scene-clock';
 import { DestinationDrawing } from './path-destinations';
 import { inSky, pathArrival, pathReturn, wishOrbit, PATH_PLACES, type SkyBox, type SkyHandoff } from '@/lib/path-arrival';
 import type { WishField } from './particles';
+import { onwardPoint } from '@/lib/return-flight';
 
 export type PathPlace = 'sky' | 'prism' | 'date' | 'sapphire';
 type Destination = Exclude<PathPlace, 'sky'>;
@@ -50,7 +51,7 @@ export function CompanionLight({
   );
 }
 
-export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = 'origin', handoff, onField }: {
+export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = 'origin', handoff, onField, presentation }: {
   color: boolean;
   dateFound: boolean;
   choices: number[];
@@ -59,6 +60,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   anchor?: StarPathState['anchor'];
   handoff?: SkyHandoff | null;
   onField?: (field: WishField | null) => void;
+  presentation?: { progress:number; labels:number; carrierHidden?:boolean };
 }) {
   const maskId=useId().replaceAll(':','');
   const skyRef = useRef<HTMLDivElement>(null);
@@ -79,12 +81,12 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const start=entryHandoff&&layout?inSky(entryHandoff.main,box,layout.width,layout.height):position;
   const companionStarts=entryHandoff&&layout?entryHandoff.companions.map(p=>inSky(p,box,layout.width,layout.height)):[];
   const entry=(entryHandoff?.kind==='return'?pathReturn:pathArrival)(elapsed,reduced,start,companionStarts,entryHandoff?.orbit??0,box.width,box.height,PATH_ANCHORS[anchor]);
-  const entering=!!entryHandoff&&(!layout||!entry.done);
+  const entering=!presentation&&!!entryHandoff&&(!layout||!entry.done);
   const [flight, setFlight] = useState<{ place: Destination; from: Point } | null>(null);
   const flightTime = useVisibleClock(!!flight && !paused);
   const committed = useRef(false), visit = useRef(onVisit); visit.current = onVisit;
   const ready = color && dateFound;
-  const blocked = paused || !!flight || entering;
+  const blocked = paused || !!flight || entering || !!presentation;
 
   useLayoutEffect(()=>{
     if(!skyRef.current)return;
@@ -194,22 +196,28 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   });
   const companionFrame=useRef(companions);companionFrame.current=companions;
   useLayoutEffect(()=>{
-    if(!layout||!fieldCallback.current)return;
+    if(!layout||!fieldCallback.current||presentation)return;
     const screen=(p:Point)=>({x:box.left+box.width*(destination.x+(p.x-destination.x)*(1+approach*1.6)+(50-destination.x)*approach)/100,
       y:box.top+box.height*(destination.y+(p.y-destination.y)*(1+approach*1.6)+(47-destination.y)*approach)/100});
     const main=screen({x:shown.x,y:shown.y});
     const field:WishField={nodes:NOUNS.map(([word],i)=>({word,x:main.x,y:main.y,selected:choices.includes(i),order:choices.indexOf(i)})),
       carrier:main,departing:true,orbit:phase,companions:companionFrame.current.map(screen)};
     lastField.current=field;fieldCallback.current(field);
-  },[layout,choices,shown.x,shown.y,phase,entering,entry.main.x,entry.main.y,entry.phase,approach,destination.x,destination.y,box.left,box.top,box.width,box.height]);
-  const reveal=entering?entry:{prism:1,date:1,route:1,labels:1};
+  },[layout,choices,shown.x,shown.y,phase,entering,entry.main.x,entry.main.y,entry.phase,approach,destination.x,destination.y,box.left,box.top,box.width,box.height,presentation]);
+  const reveal=presentation?{prism:presentation.progress,date:presentation.progress,route:presentation.progress,labels:presentation.labels}:entering?entry:{prism:1,date:1,route:1,labels:1};
+  const onward:Destination|null=anchor==='prism'&&color?(dateFound?'sapphire':'date'):anchor==='date'&&dateFound?(color?'sapphire':'prism'):null;
+  const onwardRoute=onward?Array.from({length:41},(_,i)=>{
+    const origin=PATH_ANCHORS[anchor],end=PLACES[onward];
+    const p=onwardPoint({x:origin.x/100,y:origin.y/100},{x:end.x/100,y:end.y/100},reveal.route*i/40);
+    return`${i?'L':'M'}${p.x*100} ${p.y*100}`;
+  }).join(' '):'';
   const words = ready ? '光与日子都在了。让它们在那颗星里相遇。' : color ? '你喜欢的光，正等着属于你的那一天。' : dateFound ? '那一天已经醒来。还缺一束你喜欢的光。' : '路还没有连起来。两处微光，在远方等你。';
   const labels: Record<Destination, string> = {
     prism: color ? '粉光，已在同行' : '光分开的地方',
     date: dateFound ? '十月八日，已点亮' : '日子藏在星里',
     sapphire: ready ? '让两束光相遇' : '等光，也等那一天',
   };
-  return <section className={`path-exploration${entering?' path-arriving':''}${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
+  return <section className={`path-exploration${entering?' path-arriving':''}${presentation?' path-presenting':''}${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
     <p className="sr-only" aria-live="polite">{words}</p>
     <div ref={skyRef} className={`path-sky${dragging ? ' path-dragging' : ''}${flight ? ' path-flying' : ''}`}>
       <div className="path-map-world" style={{transformOrigin:`${destination.x}% ${destination.y}%`,
@@ -226,16 +234,17 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
           <path className="path-missing" d="M81 61 83 51" />
         </g>
         <circle className="path-origin" cx="26" cy="78" r=".6" />
+        {onward&&<path className="path-onward-route" d={onwardRoute}/>}
       </svg>
       {(Object.keys(PLACES) as Destination[]).map((place) => {
         if (place === 'sapphire' && !dateFound) return null;
         const available = place !== 'sapphire' || ready;
         const found = place === 'prism' ? color : place === 'date' ? dateFound : ready;
-        return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place || flight?.place === place ? ' path-place-near' : ''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={blocked || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (available) travel(place); }}>
+        return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place || flight?.place === place ? ' path-place-near' : ''}${onward===place?' path-place-onward':''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={blocked || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (available) travel(place); }}>
           <DestinationDrawing place={place} progress={place==='prism'?reveal.prism:place==='date'?reveal.date:reveal.route}/><span className="path-place-label" style={{'--path-label':reveal.labels} as CSSProperties}>{labels[place]}</span>
         </button>;
       })}
-      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%` }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
+      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%`,visibility:presentation?.carrierHidden?'hidden':undefined }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
         if (blocked) return;
         const shifts: Record<string, Point> = { ArrowLeft: { x: -6, y: 0 }, ArrowRight: { x: 6, y: 0 }, ArrowUp: { x: 0, y: -6 }, ArrowDown: { x: 0, y: 6 } };
         const shift = shifts[event.key];

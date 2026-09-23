@@ -15,6 +15,8 @@ import { visitPath, completePrismPath, completeDatePath, infusePath, type StarPa
 import { infusionFrame, prismEntranceFrame, prismReturnFrame, PRISM_RETURN_MS } from '@/lib/light-infusion';
 import { inViewport, wishOrbit, type SkyHandoff, type SkyPoint } from '@/lib/path-arrival';
 import type { WishField } from './particles';
+import { DestinationDrawing } from './path-destinations';
+import { lightRoad, onwardPoint, returnFlight, tracePoint } from '@/lib/return-flight';
 
 type Props = {
   path: StarPathState; choices: number[]; month: number; day: number; rotation: number; paused: boolean;
@@ -27,28 +29,42 @@ type Props = {
 export function StarPathJourney(props: Props) {
   const { path, choices, paused, onPath, onTap } = props;
   const [hidden, setHidden] = useState(false);
-  const root=useRef<HTMLElement>(null),returned=useRef(false);
+  const root=useRef<HTMLElement>(null),mapLayer=useRef<HTMLDivElement>(null),closeView=useRef<HTMLDivElement>(null),returned=useRef(false);
   const [skyEntry,setSkyEntry]=useState(props.handoff??null),[placeEntry,setPlaceEntry]=useState<SkyHandoff|null>(null);
-  const [returning,setReturning]=useState<{from:SkyPoint;to:SkyPoint;place:StarPathState['place']}|null>(null);
-  const reduced=useReducedMotion(),returnTime=useVisibleClock(!!returning&&!paused&&!hidden);
-  const returnQ=softStep(returnTime/(reduced?300:1300));
-  const returnPoint=returning?{x:returning.from.x+(returning.to.x-returning.from.x)*returnQ,y:returning.from.y+(returning.to.y-returning.from.y)*returnQ}:null;
-  const beginReturn=()=>{
+  const [returning,setReturning]=useState<{from:SkyPoint;to:SkyPoint;place:Exclude<StarPathState['place'],'sky'>;geometry?:{x:number;y:number;scale:number;originX:number;originY:number}}|null>(null);
+  const returnStarted=useRef(false);
+  const [returnId,setReturnId]=useState(0);
+  const reduced=useReducedMotion(),returnTime=useVisibleClock(!!returning&&!paused&&!hidden,returnId);
+  const back=returnFlight(returnTime,reduced);
+  const returnPoint=returning?tracePoint(returning.from,returning.to,back.star):null;
+  const beginReturn=(source?:HTMLElement)=>{
     if(paused||document.hidden||returning||path.place==='sky')return;
+    if(returnStarted.current)return;
     const section=root.current,rect=section?.getBoundingClientRect();if(!rect)return;
     const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
-    const star=(section?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??section?.querySelector?.<HTMLElement>('.path-discovery-return .path-company')??section?.querySelector?.<HTMLElement>('.path-home .path-company'))?.getBoundingClientRect();
+    const star=(source??section?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??section?.querySelector?.<HTMLElement>('.path-discovery-return .path-company')??section?.querySelector?.<HTMLElement>('.path-home .path-company'))?.getBoundingClientRect();
     const from=star?{x:(star.left+star.width/2)/width,y:(star.top+star.height/2)/height}:inViewport({x:23,y:72},rect,width,height);
     const to=inViewport(path.place==='date'?{x:76,y:46}:path.place==='sapphire'?{x:62,y:76}:{x:23,y:59},rect,width,height);
-    returned.current=false;onTap();props.onField?.(null);setReturning({from,to,place:path.place});
+    returnStarted.current=true;returned.current=false;setReturnId(i=>i+1);onTap();props.onField?.(null);setSkyEntry(null);setReturning({from,to,place:path.place});
   };
+  useLayoutEffect(()=>{
+    if(!returning||returning.geometry)return;
+    const sky=mapLayer.current,close=closeView.current,container=root.current?.getBoundingClientRect();if(!container)return;
+    const carrier=sky?.querySelector?.<HTMLElement>('.path-carrier')?.getBoundingClientRect();
+    const target=sky?.querySelector?.<HTMLElement>('.path-place-'+returning.place+' svg')?.getBoundingClientRect();
+    const canvas=close?.querySelector?.<HTMLElement>('.prism-light canvas, .star-sapphire-canvas, .date-dial')?.getBoundingClientRect();
+    const closeRect=close?.getBoundingClientRect()??container,width=window.innerWidth||container.width,height=window.innerHeight||container.height;
+    const to=carrier?{x:(carrier.left+carrier.width/2)/width,y:(carrier.top+carrier.height/2)/height}:returning.to;
+    const from=canvas?{x:canvas.left+canvas.width*(returning.place==='prism'?.44:.5),y:canvas.top+canvas.height*.49}:{x:closeRect.left+closeRect.width*.5,y:closeRect.top+closeRect.height*.49};
+    const icon=target?{x:target.left+target.width/2,y:target.top+target.height/2}:{x:from.x,y:from.y};
+    const extent=canvas?Math.min(canvas.width*.46,canvas.height*.46):closeRect.width*.46;
+    setReturning(previous=>previous?{...previous,to,geometry:{x:icon.x-from.x,y:icon.y-from.y,scale:target?Math.min(.8,target.width/extent):.3,originX:from.x-closeRect.left,originY:from.y-closeRect.top}}:null);
+  },[returning]);
   useEffect(()=>{
-    if(!returning||paused||document.hidden||returnQ<1||returned.current)return;
+    if(!returning||paused||document.hidden||!back.done||returned.current)return;
     returned.current=true;
-    const box=root.current?.getBoundingClientRect(),width=window.innerWidth||box?.width||1,height=window.innerHeight||box?.height||1;
-    const main=returning.to,orbit=0,companions=[0,1,2].map(i=>{const p=wishOrbit(orbit,i,15);return{x:main.x+p.x/width,y:main.y+p.y/height};});
-    setSkyEntry({main,companions,orbit,kind:'return'});setReturning(null);onPath(visitPath(path,'sky'));
-  },[returnQ,returning,paused,path,onPath]);
+    setSkyEntry(null);setReturning(null);returnStarted.current=false;onPath(visitPath(path,'sky'));
+  },[back.done,returning,paused,path,onPath]);
   useEffect(() => {
     const changed = () => setHidden(document.hidden);
     changed(); document.addEventListener('visibilitychange', changed);
@@ -61,15 +77,21 @@ export function StarPathJourney(props: Props) {
     if (next.place === path.place) return;
     setPlaceEntry(entry??null);setSkyEntry(null);onTap(); onPath(next);
   };
+  const geometry=returning?.geometry;
   return <section ref={root} className={'star-path-journey' + (paused ? ' path-paused' : '') + (hidden ? ' path-motion-paused' : '')+(returning?' journey-returning':'')}
-    style={{'--path-return':returnQ} as CSSProperties} aria-label="陪星光接通归路">
+    style={{'--path-return':back.camera,'--return-copy':back.copyOpacity,'--return-opacity':back.closeOpacity,
+      '--return-x':`${(geometry?.x??0)*back.camera}px`,'--return-y':`${(geometry?.y??0)*back.camera}px`,
+      '--return-scale':1+((geometry?.scale??1)-1)*back.camera,'--return-origin-x':`${geometry?.originX??0}px`,'--return-origin-y':`${geometry?.originY??0}px`} as CSSProperties} aria-label="陪星光接通归路">
+    <div ref={mapLayer} className="path-map-layer" inert={!!returning||paused} aria-hidden={returning?true:undefined}>
+      {(path.place==='sky'||returning)&&<PathSky choices={choices} color={path.color} dateFound={path.dateFound} anchor={returning?.place??path.anchor}
+        paused={paused} onVisit={visit} handoff={returning?null:skyEntry} onField={props.onField}
+        presentation={returning?{progress:back.map,labels:back.labels,carrierHidden:true}:undefined}/>}
+    </div>
     {path.place !== 'sky' && <nav className="path-home" aria-label="同行的光">
       <CompanionLight choices={choices} pink={path.color} compact
-        onClick={() => visit('sky')} label="带着光回到星路" />
+        onClick={() => beginReturn(root.current?.querySelector?.<HTMLElement>('.path-home .path-company')??undefined)} label="带着光回到星路" />
     </nav>}
-    <div key={path.place} className={'path-view path-view-' + path.place} inert={paused||!!returning}>
-      {path.place === 'sky' && <PathSky choices={choices} color={path.color} dateFound={path.dateFound} anchor={path.anchor}
-        paused={paused} onVisit={visit} handoff={skyEntry} onField={props.onField} />}
+    {path.place!=='sky'&&<div ref={closeView} key={path.place} className={'path-view path-view-' + path.place} inert={paused||!!returning}>
       {path.place === 'prism' && <PrismPlace found={path.color} paused={paused||!!returning} onTap={onTap} choices={choices}
         entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
         onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
@@ -86,8 +108,11 @@ export function StarPathJourney(props: Props) {
         : <LightIntoStone choices={choices} paused={paused||!!returning} onInfuse={() => {
             onTap(); onPath(infusePath(path));
           }} />)}
-    </div>
-    {returnPoint&&<span className="path-returning-carrier" aria-hidden="true" style={{left:`${returnPoint.x*100}vw`,top:`${returnPoint.y*100}dvh`}}><CompanionLight choices={choices} pink={path.color}/></span>}
+    </div>}
+    {returnPoint&&<span className="path-returning-carrier" aria-hidden="true" style={{left:`${returnPoint.x*100}vw`,top:`${returnPoint.y*100}dvh`}}>
+      <CompanionLight choices={[]} pink={path.color}/>
+      {choices.map((choice,i)=>{const offset=wishOrbit(reduced?0:returnTime*.0008,i,15);return <i className="return-companion" key={choice} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}/>;})}
+    </span>}
   </section>;
 }
 
@@ -120,6 +145,11 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
   const release = prismReturnFrame(Math.max(0, elapsed - MOTION.prismBloom), reduced);
   const emerging = bloom && elapsed >= MOTION.prismBloom;
   const sent = useRef(false);
+  const roadTime=useVisibleClock(found&&!paused,'road');
+  const road=lightRoad(roadTime,reduced);
+  const nextPoint=next==='date'?{x:76,y:26}:{x:68,y:49};
+  const roadTip=onwardPoint({x:.23,y:.72},{x:nextPoint.x/100,y:nextPoint.y/100},road.trace);
+  const roadPath=Array.from({length:41},(_,i)=>{const p=onwardPoint({x:.23,y:.72},{x:nextPoint.x/100,y:nextPoint.y/100},road.trace*i/40);return`${i?'L':'M'}${p.x*100} ${p.y*100}`;}).join(' ');
   const callbacks = useRef({ onFound, onTap }); callbacks.current = { onFound, onTap };
   useEffect(() => {
     if (paused || found || document.hidden) return;
@@ -137,19 +167,25 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
         setValue((previous) => previous < 65 && n > 71 || previous > 71 && n < 65
           ? 68 : Math.min(100, Math.max(0, n)));
       }} />
-    {found&&<svg className="prism-next-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path d={next==='date'?'M23 72C36 63 47 48 76 26':'M23 72C38 73 50 67 68 49'}/>
-      <circle cx={next==='date'?76:68} cy={next==='date'?26:49} r=".7"/>
-    </svg>}
+    {found&&<>
+      <svg className="prism-next-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path className="prism-road-aura" d={roadPath} data-progress={road.trace}/>
+        <path className="prism-road-core" d={roadPath} data-progress={road.trace}/>
+        <circle className="prism-road-front" cx={roadTip.x*100} cy={roadTip.y*100} r=".55" opacity={road.trace<1?1:.3}/>
+      </svg>
+      <button className="prism-next-place" style={{left:`${nextPoint.x}%`,top:`${nextPoint.y}%`}} disabled={paused||road.destination<1} aria-label={next==='date'?'循着粉光回到通往星盘的路':'循着粉光回到通往宝石的路'} onClick={()=>{if(!paused&&road.destination===1)onReturn();}}>
+        <DestinationDrawing place={next} progress={road.destination}/>
+      </button>
+      <p className="prism-road-copy" style={{opacity:road.verse,transform:`translateY(${(1-road.verse)*4}px)`}}>
+        {next==='date'?'你的颜色，照亮了通往那一天的路。':'你的颜色，照亮了那一天留下的星光。'}
+      </p>
+    </>}
     {(emerging || found) && <div className="prism-return-light" style={{left:`${found ? 23 : release.x}%`,top:`${found ? 72 : release.y}%`,opacity:found ? 1 : release.opacity}}>
       <CompanionLight choices={choices} pink onClick={found ? () => { if (!paused) onReturn(); } : undefined}
         label="带着粉光回到星路" />
     </div>}
     </div>
-    <div className="path-prism-message" aria-live="polite">
-      {found ? <><p>看不见的路，被你喜欢的颜色照亮了。</p>{NOUNS[choices[0]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[0]][2]}</p>}</>
-        : <p className="sr-only">{arriving?'主星正靠近镜面，视角转向三棱镜。':'左右转动棱镜，让粉色的光停留。'}</p>}
-    </div>
+    <output className="sr-only">{found?'下一处的光路已经亮起。':arriving?'主星正靠近镜面，视角转向三棱镜。':'左右转动棱镜，让粉色的光停留。'}</output>
   </div>;
 }
 
