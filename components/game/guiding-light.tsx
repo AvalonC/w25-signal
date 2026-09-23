@@ -145,7 +145,7 @@ export function GuidingLight({ paused = false, onArrive, onFeedback }: {
         <span className="lesson-success" aria-hidden="true" />
         <CompanionLight choices={[]} pink={phase === 'held' || phase === 'depart'} />
       </button>
-      <output id="opening-lesson-caption" className="lesson-caption" aria-live="polite">{caption}</output>
+      <output id="opening-lesson-caption" className="sr-only" aria-live="polite">{caption}</output>
     </div>
   </section>;
 }
