@@ -13,54 +13,81 @@ import { NOUNS } from '@/lib/journey';
 import { SAPPHIRE_INTRO } from '@/lib/sapphire-discovery';
 import { visitPath, completePrismPath, completeDatePath, infusePath, type StarPathState } from '@/lib/star-path';
 import { infusionFrame, prismEntranceFrame, prismReturnFrame, PRISM_RETURN_MS } from '@/lib/light-infusion';
+import { inViewport, wishOrbit, type SkyHandoff, type SkyPoint } from '@/lib/path-arrival';
+import type { WishField } from './particles';
 
 type Props = {
   path: StarPathState; choices: number[]; month: number; day: number; rotation: number; paused: boolean;
   onPath: (path: StarPathState) => void; onDate: (month: number, day: number) => void;
   onRotation: (rotation: number) => void; onComplete: () => void; onTap: () => void;
+  handoff?: SkyHandoff | null; onField?: (field: WishField | null) => void;
 };
 
 /** All three places share one saved journey. Discoveries change the sky itself. */
 export function StarPathJourney(props: Props) {
   const { path, choices, paused, onPath, onTap } = props;
   const [hidden, setHidden] = useState(false);
+  const root=useRef<HTMLElement>(null),returned=useRef(false);
+  const [skyEntry,setSkyEntry]=useState(props.handoff??null),[placeEntry,setPlaceEntry]=useState<SkyHandoff|null>(null);
+  const [returning,setReturning]=useState<{from:SkyPoint;to:SkyPoint;place:StarPathState['place']}|null>(null);
+  const reduced=useReducedMotion(),returnTime=useVisibleClock(!!returning&&!paused&&!hidden);
+  const returnQ=softStep(returnTime/(reduced?300:1300));
+  const returnPoint=returning?{x:returning.from.x+(returning.to.x-returning.from.x)*returnQ,y:returning.from.y+(returning.to.y-returning.from.y)*returnQ}:null;
+  const beginReturn=()=>{
+    if(paused||document.hidden||returning||path.place==='sky')return;
+    const section=root.current,rect=section?.getBoundingClientRect();if(!rect)return;
+    const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
+    const star=(section?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??section?.querySelector?.<HTMLElement>('.path-discovery-return .path-company')??section?.querySelector?.<HTMLElement>('.path-home .path-company'))?.getBoundingClientRect();
+    const from=star?{x:(star.left+star.width/2)/width,y:(star.top+star.height/2)/height}:inViewport({x:23,y:72},rect,width,height);
+    const to=inViewport(path.place==='date'?{x:76,y:46}:path.place==='sapphire'?{x:62,y:76}:{x:23,y:59},rect,width,height);
+    returned.current=false;onTap();props.onField?.(null);setReturning({from,to,place:path.place});
+  };
+  useEffect(()=>{
+    if(!returning||paused||document.hidden||returnQ<1||returned.current)return;
+    returned.current=true;
+    const box=root.current?.getBoundingClientRect(),width=window.innerWidth||box?.width||1,height=window.innerHeight||box?.height||1;
+    const main=returning.to,orbit=0,companions=[0,1,2].map(i=>{const p=wishOrbit(orbit,i,15);return{x:main.x+p.x/width,y:main.y+p.y/height};});
+    setSkyEntry({main,companions,orbit,kind:'return'});setReturning(null);onPath(visitPath(path,'sky'));
+  },[returnQ,returning,paused,path,onPath]);
   useEffect(() => {
     const changed = () => setHidden(document.hidden);
     changed(); document.addEventListener('visibilitychange', changed);
     return () => document.removeEventListener('visibilitychange', changed);
   }, []);
-  const visit = (place: StarPathState['place']) => {
-    if (paused || document.hidden) return;
+  const visit = (place: StarPathState['place'],entry?:SkyHandoff) => {
+    if (paused || document.hidden || returning) return;
+    if(place==='sky'){beginReturn();return;}
     const next = visitPath(path, place);
     if (next.place === path.place) return;
-    onTap(); onPath(next);
+    setPlaceEntry(entry??null);setSkyEntry(null);onTap(); onPath(next);
   };
-  return <section className={'star-path-journey' + (paused ? ' path-paused' : '') + (hidden ? ' path-motion-paused' : '')} aria-label="陪星光接通归路">
+  return <section ref={root} className={'star-path-journey' + (paused ? ' path-paused' : '') + (hidden ? ' path-motion-paused' : '')+(returning?' journey-returning':'')}
+    style={{'--path-return':returnQ} as CSSProperties} aria-label="陪星光接通归路">
     {path.place !== 'sky' && <nav className="path-home" aria-label="同行的光">
       <CompanionLight choices={choices} pink={path.color} compact
         onClick={() => visit('sky')} label="带着光回到星路" />
-      <span aria-hidden="true">回到星路</span>
     </nav>}
-    <div key={path.place} className={'path-view path-view-' + path.place} inert={paused}>
+    <div key={path.place} className={'path-view path-view-' + path.place} inert={paused||!!returning}>
       {path.place === 'sky' && <PathSky choices={choices} color={path.color} dateFound={path.dateFound} anchor={path.anchor}
-        paused={paused} onVisit={visit} />}
-      {path.place === 'prism' && <PrismPlace found={path.color} paused={paused} onTap={onTap} choices={choices}
+        paused={paused} onVisit={visit} handoff={skyEntry} onField={props.onField} />}
+      {path.place === 'prism' && <PrismPlace found={path.color} paused={paused||!!returning} onTap={onTap} choices={choices}
+        entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
         onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
-        pink={path.color} paused={paused} onDate={props.onDate} onTap={onTap} onFound={() => onPath(completeDatePath(path))}>
+        pink={path.color} paused={paused||!!returning} onDate={props.onDate} onTap={onTap} onFound={() => onPath(completeDatePath(path))}>
         {path.dateFound && <div className="path-discovery-return">
           <CompanionLight choices={choices} pink={path.color} onClick={() => visit('sky')} label="带着这一天的星光回到星路" />
-          <small>轻触这束光，记住它的位置。</small>
-          <p className="path-wish-verse">{NOUNS[choices[1]]?.[2]}</p>
+          {NOUNS[choices[1]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[1]][2]}</p>}
         </div>}
       </DatePlace>}
       {path.place === 'sapphire' && (path.infused
-        ? <SapphireScene fromPath rotation={props.rotation} paused={paused} onProgress={props.onRotation}
+        ? <SapphireScene fromPath rotation={props.rotation} paused={paused||!!returning} onProgress={props.onRotation}
             onTap={onTap} onDone={props.onComplete} />
-        : <LightIntoStone choices={choices} paused={paused} onInfuse={() => {
+        : <LightIntoStone choices={choices} paused={paused||!!returning} onInfuse={() => {
             onTap(); onPath(infusePath(path));
           }} />)}
     </div>
+    {returnPoint&&<span className="path-returning-carrier" aria-hidden="true" style={{left:`${returnPoint.x*100}vw`,top:`${returnPoint.y*100}dvh`}}><CompanionLight choices={choices} pink={path.color}/></span>}
   </section>;
 }
 
@@ -75,18 +102,18 @@ function useReducedMotion() {
   return reduced;
 }
 
-function PrismPlace({ found, paused, onFound, onTap, choices, onReturn }: {
+function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrigin,next }: {
   found: boolean; paused: boolean; onFound: () => void; onTap: () => void; choices: number[]; onReturn: () => void;
+  entryOrigin?:SkyPoint;next:'date'|'sapphire';
 }) {
   const [value, setValue] = useState(found ? 68 : 16);
   const [bloom, setBloom] = useState(false);
   const reduced = useReducedMotion();
-  const entered = useRef(found);
-  const entryTime = useVisibleClock(!paused && !entered.current);
+  const [entered,setEntered] = useState(found);
+  const entryTime = useVisibleClock(!paused && !entered);
   const entry = prismEntranceFrame(entryTime, reduced);
-  const arriving = !entered.current && !entry.done;
-  const approach = reduced ? 1 : softStep(entryTime/900);
-  useEffect(() => { if (entry.done) entered.current = true; }, [entry.done]);
+  const arriving = !entered;
+  useEffect(() => { if (entry.done) setEntered(true); }, [entry.done]);
   const aligned = Math.abs(value - 68) <= 3;
   const dwell = useVisibleClock(aligned && !paused && !found && !bloom && !arriving, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(bloom && !paused && !found);
@@ -102,25 +129,26 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn }: {
     }
   }, [dwell, elapsed, bloom, found, paused, reduced]);
   return <div className={'path-prism-view' + (found ? ' path-found' : '') + (arriving ? ' prism-arriving' : '')}>
-    <div className="path-prism-stage" style={{'--prism-approach':approach} as CSSProperties}>
+    <div className="path-prism-stage" data-shot={arriving?(entry.turn<=0?'approach':entry.beam<=0?'orbit':entry.spectrum<=0?'enter':'disperse'):'interactive'}>
     <PrismLight value={value} bloom={found ? MOTION.prismBloom : Math.min(MOTION.prismBloom, elapsed)}
-      entrance={arriving ? entry.light : 1} paused={paused} locked={bloom || found || arriving}
+      entryTime={entered?(reduced?650:4400):entryTime} entryOrigin={entryOrigin} paused={paused} locked={bloom || found || arriving}
       onChange={(n) => {
         // A quick sweep must not jump over the small colour window completely.
         setValue((previous) => previous < 65 && n > 71 || previous > 71 && n < 65
           ? 68 : Math.min(100, Math.max(0, n)));
       }} />
-    {arriving && <span className="prism-arrival-light" aria-hidden="true" style={{left:`${entry.x}%`,top:`${entry.y}%`,opacity:entry.opacity,transform:`translate(-50%,-50%) scale(${entry.scale})`}}>
-      <CompanionLight choices={choices} pink={false} />
-    </span>}
+    {found&&<svg className="prism-next-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path d={next==='date'?'M23 72C36 63 47 48 76 26':'M23 72C38 73 50 67 68 49'}/>
+      <circle cx={next==='date'?76:68} cy={next==='date'?26:49} r=".7"/>
+    </svg>}
     {(emerging || found) && <div className="prism-return-light" style={{left:`${found ? 23 : release.x}%`,top:`${found ? 72 : release.y}%`,opacity:found ? 1 : release.opacity}}>
       <CompanionLight choices={choices} pink onClick={found ? () => { if (!paused) onReturn(); } : undefined}
         label="带着粉光回到星路" />
     </div>}
     </div>
     <div className="path-prism-message" aria-live="polite">
-      {found ? <><p>看不见的路，被你喜欢的颜色照亮了。</p><small>轻触粉光，带它回去。</small><p className="path-wish-verse">{NOUNS[choices[0]]?.[2]}</p></>
-        : arriving ? <p>跟着这束光，慢慢靠近。</p> : emerging ? <p>喜欢的颜色，正向你飞来。</p> : <p className="sr-only">左右转动棱镜，让粉色的光停留。</p>}
+      {found ? <><p>看不见的路，被你喜欢的颜色照亮了。</p>{NOUNS[choices[0]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[0]][2]}</p>}</>
+        : <p className="sr-only">{arriving?'主星正靠近镜面，视角转向三棱镜。':'左右转动棱镜，让粉色的光停留。'}</p>}
     </div>
   </div>;
 }
@@ -261,7 +289,7 @@ function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paus
           <circle key={i} cx={p.x} cy={p.y} r={.16 + i*.05} style={{ opacity: .12+i*.16 }} />)}
       </svg>
       <button className="path-stone-target" disabled={paused || !!source} onClick={() => deliver()} aria-label="把找到的粉光送入宝石">
-        <span aria-hidden="true">{source ? '' : near ? '松开，让光留下来' : '让它们相遇'}</span>
+        <span className="sr-only">{source ? '' : near ? '松开，让光留下来' : '让它们相遇'}</span>
       </button>
       <button className="path-carried-light" disabled={paused || !!source} aria-label="拖动粉光到宝石，也可轻触宝石送入"
         style={{ '--light-x': `${carried.x}%`, '--light-y': `${carried.y}%`,
@@ -289,9 +317,9 @@ function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paus
         <CompanionLight choices={choices} pink />
       </button>
     </div>
-    <output className="path-gesture-whisper">{source
+    <output className="path-gesture-whisper sr-only">{source
       ? effect.trace < .55 ? '粉光沿着切面，慢慢流过。' : '你的颜色，留在了星光里。'
       : '把同行的粉光，轻轻带到星点之间。'}</output>
-    <p className="path-wish-verse">{NOUNS[choices[2]]?.[2]}</p>
+    {NOUNS[choices[2]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[2]][2]}</p>}
   </div>;
 }

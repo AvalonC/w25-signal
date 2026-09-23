@@ -29,12 +29,13 @@ async function scene(initial, body) {
   const keys = ['document', 'window', 'ResizeObserver', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let root, now = 0, frameId = 0, current = [], completions = 0;
-  const frames = new Map(), observers = new Set(), chosen = [], fields = [];
+  const frames = new Map(), observers = new Set(), chosen = [], fields = [], handoffs=[];
   const host = { getBoundingClientRect: () => ({ left: 20, top: 100, width: 320, height: 500 }),
     setPointerCapture() {}, hasPointerCapture: () => false, releasePointerCapture() {}, getContext: () => null };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   globalThis.window = new EventTarget();
+  window.innerWidth=390;window.innerHeight=844;
   window.matchMedia = () => ({ matches: !!initial.reduced, addEventListener() {}, removeEventListener() {} });
   globalThis.ResizeObserver = class {
     constructor(callback) { this.callback = callback; }
@@ -50,7 +51,7 @@ async function scene(initial, body) {
     const [choices, setChoices] = useState(initial.choices ?? []); current = choices;
     return React.createElement(WishSky, { choices, paused,
       onChoose: (i) => { chosen.push(i); setChoices((old) => old.includes(i) || old.length >= 3 ? old : [...old, i]); },
-      onField: (field) => fields.push(field), onDone: () => { completions++; },
+      onField: (field) => fields.push(field), onDone: (handoff) => { completions++; handoffs.push(handoff); },
     });
   }
   const advance = async (ms) => {
@@ -61,7 +62,7 @@ async function scene(initial, body) {
   };
   try {
     await act(() => { root = create(React.createElement(Harness), { createNodeMock: () => host }); });
-    await body({ root, advance, chosen, fields, choices: () => current, completions: () => completions,
+    await body({ root, advance, chosen, fields, handoffs, choices: () => current, completions: () => completions,
       star: (i) => root.root.findAllByType('button').filter((node) => node.props.className.startsWith('wish-star'))[i],
       pause: async (paused) => act(() => root.update(React.createElement(Harness, { paused }))),
       visibility: async (hidden) => act(() => { document.hidden = hidden; document.dispatchEvent(new Event('visibilitychange')); }),
@@ -71,7 +72,8 @@ async function scene(initial, body) {
     if (root) await act(() => root.unmount());
     assert.equal(frames.size, 0, 'leaving the wish sky clears both scene clocks');
     assert.equal(observers.size, 0, 'leaving the wish sky disconnects its layout observer');
-    assert.equal(fields.at(-1), null, 'the shared starfield must release its wish overlay');
+    if(!completions)assert.equal(fields.at(-1), null, 'an abandoned wish sky releases its overlay');
+    else assert.notEqual(fields.at(-1),null,'the completed wish field remains available for the next scene');
     for (const key of keys) if (original[key]) Object.defineProperty(globalThis, key, original[key]); else delete globalThis[key];
   }
 }
@@ -99,7 +101,7 @@ test('wishes support an ordinary pointer tap, a dragged release and native keybo
 });
 
 test('three wishes orbit before flying to the next scene and hand off only once', async () => {
-  await scene({ choices: [0, 3, 5] }, async ({ fields, advance, completions }) => {
+  await scene({ choices: [0, 3, 5] }, async ({ fields, handoffs, advance, completions }) => {
     await advance(2000);
     assert.equal(fields.at(-1).departing, false); assert.equal(completions(), 0);
     assert.deepEqual(fields.at(-1).carrier, { x: 180, y: 485 });
@@ -113,6 +115,10 @@ test('three wishes orbit before flying to the next scene and hand off only once'
     assert.equal(completions(), 1);
     assert.ok(Math.abs(fields.at(-1).carrier.x - 103.2) < 1e-10);
     assert.equal(fields.at(-1).carrier.y, 490);
+    assert.ok(Math.abs(handoffs[0].main.x*390-fields.at(-1).carrier.x)<1e-8);
+    assert.ok(Math.abs(handoffs[0].main.y*844-fields.at(-1).carrier.y)<1e-8);
+    assert.ok(Math.abs(handoffs[0].orbit-fields.at(-1).orbit)<.3,'handoff preserves the continuing orbit phase');
+    assert.equal(handoffs[0].companions.length,3);
     await advance(5000); assert.equal(completions(), 1);
   });
 });

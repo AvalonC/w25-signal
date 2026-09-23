@@ -3,20 +3,19 @@
 /* oxlint-disable react/react-compiler */
 // The composed light is several live SVG stars, so it has no single img source.
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { NOUNS } from '@/lib/journey';
 import { PATH_ANCHORS, type StarPathState } from '@/lib/star-path';
 import { softStep } from '@/lib/motion';
 import { useVisibleClock } from './scene-clock';
+import { DestinationDrawing } from './path-destinations';
+import { inSky, pathArrival, pathReturn, wishOrbit, PATH_PLACES, type SkyBox, type SkyHandoff } from '@/lib/path-arrival';
+import type { WishField } from './particles';
 
 export type PathPlace = 'sky' | 'prism' | 'date' | 'sapphire';
 type Destination = Exclude<PathPlace, 'sky'>;
 type Point = { x: number; y: number };
-const PLACES: Record<Destination, Point> = {
-  prism: { x: 23, y: 36 },
-  date: { x: 76, y: 24 },
-  sapphire: { x: 62, y: 69 },
-};
+const PLACES: Record<Destination, Point> = PATH_PLACES;
 const STAR = 'M20 1 24 15 39 20 24 25 20 39 15 25 1 20 15 15Z';
 
 export function CompanionLight({
@@ -51,39 +50,17 @@ export function CompanionLight({
   );
 }
 
-function PlaceDrawing({ place }: { place: Destination }) {
-  if (place === 'prism') return <svg viewBox="0 0 100 100" aria-hidden="true">
-    <path d="M22 74 49 18 78 69 22 74 60 84 78 69M49 18 60 84M9 43 40 44" />
-    <path className="path-prism-ray" d="M59 47 95 35M61 52 97 55M64 59 96 76" />
-  </svg>;
-  if (place === 'date') return <svg viewBox="0 0 100 100" aria-hidden="true">
-    <g className="path-date-outer">
-      <circle cx="50" cy="50" r="36" />
-      <path d="M50 10V18M90 50H82M50 90V82M10 50H18M22 22 28 28M78 22 72 28M22 78 28 72M78 78 72 72" />
-      <path className="path-date-mark" d="M50 12 52 14 50 16 48 14ZM84 48 86 50 84 52 82 50Z" />
-    </g>
-    <g className="path-date-inner">
-      <circle cx="50" cy="50" r="24" />
-      <path d="M50 23V28M77 50H72M50 77V72M23 50H28" />
-      <circle className="path-date-satellite" cx="50" cy="26" r="1.8" />
-    </g>
-    <path className="path-date-needle" d="M37 51 48 49 62 33 55 55 43 63Z" />
-    <circle cx="50" cy="50" r="2" />
-  </svg>;
-  return <svg viewBox="0 0 100 100" aria-hidden="true">
-    <path d="M31 24 68 24 84 46 51 85 16 46 31 24ZM16 46H84M31 24 38 46 51 85 63 46 68 24M31 24 63 46M68 24 38 46" />
-    <circle cx="31" cy="24" r="1.8" /><circle cx="68" cy="24" r="1.8" /><circle cx="51" cy="85" r="1.8" />
-  </svg>;
-}
-
-export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = 'origin' }: {
+export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = 'origin', handoff, onField }: {
   color: boolean;
   dateFound: boolean;
   choices: number[];
   paused: boolean;
-  onVisit: (place: Destination) => void;
+  onVisit: (place: Destination, handoff?: SkyHandoff) => void;
   anchor?: StarPathState['anchor'];
+  handoff?: SkyHandoff | null;
+  onField?: (field: WishField | null) => void;
 }) {
+  const maskId=useId().replaceAll(':','');
   const skyRef = useRef<HTMLDivElement>(null);
   const lightRef = useRef<HTMLButtonElement>(null);
   const gesture = useRef<{ id: number; dx: number; dy: number } | null>(null);
@@ -92,12 +69,36 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const [dragging, setDragging] = useState(false);
   const [near, setNear] = useState<Destination | null>(null);
   const [hidden, setHidden] = useState(false);
-  const [reduced, setReduced] = useState(false);
+  const [reduced, setReduced] = useState(() => typeof window!=='undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const [entryHandoff] = useState(handoff??null);
+  const [layout,setLayout] = useState<{box:SkyBox;width:number;height:number}|null>(null);
+  const elapsed=useVisibleClock(!paused);
+  const fieldCallback=useRef(onField);fieldCallback.current=onField;
+  const lastField=useRef<WishField|null>(null);
+  const box=layout?.box??{left:0,top:0,width:1,height:1};
+  const start=entryHandoff&&layout?inSky(entryHandoff.main,box,layout.width,layout.height):position;
+  const companionStarts=entryHandoff&&layout?entryHandoff.companions.map(p=>inSky(p,box,layout.width,layout.height)):[];
+  const entry=(entryHandoff?.kind==='return'?pathReturn:pathArrival)(elapsed,reduced,start,companionStarts,entryHandoff?.orbit??0,box.width,box.height,PATH_ANCHORS[anchor]);
+  const entering=!!entryHandoff&&(!layout||!entry.done);
   const [flight, setFlight] = useState<{ place: Destination; from: Point } | null>(null);
   const flightTime = useVisibleClock(!!flight && !paused);
   const committed = useRef(false), visit = useRef(onVisit); visit.current = onVisit;
   const ready = color && dateFound;
-  const blocked = paused || !!flight;
+  const blocked = paused || !!flight || entering;
+
+  useLayoutEffect(()=>{
+    if(!skyRef.current)return;
+    const update=()=>{
+      const rect=skyRef.current!.getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
+      setLayout({box:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},width:window.innerWidth||rect.width,height:window.innerHeight||rect.height});
+    };
+    update();
+    const observer=new ResizeObserver(update);observer.observe(skyRef.current);
+    window.addEventListener('resize',update);
+    return()=>{observer.disconnect();window.removeEventListener('resize',update);};
+  },[]);
+  useEffect(()=>()=>{if(!committed.current)fieldCallback.current?.(null);},[]);
 
   const clearGesture = useCallback(() => {
     const current = gesture.current;
@@ -128,8 +129,12 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   }, [clearGesture]);
   useEffect(() => {
     if (!flight || paused || document.hidden || flightTime < (reduced ? 240 : 900) || committed.current) return;
-    committed.current = true; visit.current(flight.place);
-  }, [flight, flightTime, paused, reduced]);
+    const rect=lightRef.current?.getBoundingClientRect();
+    const width=window.innerWidth||box.width,height=window.innerHeight||box.height;
+    const source=rect?{x:rect.left+rect.width/2,y:rect.top+rect.height/2}:lastField.current?.carrier;
+    const transfer=source?{main:{x:source.x/width,y:source.y/height},companions:(lastField.current?.companions??[]).map(p=>({x:p.x/width,y:p.y/height})),orbit:lastField.current?.orbit??0}:undefined;
+    committed.current = true; visit.current(flight.place,transfer);
+  }, [flight, flightTime, paused, reduced, box.width, box.height]);
   const travel = (place: Destination) => {
     if (blocked || document.hidden || (place === 'sapphire' && !ready)) return;
     clearGesture(); setFlight({ place, from: { ...positionRef.current } });
@@ -181,24 +186,45 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const fly = softStep(flightTime / (reduced ? 240 : 900));
   const destination = flight ? { ...PLACES[flight.place], y: PLACES[flight.place].y - (flight.place === 'prism' ? 16 : 0) } : position;
   const shown = flight ? { x: flight.from.x + (destination.x-flight.from.x)*fly,
-    y: flight.from.y + (destination.y-flight.from.y)*fly - (reduced ? 0 : Math.sin(fly*Math.PI)*10) } : position;
+    y: flight.from.y + (destination.y-flight.from.y)*fly - (reduced ? 0 : Math.sin(fly*Math.PI)*10) } : entering?entry.main:position;
   const approach = flight && !reduced ? softStep((flightTime-230)/670) : 0;
+  const phase=(entryHandoff?.orbit??0)+(reduced?0:elapsed*.0008);
+  const companions=entering?entry.companions:choices.slice(0,3).map((_,i)=>{
+    const offset=wishOrbit(phase,i,15);return{x:shown.x+offset.x/box.width*100,y:shown.y+offset.y/box.height*100};
+  });
+  const companionFrame=useRef(companions);companionFrame.current=companions;
+  useLayoutEffect(()=>{
+    if(!layout||!fieldCallback.current)return;
+    const screen=(p:Point)=>({x:box.left+box.width*(destination.x+(p.x-destination.x)*(1+approach*1.6)+(50-destination.x)*approach)/100,
+      y:box.top+box.height*(destination.y+(p.y-destination.y)*(1+approach*1.6)+(47-destination.y)*approach)/100});
+    const main=screen({x:shown.x,y:shown.y});
+    const field:WishField={nodes:NOUNS.map(([word],i)=>({word,x:main.x,y:main.y,selected:choices.includes(i),order:choices.indexOf(i)})),
+      carrier:main,departing:true,orbit:phase,companions:companionFrame.current.map(screen)};
+    lastField.current=field;fieldCallback.current(field);
+  },[layout,choices,shown.x,shown.y,phase,entering,entry.main.x,entry.main.y,entry.phase,approach,destination.x,destination.y,box.left,box.top,box.width,box.height]);
+  const reveal=entering?entry:{prism:1,date:1,route:1,labels:1};
   const words = ready ? '光与日子都在了。让它们在那颗星里相遇。' : color ? '你喜欢的光，正等着属于你的那一天。' : dateFound ? '那一天已经醒来。还缺一束你喜欢的光。' : '路还没有连起来。两处微光，在远方等你。';
   const labels: Record<Destination, string> = {
     prism: color ? '粉光，已在同行' : '光分开的地方',
     date: dateFound ? '十月八日，已点亮' : '日子藏在星里',
     sapphire: ready ? '让两束光相遇' : '等光，也等那一天',
   };
-  return <section className={`path-exploration${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
-    <p className="path-verse" aria-live="polite">{words}</p>
+  return <section className={`path-exploration${entering?' path-arriving':''}${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
+    <p className="sr-only" aria-live="polite">{words}</p>
     <div ref={skyRef} className={`path-sky${dragging ? ' path-dragging' : ''}${flight ? ' path-flying' : ''}`}>
       <div className="path-map-world" style={{transformOrigin:`${destination.x}% ${destination.y}%`,
         transform:`translate(${(50-destination.x)*approach}%,${(47-destination.y)*approach}%) scale(${1+approach*1.6})`,
         opacity:1-approach*.38}}>
       <svg className="path-map" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path className={`path-route${color ? ' path-route-found' : ''}`} d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" />
-        <path className={`path-route${dateFound ? ' path-route-found' : ''}`} d="M26 78C48 82 78 78 81 61M83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" />
-        <path className="path-missing" d="M81 61 83 51" />
+        <defs><mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <path className="path-entry-route-mask" d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
+          <path className="path-entry-route-mask" d="M26 78C48 82 78 78 81 61L83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
+        </mask></defs>
+        <g mask={`url(#${maskId})`}>
+          <path className={`path-route${color ? ' path-route-found' : ''}`} d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" />
+          <path className={`path-route${dateFound ? ' path-route-found' : ''}`} d="M26 78C48 82 78 78 81 61M83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" />
+          <path className="path-missing" d="M81 61 83 51" />
+        </g>
         <circle className="path-origin" cx="26" cy="78" r=".6" />
       </svg>
       {(Object.keys(PLACES) as Destination[]).map((place) => {
@@ -206,7 +232,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
         const available = place !== 'sapphire' || ready;
         const found = place === 'prism' ? color : place === 'date' ? dateFound : ready;
         return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place || flight?.place === place ? ' path-place-near' : ''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={blocked || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (available) travel(place); }}>
-          <PlaceDrawing place={place} /><span>{labels[place]}</span>
+          <DestinationDrawing place={place} progress={place==='prism'?reveal.prism:place==='date'?reveal.date:reveal.route}/><span className="path-place-label" style={{'--path-label':reveal.labels} as CSSProperties}>{labels[place]}</span>
         </button>;
       })}
       <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%` }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
@@ -216,10 +242,10 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
         if (shift) { event.preventDefault(); moveTo({ x: positionRef.current.x + shift.x, y: positionRef.current.y + shift.y }); }
         else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); const destination = nearest(positionRef.current); if (destination) travel(destination); }
       }}>
-        <CompanionLight choices={choices} pink={color} />
+        <CompanionLight choices={onField?[]:choices} pink={color} />
       </button>
       </div>
     </div>
-    <p className="path-whisper">{flight ? '带着光，慢慢靠近。' : near ? `松开，让光去往${near === 'prism' ? '棱镜' : near === 'date' ? '星盘' : '宝石'}。` : '带着光走一走。也可以轻触远方。'}</p>
+    <p className="sr-only">{flight ? '带着光，慢慢靠近。' : near ? `松开，让光去往${near === 'prism' ? '棱镜' : near === 'date' ? '星盘' : '宝石'}。` : '带着光走一走。也可以轻触远方。'}</p>
   </section>;
 }

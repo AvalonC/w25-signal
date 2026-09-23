@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import type { StarArrival } from '@/lib/bracelet-transition';
 type Point = { x: number; y: number };
-export type WishField = {nodes:{word:string;x:number;y:number;selected:boolean;order:number}[];carrier:Point;departing:boolean};
+export type WishField = {nodes:{word:string;x:number;y:number;selected:boolean;order:number}[];carrier:Point;departing:boolean;orbit?:number;companions?:Point[]};
 function glyph(text: string, w: number, h: number, wish = false): Point[] {
   const c = document.createElement('canvas');
   c.width = w;
@@ -60,7 +60,7 @@ export function Starfield({
       last = '',
       targets: Point[] = [],
       previous = 0;
-    let lastArrival = 0;
+    let lastArrival = 0, hadWishes = false;
     const wishGlyphs = new Map<string,Point[]>();
     let phaseTime=0,lastTime=0;
     const reduced = window.matchMedia(
@@ -96,6 +96,8 @@ export function Starfield({
       phaseTime+=Math.min(time-lastTime,60);lastTime=time;
       previous = time;
       const p = props.current;
+      const resumeCompanions=!!p.wishes?.companions&&!hadWishes;
+      hadWishes=!!p.wishes;
       if (p.arrival && p.arrival.id !== lastArrival) {
         lastArrival = p.arrival.id;
         p.arrival.points.forEach((point, i) => { if (stars[i]) { stars[i].x = point.x; stars[i].y = point.y; } });
@@ -121,10 +123,15 @@ export function Starfield({
           const node=p.wishes.nodes[Math.floor(i/260)];
           if(node){
             if(node.selected){
-              const orbit=phaseTime*.0008+node.order*Math.PI*2/3;
+              const orbit=(p.wishes.orbit??phaseTime*.0008)+node.order*Math.PI*2/3;
               const r=p.wishes.departing?15:30;
-              goal.x=p.wishes.carrier.x+Math.cos(orbit)*r+Math.sin(i*2.7)*2.1;
-              goal.y=p.wishes.carrier.y+Math.sin(orbit)*r*.6+Math.cos(i*3.3)*2.1;
+              const centre=p.wishes.companions?.[node.order]??{x:p.wishes.carrier.x+Math.cos(orbit)*r,y:p.wishes.carrier.y+Math.sin(orbit)*r*.6};
+              const angle=rand(i+50)*Math.PI*2;
+              const radius=Math.sqrt(rand(i+350))*(1+3.7*Math.pow(Math.abs(Math.cos(angle*2)),8));
+              goal.x=centre.x+Math.cos(angle)*radius;
+              goal.y=centre.y+Math.sin(angle)*radius;
+              // Returning discoveries already carry these wishes; keep ambient stars in place.
+              if(resumeCompanions){s.x=goal.x;s.y=goal.y;}
             }else if(p.wishes.nodes.filter(n=>n.selected).length===3){
               goal.x=rand(i)*w;goal.y=rand(i+2000)*h;
             }else{
@@ -135,10 +142,11 @@ export function Starfield({
             }
           }
         }
-        const ease = reduced ? 1 : p.burst ? 0.12 : p.wishes ? .055 : 0.037;
+        const ease = reduced ? 1 : p.burst ? 0.12 : p.wishes?.companions ? .28 : p.wishes?.departing ? .14 : p.wishes ? .055 : 0.037;
         s.x += (goal.x - s.x) * ease;
         s.y += (goal.y - s.y) * ease;
-        const inText = (!!targets.length && i < 2080 || !!p.wishes && i<2080) && !p.burst;
+        const wish=p.wishes?.nodes[Math.floor(i/260)];
+        const inText = (!!targets.length && i < 2080 || !!wish && (wish.selected || !p.wishes?.companions)) && !p.burst;
         const companion=!!p.wishes?.nodes[Math.floor(i/260)]?.selected;
         g.globalAlpha = inText
           ? 0.62 + 0.3 * Math.sin(time * 0.001 + s.seed * 8) ** 2

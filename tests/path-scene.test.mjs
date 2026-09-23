@@ -29,7 +29,7 @@ const { StarPathJourney } = await import('../components/game/star-path-journey.t
 const { freshPath } = await import('../lib/star-path.ts');
 
 async function scene(initial, body) {
-  const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
+  const keys = ['document', 'window', 'ResizeObserver', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, current;
   const frames = new Map(), discoveries = [];
@@ -42,6 +42,7 @@ async function scene(initial, body) {
   });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.window = new EventTarget();
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} };
   window.matchMedia = () => ({ matches: !!initial.reduced, addEventListener() {}, removeEventListener() {} });
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
@@ -95,7 +96,11 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
     assert.equal(prism().props['aria-disabled'], true, 'the main light must enter before the prism responds');
     await advance(800); await pause(true); await advance(5000);
     assert.equal(prism().props['aria-disabled'], true, 'help pauses the incoming light');
-    await pause(false); await advance(1100);
+    await pause(false); await advance(2200);
+    assert.equal(prism().props['aria-disabled'],true,'camera reveal and input beam still precede player control');
+    await key('ArrowRight'); assert.equal(prism().props['aria-valuenow'],16,'input cannot skip the reveal');
+    await advance(1600);
+    assert.equal(prism().props['aria-disabled'],false,'control returns only after the spectrum opens');
     await act(() => prism().props.onPointerDown(pointer(0, 0)));
     await act(() => prism().props.onPointerMove(pointer(162.5, 0)));
     assert.equal(prism().props['aria-valuenow'], 68);
@@ -122,7 +127,12 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
     await advance(5000);
     assert.equal(discoveries.length, 1);
     await act(() => root.root.findByProps({'aria-label':'带着粉光回到星路'}).props.onClick());
+    assert.equal(current().path.place,'prism','click begins a return flight, not an immediate cut');
+    await advance(500);await pause(true);await advance(5000);
+    assert.equal(current().path.place,'prism','help pauses the return camera');
+    await pause(false);await advance(900);
     assert.equal(current().path.anchor,'prism');
+    await advance(960);
     const carrier = root.root.findAllByType('button').find((button) => button.props.className.startsWith('path-carrier'));
     assert.equal(carrier.props.style.left,'23%');
   });
@@ -153,6 +163,8 @@ test('October eighth gathers the dials once, retains its place, and pauses when 
     const stone = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
     assert.equal(stone.props.tint,0,'date-first gathering remains white');
     await act(() => root.root.findByProps({'aria-label':'带着这一天的星光回到星路'}).props.onClick());
+    assert.equal(current().path.place,'date');
+    await advance(1400);
     assert.equal(current().path.anchor,'date');
   });
 });

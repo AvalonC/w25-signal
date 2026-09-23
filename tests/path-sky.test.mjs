@@ -28,20 +28,27 @@ registerHooks({
 const { PathSky } = await import('../components/game/path-sky.tsx');
 
 async function scene(initial, body) {
-  const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
+  const keys = ['document', 'window', 'ResizeObserver', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let root, now = 0, frameId = 0;
-  const captures = new Set(), visits = [], frames = new Map();
+  const captures = new Set(), visits = [], transfers=[], fields=[], frames = new Map(), observers=new Set();
+  let bounds={left:0,top:0,width:400,height:500,...initial.bounds};
   const host = {
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 500 }),
+    getBoundingClientRect: () => bounds,
     setPointerCapture: (id) => captures.add(id),
     hasPointerCapture: (id) => captures.has(id),
     releasePointerCapture: (id) => captures.delete(id),
   };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.window = new EventTarget();
+  window.innerWidth=initial.viewport?.width??400; window.innerHeight=initial.viewport?.height??500;
   window.matchMedia = () => ({ matches: !!initial.reduced, addEventListener() {}, removeEventListener() {} });
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
+  globalThis.ResizeObserver=class {
+    constructor(callback){this.callback=callback;}
+    observe(){observers.add(this);}
+    disconnect(){observers.delete(this);}
+  };
   Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
     now: () => now, mark() {}, measure() {}, clearMarks() {}, clearMeasures() {},
   } });
@@ -53,24 +60,28 @@ async function scene(initial, body) {
       await act(() => callbacks.forEach((callback) => callback(now)));
     }
   };
-  let props = { color: false, dateFound: false, choices: [0, 3, 5], paused: false, onVisit: (place) => visits.push(place), ...initial };
+  let props = { color: false, dateFound: false, choices: [0, 3, 5], paused: false,
+    onVisit: (place,handoff) => {visits.push(place);transfers.push(handoff);}, onField:field=>fields.push(field), ...initial };
   const carrier = () => root.root.findAllByType('button').find((button) => button.props.className.startsWith('path-carrier'));
   const pointer = (x, y, pointerId = 1) => ({
     clientX: x, clientY: y, pointerId, isPrimary: true, pointerType: 'touch', button: 0, currentTarget: host,
   });
   const drag = async (x, y) => {
     const style = carrier().props.style;
-    await act(() => carrier().props.onPointerDown(pointer(parseFloat(style.left) * 4, parseFloat(style.top) * 5)));
+    await act(() => carrier().props.onPointerDown(pointer(bounds.left+parseFloat(style.left)*bounds.width/100,bounds.top+parseFloat(style.top)*bounds.height/100)));
     await act(() => carrier().props.onPointerMove(pointer(x, y)));
   };
   try {
     await act(() => { root = create(React.createElement(PathSky, props), { createNodeMock: () => host }); });
-    await body({ root, carrier, captures, visits, pointer, drag, advance,
+    await body({ root, carrier, captures, visits, transfers, fields, pointer, drag, advance,
+      resize:async(next)=>{bounds={...bounds,...next};await act(()=>observers.forEach(observer=>observer.callback()));},
+      visibility:async(hidden)=>{await act(()=>{document.hidden=hidden;document.dispatchEvent(new Event('visibilitychange'));});},
       update: async (next) => { props = { ...props, ...next }; await act(() => root.update(React.createElement(PathSky, props))); },
     });
   } finally {
     if (root) await act(() => root.unmount());
     assert.equal(frames.size, 0, 'unmount clears the approach clock');
+    assert.equal(observers.size,0,'unmount releases sky measurements');
     for (const key of keys) {
       if (original[key]) Object.defineProperty(globalThis, key, original[key]);
       else delete globalThis[key];
@@ -173,5 +184,55 @@ test('returning from the prism starts on the left and returning from the date st
   });
   await scene({anchor:'date'}, async ({carrier}) => {
     assert.equal(carrier().props.style.left,'76%'); assert.equal(carrier().props.style.top,'46%');
+  });
+});
+
+const handoff={main:{x:.27,y:.81},companions:[{x:.29,y:.82},{x:.25,y:.8},{x:.27,y:.79}],orbit:2.4};
+test('wish handoff starts at the exact viewport point and reveals the destinations before enabling them',async()=>{
+  await scene({handoff,viewport:{width:390,height:844},bounds:{left:18,top:64,width:354,height:740}},async({root,carrier,fields,advance,visits})=>{
+    assert.ok(Math.abs(18+parseFloat(carrier().props.style.left)*3.54-handoff.main.x*390)<1e-8);
+    assert.ok(Math.abs(64+parseFloat(carrier().props.style.top)*7.4-handoff.main.y*844)<1e-8);
+    const first=fields.at(-1);
+    for(let i=0;i<3;i++){
+      assert.ok(Math.abs(first.companions[i].x-handoff.companions[i].x*390)<1e-8);
+      assert.ok(Math.abs(first.companions[i].y-handoff.companions[i].y*844)<1e-8);
+    }
+    const prism=()=>root.root.findAllByType('button').find(button=>button.props.className.includes('path-place-prism'));
+    const drawing=()=>root.root.findAll(node=>node.type?.name==='DestinationDrawing'&&node.props.place==='prism')[0];
+    assert.equal(carrier().props.disabled,true);assert.equal(drawing().props.progress,0);
+    await act(()=>prism().props.onClick());assert.deepEqual(visits,[]);
+    await advance(2000);assert.ok(drawing().props.progress>0&&drawing().props.progress<1);
+    assert.ok(fields.at(-1).companions[0].y<first.companions[0].y-200,'a wish flies ahead to uncover the prism');
+    await advance(1840);assert.equal(carrier().props.disabled,false);assert.equal(drawing().props.progress,1);
+    assert.equal(carrier().props.style.left,'26%');assert.equal(carrier().props.style.top,'78%');
+    assert.equal(root.root.findAll(node=>node.props.className==='path-companion-orbit').length,0,'the shared canvas keeps the same wishes after arrival');
+  });
+});
+
+test('arrival waits through help and hidden tabs without restarting the wish flight',async()=>{
+  await scene({handoff},async({root,fields,advance,update,visibility,carrier})=>{
+    await advance(1200);const before=fields.at(-1);
+    await update({paused:true});await advance(4000);assert.deepEqual(fields.at(-1),before);
+    await update({paused:false});await visibility(true);await advance(4000);assert.deepEqual(fields.at(-1),before);
+    await visibility(false);await advance(2640);assert.equal(carrier().props.disabled,false);
+    assert.doesNotMatch(root.root.findByType('section').props.className,/path-arriving/);
+  });
+});
+
+test('a returning light keeps its viewport position then settles at the discovered anchor without replaying the expedition',async()=>{
+  await scene({handoff:{...handoff,kind:'return'},anchor:'prism',color:true},async({fields,carrier,advance})=>{
+    assert.ok(Math.abs(fields.at(-1).carrier.x-handoff.main.x*400)<1e-8);
+    assert.ok(Math.abs(fields.at(-1).carrier.y-handoff.main.y*500)<1e-8);
+    await advance(960);assert.equal(carrier().props.disabled,false);
+    assert.equal(carrier().props.style.left,'23%');assert.equal(carrier().props.style.top,'59%');
+  });
+});
+
+test('reduced motion preserves the handoff and enables choices after a short restrained reveal',async()=>{
+  await scene({handoff,reduced:true},async({fields,carrier,advance})=>{
+    assert.equal(fields.at(-1).orbit,handoff.orbit);
+    assert.equal(carrier().props.disabled,true);
+    await advance(520);assert.equal(carrier().props.disabled,false);
+    assert.equal(fields.at(-1).orbit,handoff.orbit);
   });
 });

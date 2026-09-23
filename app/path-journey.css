@@ -7,18 +7,32 @@
 .path-place-whisper { flex:0 0 auto; margin:0; padding:2px 14px 8px; font:17px/1.75 Georgia,'Songti SC',serif; text-align:center; color:#ddd3e6; text-wrap:balance; }
 .path-prism-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
 .path-prism-stage { position:relative; flex:1; min-height:0; width:100%; }
-.path-prism-view .prism-light { position:absolute; inset:0; width:100%; height:100%; min-height:0; margin:0; transform:perspective(800px) rotateX(calc((1 - var(--prism-approach,1))*24deg)) scale(calc(.47 + var(--prism-approach,1)*.53)); transform-origin:44% 49%; mask-image:radial-gradient(ellipse at 48% 49%,#000 35%,#000d 58%,transparent 79%); -webkit-mask-image:radial-gradient(ellipse at 48% 49%,#000 35%,#000d 58%,transparent 79%); }
+.path-prism-view .prism-light { position:absolute; inset:0; width:100%; height:100%; min-height:0; margin:0; mask-image:radial-gradient(ellipse at 48% 49%,#000 49%,#000d 65%,transparent 93%); -webkit-mask-image:radial-gradient(ellipse at 48% 49%,#000 49%,#000d 65%,transparent 93%); }
 .path-prism-view .prism-light canvas { width:100%; height:100%; }
 .prism-arrival-light,.prism-return-light { position:absolute; width:72px; height:72px; z-index:2; }
 .prism-arrival-light { pointer-events:none; }
 .prism-return-light { transform:translate(-50%,-50%); }
 .prism-return-light button { touch-action:manipulation; }
+.path-found .prism-return-light .path-company-star,.path-discovery-return .path-company-star,.path-home .path-company-star { animation:return-light-call 2.6s ease-in-out infinite; }
+.prism-next-path { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+.prism-next-path path { fill:none; stroke:#efbbd7a6; stroke-width:1.15; stroke-linecap:round; stroke-dasharray:.4 3; vector-effect:non-scaling-stroke; animation:next-light-flow 6s linear infinite; }
+.prism-next-path circle { fill:#ffe5f1; opacity:.6; }
+.journey-returning > .path-view { transform-origin:50% 50%; transform:scale(calc(1 - var(--path-return)*.22)); opacity:calc(1 - var(--path-return)*.95); }
+.journey-returning .prism-return-light,.journey-returning .path-discovery-return,.journey-returning .path-home { visibility:hidden; }
+.path-returning-carrier { position:fixed; transform:translate(-50%,-50%); width:72px; height:72px; z-index:5; pointer-events:none; }
+@keyframes return-light-call { 0%,100%{opacity:.45;filter:drop-shadow(0 0 3px #ffc8e7)}40%,56%{opacity:1;filter:drop-shadow(0 0 13px #ffe4f1)} }
+@keyframes next-light-flow { to{stroke-dashoffset:-43} }
 .path-prism-message { flex:0 0 auto; text-align:center; padding:0 12px 10px; min-height:52px; }
 .path-prism-message > p { margin:0; font:15px/1.85 Georgia,'Songti SC',serif; color:#ddc8dc; }
 .path-prism-message small { font:12px/1.8 Georgia,'Songti SC',serif; color:#a9a0bc; }
 .path-discovery-return { position:relative; display:flex; flex:0 0 auto; flex-direction:column; align-items:center; text-align:center; gap:2px; padding:0 14px 8px; }
 .path-discovery-return .path-company { width:54px; height:54px; }
 .path-discovery-return small { color:#a3a0b8; font-size:12px; }
+.path-date-view .dial-arrows span { visibility:hidden; }
+.path-infusion-view:not(.is-infusing) .path-carried-light .path-company-star { animation:return-light-call 2.6s ease-in-out infinite; }
+.path-infusion-view:not(.is-infusing) .path-stone-target { border:1px solid #f4d1e21c; }
+.sapphire-turn-controls > .sapphire-angle-hint.sr-only { position:absolute;min-height:1px; }
+.sapphire-turn-controls:has(.sr-only) { grid-template-columns:44px 44px;gap:32px; }
 .path-wish-verse,.path-prism-message > .path-wish-verse { max-width:420px; margin:6px auto 0; padding:0 12px; font:13px/1.65 Georgia,'Songti SC',serif; text-align:center; color:#bcaec7; }
 .path-date-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
 .path-date-stage { position:relative; flex:1; min-height:0; width:100%; container-type:size; }
@@ -76,5 +90,5 @@
  .path-date-view .dial-arrows { position:static; margin:5px 0 0; }
 }
 @media(max-height:740px) { .path-place-whisper{font-size:15px;padding-bottom:4px}.path-home{flex-basis:44px}.path-home .path-company{width:44px;height:44px}.path-date-view .date-dial strong{font-size:24px}.path-wish-verse,.path-prism-message > .path-wish-verse{font-size:12px;margin-top:3px} }
-@media(prefers-reduced-motion:reduce) { .path-date-view.is-unveiling .date-wheels .dial-block,.path-date-view.is-unveiling .date-wheels .dial-block:last-child{animation-name:date-quiet-gather;animation-duration:var(--gather-duration)!important}.date-confluence path,.date-confluence .date-confluence-heart{filter:none} }
+@media(prefers-reduced-motion:reduce) { .path-date-view.is-unveiling .date-wheels .dial-block,.path-date-view.is-unveiling .date-wheels .dial-block:last-child{animation-name:date-quiet-gather;animation-duration:var(--gather-duration)!important}.date-confluence path,.date-confluence .date-confluence-heart{filter:none}.prism-next-path path,.path-found .prism-return-light .path-company-star,.path-discovery-return .path-company-star,.path-home .path-company-star{animation:none}.journey-returning>.path-view{transform:none} }
 @keyframes date-quiet-gather { from{opacity:1}to{opacity:0} }

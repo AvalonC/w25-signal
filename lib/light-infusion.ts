@@ -1,13 +1,13 @@
 import { softStep } from './motion.ts';
 
-export const PRISM_ENTRANCE_MS = 1800;
+export const PRISM_ENTRANCE_MS = 4400;
 export const PRISM_RETURN_MS = 1600;
 export function prismEntranceFrame(elapsed: number, reduced = false) {
-  const duration = reduced ? 280 : PRISM_ENTRANCE_MS;
-  const at = softStep(elapsed / duration);
-  return { x: 18 + 26 * at, y: 22 + 27 * at,
-    scale: reduced ? 1 : .3 + at * .7, opacity: 1 - softStep((at - .7) / .3),
-    light: softStep((at - .52) / .48), done: elapsed >= duration };
+  const duration = reduced ? 650 : PRISM_ENTRANCE_MS;
+  const t = reduced ? elapsed / duration * PRISM_ENTRANCE_MS : elapsed;
+  return { approach: softStep(t / 1300), turn: softStep((t - 1200) / 1500),
+    beam: softStep((t - 2650) / 800), spectrum: softStep((t - 3320) / 1080),
+    light: softStep((t - 2650) / 800), done: elapsed >= duration };
 }
 export function prismReturnFrame(elapsed: number, reduced = false) {
   const duration = reduced ? 240 : PRISM_RETURN_MS;

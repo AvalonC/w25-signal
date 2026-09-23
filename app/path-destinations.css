@@ -1,0 +1,16 @@
+.path-arriving .path-carrier { pointer-events:none; }
+.path-arriving .path-company-star { animation:none; }
+.path-arriving .path-place { transition:color 900ms,filter 600ms; }
+.path-destination-drawing .path-forming-point { fill:currentColor; stroke:none; filter:drop-shadow(0 0 3px #f5e1f4); }
+.path-destination-drawing .path-prism-face { fill:#e4d5f2; }
+.path-destination-drawing .path-prism-input { stroke:#eee5f4; stroke-opacity:.55; }
+.path-destination-drawing .path-prism-ray-rose { stroke:#f4b9db; }
+.path-destination-drawing .path-prism-ray-pearl { stroke:#dfd5ed; }
+.path-destination-drawing .path-prism-ray-ice { stroke:#a9d2ea; }
+.path-entry-route-mask { fill:none; stroke:white; stroke-width:3; }
+.path-arriving .path-place svg { filter:drop-shadow(0 0 5px #cdbada33); }
+.path-arriving .path-origin { opacity:0; }
+.path-place-label { opacity:var(--path-label,1); transform:translateY(calc((1 - var(--path-label,1))*7px)); }
+@media(prefers-reduced-motion:reduce) {
+ .path-place-label { transform:none; }
+}

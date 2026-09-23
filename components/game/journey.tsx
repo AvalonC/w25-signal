@@ -18,11 +18,13 @@ import {fresh,readSave,restart,revisitJourney,finish,NOUNS,PINK,type Journey} fr
 import {MOTION_STYLE} from '@/lib/motion';
 import {switchTap,tone,feedback,silence,playBirthday} from '@/lib/feedback';
 import type {StarArrival} from '@/lib/bracelet-transition';
+import type {SkyHandoff} from '@/lib/path-arrival';
 
 export default function JourneyGame(){
   const [s,setS]=useState<Journey>(fresh),[ready,setReady]=useState(false),[boot,setBoot]=useState(true);
   const [sound,setSound]=useState(false),[help,setHelp]=useState(false),[revisit,setRevisit]=useState(false),[saveOK,setSaveOK]=useState(true);
   const [lessonReplay,setLessonReplay]=useState<boolean|null>(null);
+  const [skyHandoff,setSkyHandoff]=useState<SkyHandoff|null>(null);
   const [wishField,setWishField]=useState<WishField|null>(null),[arrival,setArrival]=useState<StarArrival|null>(null);
   const [endingMode,setEndingMode]=useState<'cipher'|'letter'>('cipher'),[letterVisit,setLetterVisit]=useState(0);
   const [modelBurst,setModelBurst]=useState(false),[returning,setReturning]=useState(false),[charge,setCharge]=useState(0);
@@ -58,7 +60,7 @@ export default function JourneyGame(){
     return()=>{silence();};
   },[s.stage,endingMode,letterVisit,boot,sound,returning]);
   useEffect(()=>{cancel();setModelBurst(false);},[s.stage]);
-  const start=(replay=false)=>{setLessonReplay(null);setArrival(null);setEndingMode('cipher');setRevisit(false);setS(p=>restart(p,replay));};
+  const start=(replay=false)=>{setSkyHandoff(null);setWishField(null);setLessonReplay(null);setArrival(null);setEndingMode('cipher');setRevisit(false);setS(p=>restart(p,replay));};
   const beginLesson=(replay:boolean)=>{tap();setRevisit(false);setArrival(null);setLessonReplay(replay);};
   const showLetter=()=>{tap();setArrival(null);setEndingMode('letter');setLetterVisit(n=>n+1);setRevisit(false);setS(p=>finish(p));};
   const revisitAt=(stage:6|7)=>{
@@ -82,7 +84,7 @@ export default function JourneyGame(){
   const fieldText=s.stage===0?(s.completed&&lessonReplay===null?'Project\nW25':'Project\nN7A-3914'):s.stage===7&&endingMode==='letter'?'HBD, Leah':'';
   return <div className={'cosmos free-flow immersive-journey stage-'+s.stage+(boot?' booting':'')+(modelBurst?' bracelet-leaving':'')+(help||revisit?' journey-paused':'')}
     style={{'--pink':PINK,...MOTION_STYLE} as CSSProperties}>
-    <Starfield text={fieldText} wishes={s.stage===1?wishField:null} paused={help||revisit} arrival={arrival} burst={returning} charge={charge}/>
+    <Starfield text={fieldText} wishes={s.stage===1||s.stage===2&&s.path?.place==='sky'?wishField:null} paused={help||revisit} arrival={arrival} burst={returning} charge={charge}/>
     <input ref={haptic} type="checkbox" className="haptic-switch" tabIndex={-1} aria-hidden="true"/>
     <header className="sky-header">
       <span className="sky-brand" aria-label="星间来信">✧<span>星 间 来 信</span></span>
@@ -98,8 +100,9 @@ export default function JourneyGame(){
       <main className={'scene scene-'+s.stage+(s.stage===2?' scene-path':'')}>
         {s.stage===1&&<WishSky choices={s.choices} paused={help||revisit} onField={setWishField}
           onChoose={i=>{tap();setS(p=>p.choices.includes(i)||p.choices.length>=3?p:{...p,choices:[...p.choices,i]});}}
-          onDone={()=>patch({stage:2})}/>}
+          onDone={handoff=>{setSkyHandoff(handoff);patch({stage:2});}}/>}
         {s.stage===2&&<StarPathJourney path={s.path??freshPath()} choices={s.choices} month={s.month} day={s.day} rotation={s.rotation} paused={help||revisit}
+          handoff={skyHandoff} onField={setWishField}
           onPath={path=>patch({path,color:path.color})} onDate={(month,day)=>patch({month,day})} onRotation={rotation=>patch({rotation})} onTap={tap}
           onComplete={()=>setS(p=>({...p,color:true,stars:13,stone:true,rotation:150,stage:5}))}/>}
         {s.stage===5&&(s.decoded<3?<EchoRelay key={s.decoded} choices={s.choices} delivered={deliveredWishes(s.choices,s.decoded,s.echoWishes)} paused={help||revisit}
@@ -114,7 +117,7 @@ export default function JourneyGame(){
         {s.stage===7&&(endingMode==='cipher'?<CipherReveal paused={help||revisit} onDone={()=>{tap();setEndingMode('letter');setLetterVisit(n=>n+1);}}/>:
           <section key={letterVisit} className={'birthday-letter'+(returning?' is-returning':'')} aria-label="给 Leah 的生日回信">
             <div className="birthday-title"><h1>HBD, Leah</h1><span aria-hidden="true">✧</span></div>
-            <div className="birthday-lines">{s.choices.map(i=><p key={i}>{NOUNS[i][2]}</p>)}<p className="birthday-signature">愿你珍爱的，都能陪你走过新的岁月。</p></div>
+            <div className="birthday-lines">{s.choices.filter(i=>NOUNS[i][2]).map(i=><p key={i}>{NOUNS[i][2]}</p>)}<p className="birthday-signature">愿你珍爱的，都能陪你走过新的岁月。</p></div>
             <button className="birthday-return" aria-label="按住星光三秒回到星空，也可轻触返回" onContextMenu={e=>e.preventDefault()}
               onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);beginReturn();}}
               onPointerUp={cancel} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={cancel}

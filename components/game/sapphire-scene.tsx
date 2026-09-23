@@ -137,14 +137,14 @@ export function SapphireScene({ rotation, paused, onProgress, onDone, onTap, fro
       {(phase === 'light' || phase === 'weave') && <p className="motion-verse">你来时的光，还在。</p>}
       {phase === 'explore' && (entry ? <div key={discovery} className="sapphire-identity motion-verse">
         <span className="identity-overline">{entry.english}</span><h2>{entry.name}</h2><p>{entry.line}</p>
-      </div> : <p className="motion-verse">轻轻转动，看看光里藏着什么。</p>)}
+      </div> : <p className="motion-verse sr-only">轻轻转动，看看光里藏着什么。</p>)}
       {phase === 'depart' && <p className="motion-verse">还有三个愿望，等着一起出发。</p>}
     </div>
     <div className="sapphire-discovery-controls" inert={!active}>
       <div className="sapphire-turn-controls">
         <button type="button" disabled={!active || discovery === 2} onClick={() => rotate(-.18)}
           aria-label="向左转动宝石" title="向左转动宝石"><ChevronLeft size={21} strokeWidth={1.35} /></button>
-        <p className="sapphire-angle-hint" aria-live="polite">{hint}</p>
+        <p className="sapphire-angle-hint sr-only" aria-live="polite">{hint}</p>
         <button type="button" disabled={!active || discovery === 2} onClick={() => rotate(.18)}
           aria-label="向右转动宝石" title="向右转动宝石"><ChevronRight size={21} strokeWidth={1.35} /></button>
       </div>
