@@ -1,6 +1,6 @@
 'use client';
-/* oxlint-disable next/no-img-element */
-import { createElement, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
+/* oxlint-disable next/no-img-element, react/react-compiler */
+import { createElement, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
 import type { CameraView } from '@/lib/bracelet-transition';
 export type ModelSurfaceHandle = { camera: () => CameraView | null };
 type Viewer = HTMLElement & {
@@ -11,6 +11,18 @@ type Viewer = HTMLElement & {
   jumpCameraToGoal: () => void;
   updateComplete: Promise<unknown>;
 };
+// Projection updates must never freeze the camera as the handoff capture does.
+function readView(el: Viewer): CameraView | null {
+  if (!el.loaded || typeof el.getCameraOrbit !== 'function' || typeof el.getCameraTarget !== 'function' ||
+      typeof el.getFieldOfView !== 'function') return null;
+  const rect = el.getBoundingClientRect(), camera = el.getCameraOrbit(), target = el.getCameraTarget();
+  const view: CameraView = { ...camera, target: [target.x, target.y, target.z], fov: el.getFieldOfView(),
+    left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  return view.width > 0 && view.height > 0 && viewValues(view).every(Number.isFinite) ? view : null;
+}
+function viewValues(view: CameraView) {
+  return [view.theta, view.phi, view.radius, ...view.target, view.fov, view.left, view.top, view.width, view.height];
+}
 let registration: Promise<unknown> | undefined;
 function registerViewer() {
   registration ??= import('@google/model-viewer').catch((error: unknown) => {
@@ -18,15 +30,25 @@ function registerViewer() {
   });
   return registration;
 }
-export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', target, onReady, children, viewerRef, interactive = true, frozen = false }: {
+export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', target, onReady, onViewChange, children, viewerRef, interactive = true, frozen = false }: {
   src: string; poster: string; label: string; orbit?: string;
-  onReady?: (ready: boolean) => void; children?: ReactNode;
+  onReady?: (ready: boolean) => void; onViewChange?: (view: CameraView | null) => void; children?: ReactNode;
   viewerRef?: Ref<ModelSurfaceHandle>; interactive?: boolean;
   frozen?: boolean; target?: string;
 }) {
   const element = useRef<HTMLElement | null>(null);
   const callback = useRef(onReady);
   callback.current = onReady;
+  const viewCallback = useRef(onViewChange);
+  viewCallback.current = onViewChange;
+  const lastView = useRef<CameraView | null | undefined>(undefined);
+  const observingView = !!onViewChange;
+  const publishView = useCallback((view: CameraView | null) => {
+    const previous = lastView.current, values = view ? viewValues(view) : null;
+    if (previous === view || previous && values && viewValues(previous).every((value, index) => value === values[index])) return;
+    lastView.current = view;
+    viewCallback.current?.(view);
+  }, []);
   const [registered, setRegistered] = useState(false);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [attempt, setAttempt] = useState(0);
@@ -44,28 +66,42 @@ export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', ta
       return { ...camera, target: [target.x, target.y, target.z], fov: el.getFieldOfView(),
         left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     },
-  }), [orbit]);
+  }), []);
   useEffect(() => {
     let active = true;
-    setStatus('loading'); callback.current?.(false);
+    setStatus('loading'); callback.current?.(false); publishView(null);
     registerViewer().then(() => { if (active) setRegistered(true); })
       .catch(() => { if (active) setStatus('failed'); });
     const timer = setTimeout(() => { if (active) setStatus((s) => s === 'ready' ? s : 'failed'); }, 25000);
     return () => { active = false; clearTimeout(timer); };
-  }, [attempt, src]);
+  }, [attempt, src, publishView]);
+  useEffect(() => { if (status === 'failed') publishView(null); }, [status, publishView]);
   useEffect(() => {
-    const el = element.current;
+    const el = element.current as Viewer | null;
     if (!el || !registered) return;
-    const loaded = () => { setStatus('ready'); callback.current?.(true); };
-    const failed = () => { setStatus('failed'); callback.current?.(false); };
+    let active = true, usable = !!el.loaded;
+    const changed = () => {
+      if (active && viewCallback.current) publishView(usable ? readView(el) : null);
+    };
+    const resized = () => {
+      changed();
+      // The viewer adjusts its field of view during its own resize update.
+      void el.updateComplete.then(changed);
+    };
+    const loaded = () => { usable = true; setStatus('ready'); callback.current?.(true); resized(); };
+    const failed = () => { usable = false; setStatus('failed'); callback.current?.(false); publishView(null); };
     el.addEventListener('load', loaded); el.addEventListener('error', failed);
     el.addEventListener('webglcontextlost', failed);
-    if ((el as HTMLElement & { loaded?: boolean }).loaded) loaded();
+    if (observingView) el.addEventListener('camera-change', changed);
+    const observer = observingView && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resized) : null;
+    observer?.observe(el);
+    if (el.loaded) loaded(); else changed();
     return () => {
+      active = false; observer?.disconnect();
       el.removeEventListener('load', loaded); el.removeEventListener('error', failed);
-      el.removeEventListener('webglcontextlost', failed);
+      el.removeEventListener('webglcontextlost', failed); el.removeEventListener('camera-change', changed);
     };
-  }, [registered, attempt, src]);
+  }, [registered, attempt, src, observingView, publishView]);
   return <div className={'model-surface model-' + displayStatus}>
     {displayStatus !== 'ready' && <img className="model-fallback" src={poster} alt={label} draggable={false} />}
     {registered && createElement('model-viewer', {
@@ -76,7 +112,7 @@ export function ModelSurface({ src, poster, label, orbit = '0deg 32deg 110%', ta
       'min-camera-orbit': 'auto 12deg auto', 'max-camera-orbit': 'auto 85deg auto',
       'environment-image': 'neutral', 'shadow-intensity': '0',
     }, status === 'ready' ? children : null)}
-    {status === 'loading' && <span className="model-status" role="status">星光正在靠近…</span>}
+    {status === 'loading' && <output className="model-status">星光正在靠近…</output>}
     {status === 'failed' && <button className="model-status" onClick={() => setAttempt((n) => n + 1)}>暂用静态影像 · 轻触重新加载</button>}
   </div>;
 }

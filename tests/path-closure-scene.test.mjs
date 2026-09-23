@@ -30,13 +30,14 @@ registerHooks({
 const { PathClosure } = await import('../components/game/path-closure.tsx');
 const { CLOSURE_START, CLOSURE_TARGET, closureTimeline } = await import('../lib/path-closure.ts');
 
-async function scene(reduced, body, fromRelay = false) {
+async function scene(reduced, body, fromRelay = false, dimensions = {width:300,height:300}) {
   const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, completions = 0;
   const frames = new Map(), captured = new Set();
-  const host = () => ({
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 300, height: 300 }),
+  const side=Math.min(dimensions.width,dimensions.height);
+  const host = (element) => ({
+    getBoundingClientRect: () => ({ left: 0, top: 0, ...(element?.props?.className==='closure-world'?dimensions:{width:side,height:side}) }),
     setPointerCapture: (id) => captured.add(id), hasPointerCapture: (id) => captured.has(id), releasePointerCapture: (id) => captured.delete(id),
   });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,7 +61,7 @@ async function scene(reduced, body, fromRelay = false) {
     await body({ root, advance, completions: () => completions, captured,
       pause: async (paused) => act(() => root.update(render(paused))),
       visibility: async (hidden) => act(() => { document.hidden = hidden; document.dispatchEvent(new Event('visibilitychange')); }),
-      pointer: (point, pointerId = 1) => ({ clientX: point.x * 3, clientY: point.y * 3, pointerId,
+      pointer: (point, pointerId = 1) => ({ clientX: point.x * side/100, clientY: point.y * side/100, pointerId,
         isPrimary: true, button: 0, currentTarget: host(), preventDefault() {} }),
     });
     await act(() => root.unmount()); root = null;
@@ -168,4 +169,53 @@ test('the onward star arrives at the ring before the last gap becomes playable',
     await act(()=>target().props.onClick());
     assert.equal(root.root.findByProps({className:'closure-continue'}).props.disabled,true);
   },true);
+});
+
+
+test('a non-square viewport uses one square stage and the closing star follows the drawn arc', async () => {
+  await scene(false,async({root,advance})=>{
+    const stage=()=>root.root.findByProps({className:'closure-stage'});
+    const carried=()=>root.root.findByProps({className:'closure-carried'});
+    const target=()=>root.root.findByProps({'aria-label':'接通最后一段星路'});
+    assert.equal(stage().props.style.width,320);
+    assert.equal(stage().props.style.height,320);
+    await advance(1840);
+    assert.equal(target().props.disabled,true,'the common zoom must finish before input unlocks');
+    await advance(400);
+    await act(()=>target().props.onClick());
+    await advance(520);
+    const drawn=root.root.findByProps({className:'closure-join'}).props.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+    assert.ok(Math.abs(parseFloat(carried().props.style.left)-drawn.at(-2))<1e-9);
+    assert.ok(Math.abs(parseFloat(carried().props.style.top)-drawn.at(-1))<1e-9);
+    assert.ok(parseFloat(carried().props.style.top)>Math.max(CLOSURE_START.y,CLOSURE_TARGET.y),'the star follows the bottom arc instead of its chord');
+  },false,{width:320,height:520});
+});
+
+test('the travelling star, reflected route and real diamond hotspots share one mapped signal and pause together', async () => {
+  await scene(false,async({root,advance,pause,visibility})=>{
+    await advance(2400);
+    await act(()=>root.root.findByProps({'aria-label':'接通最后一段星路'}).props.onClick());
+    await advance(1560);
+    const star=()=>root.root.findByProps({className:'closure-sweep-star'});
+    const tail=()=>root.root.findByProps({className:'closure-sweep-thread'});
+    const lights=()=>root.root.findAll(n=>typeof n.props.slot==='string'&&n.props.slot.startsWith('hotspot-morse')).map(n=>n.props.style['--mapped-light']);
+    const endpoint=()=>tail().props.d.match(/-?\d+(?:\.\d+)?/g).map(Number).slice(-2);
+    assert.ok(Math.abs(parseFloat(star().props.style.left)-endpoint()[0])<1e-9);
+    assert.ok(Math.abs(parseFloat(star().props.style.top)-endpoint()[1])<1e-9);
+    const initial=lights();
+    assert.ok(initial[0]>.99,'the first real diamond reflects the star at its own position');
+    assert.ok(initial.slice(1).every(n=>n<.2),'unvisited diamonds must not glow together');
+    const reflections=root.root.findAllByProps({className:'closure-reflection'});
+    reflections.forEach((node,i)=>assert.equal(node.props.style['--mapped-light'],initial[i]));
+    await pause(true);const frozenStar=star().props.style,frozenTail=tail().props.d;
+    await advance(3000);assert.deepEqual(star().props.style,frozenStar);assert.equal(tail().props.d,frozenTail);assert.deepEqual(lights(),initial);
+    await pause(false);await visibility(true);await advance(3000);
+    assert.deepEqual(star().props.style,frozenStar);assert.deepEqual(lights(),initial);
+    await visibility(false);await advance(1080);
+    assert.notDeepEqual(lights(),initial,'the reflection moves to the next real diamond');
+    assert.ok(Math.abs(parseFloat(star().props.style.left)-endpoint()[0])<1e-9);
+    await advance(closureTimeline().duration);
+    assert.equal(star().props.style.opacity,0);
+    assert.equal(root.root.findAll(n=>n.props.slot==='hotspot-closure-gem')[0].props.style.opacity,1,'the travelling light settles on the right-hand star setting');
+  });
 });

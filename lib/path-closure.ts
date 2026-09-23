@@ -1,4 +1,4 @@
-import { projectPoint, smooth, type Vec3 } from './bracelet-transition.ts';
+import { projectPoint, smooth, type CameraView, type Vec3 } from './bracelet-transition.ts';
 
 export type ClosurePart = { group: number; symbol: '.' | '-'; node: string; stones: Vec3[] };
 // Gem centres follow the GU1893-v6 stone stations; r2 only articulates the clasp.
@@ -23,27 +23,30 @@ export const CLOSURE_CODES = ['.--', '..---', '.....'] as const;
 export const CLOSURE_LETTERS = ['W', '2', '5'] as const;
 export const CLOSURE_ORBIT = '0deg 12deg 0.12m';
 
-export function closurePoint(point: Vec3) {
+export function closurePoint(point: Vec3, view?: CameraView | null) {
   return projectPoint(point, { theta: 0, phi: Math.PI / 15, radius: .12, target: [0, 0, 0],
-    fov: 30, left: 0, top: 0, width: 100, height: 100 });
+    fov: 30, ...view, left: 0, top: 0, width: 100, height: 100 });
 }
-export function closureRingPoint(angle: number) {
+export function closureRingPosition(angle: number): Vec3 {
   const radians = angle * Math.PI / 180;
-  return closurePoint([Math.sin(radians) * .023, 0, Math.cos(radians) * .023]);
+  return [Math.sin(radians) * .023, 0, Math.cos(radians) * .023];
+}
+export function closureRingPoint(angle: number, view?: CameraView | null) {
+  return closurePoint(closureRingPosition(angle), view);
 }
 export const CLOSURE_START = closureRingPoint(345);
 export const CLOSURE_TARGET = closureRingPoint(20);
 // The camera catches up with the travelling star at the near side of the ring.
-export function closureArrival(ms: number, reduced = false) {
+export function closureArrival(ms: number, reduced = false, anchor = CLOSURE_START) {
   const flight = reduced ? 1 : smooth(ms/1600);
-  return { point: { x: CLOSURE_START.x - 18*(1-flight), y: CLOSURE_START.y + 24*(1-flight) },
+  return { point: { x: anchor.x - 18*(1-flight), y: anchor.y + 24*(1-flight) },
     opacity: smooth(ms/(reduced ? 350 : 280)),
     copy: smooth((ms-(reduced ? 0 : 850))/(reduced ? 350 : 950)),
-    ready: ms >= (reduced ? 400 : 1800) };
+    ready: ms >= (reduced ? 400 : 2200) };
 }
-export function closureNear(point: { x: number; y: number }, width: number, height: number) {
-  return Math.hypot((point.x - CLOSURE_TARGET.x) * width / 100,
-    (point.y - CLOSURE_TARGET.y) * height / 100) <= Math.max(28, Math.min(44, width * .12));
+export function closureNear(point: { x: number; y: number }, width: number, height: number, target = CLOSURE_TARGET) {
+  return Math.hypot((point.x - target.x) * width / 100,
+    (point.y - target.y) * height / 100) <= Math.max(28, Math.min(44, width * .12));
 }
 export function closureTimeline(reduced = false) {
   let time = reduced ? 500 : 1500;
