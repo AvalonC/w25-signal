@@ -13,7 +13,13 @@
 .relay-route-letter { font:18px Georgia,serif; fill:#9da7c03a; }
 .relay-route-letter.lit { fill:#ead7e8; }
 .relay-sent-mark { stroke:#f5d7e9; stroke-width:2.2; stroke-linecap:round; opacity:.75; }
-.relay-entry-trail { fill:none; stroke:#f4bddc; stroke-width:1.5; stroke-dasharray:.2 9; stroke-linecap:round; }
+.relay-entry-trail { fill:none; stroke:#f4bddc; stroke-width:1.4; stroke-linecap:round; filter:drop-shadow(0 0 4px #f4bddc88); }
+/* Only reveal the next shore and controls after the foreground star has docked.
+   Scene-clock values (not CSS timers) also freeze these fades in hidden tabs. */
+.echo-relay .relay-path,.echo-relay .relay-route-stop,.echo-relay .relay-route-letter,.echo-relay .relay-far { opacity:var(--relay-horizon,1); }
+.echo-relay .relay-guidance,.echo-relay .relay-console { opacity:var(--relay-interface,1); transform:translateY(calc((1 - var(--relay-interface,1))*6px)); }
+.echo-relay .relay-near > span { opacity:var(--relay-interface,1); }
+.echo-relay .relay-far { scale:calc(.88 + var(--relay-horizon,1)*.12); transform-origin:50% 20px; }
 .relay-far { position:absolute; transform:translate(-50%,-20px); text-align:center; }
 .relay-far.is-faint .relay-spark { opacity:.22; filter:blur(1.4px); }
 .relay-spark { display:block; width:40px; height:40px; margin:auto; fill:#95b8d4; opacity:.6; transition:fill 120ms,filter 160ms,opacity 160ms; }

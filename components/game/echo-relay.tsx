@@ -120,8 +120,8 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
   const selectedName = relay.wish === null ? '' : NOUNS[relay.wish][0];
   const t = relay.phase === 'cross' ? Math.min(1, elapsed / (reduced ? 450 : 2300)) : 0;
   const near = arrived ? relayCurve(round, t) : entry.main;
-  const verse = !arrived ? '循着宝石留下的粉光，走近远方。'
-    : relay.phase === 'choose' ? '轻触下方一颗愿望星，让它先走。'
+  const verse = !arrived ? '下一站，是远方。'
+    : relay.phase === 'choose' ? round === 0 ? '下一站，是远方。' : '轻触下方一颗愿望星，让它先走。'
     : relay.phase === 'cross' ? `「${selectedName}」到了。跟着光，向前走。`
     : relay.phase === 'help' ? '远方模糊了。轻触下方愿望星，帮它照亮。'
     : relay.listeningPaused ? '光会在这里等你。'
@@ -131,10 +131,12 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
     : hold >= 1 ? '长光已亮。松开，送它过去。'
     : round === 2 ? '轮到你。轻点标着“你”的粉光。'
     : '轮到你。轻点粉光是短，按住一秒是长。';
-  const subline = !arrived ? '三个愿望，也会陪你停在这里。' : relay.phase === 'choose' ? round === 0 ? '第一段，听远方，再完整回应。' : round === 1 ? '第二段，愿望会帮另一岸恢复光。' : '最后一段，你与远方轮流送短光。'
+  const subline = !arrived || relay.phase === 'choose' && round === 0 ? '让一颗愿望同行，听远方的第一束光。' : relay.phase === 'choose' ? round === 1 ? '第二段，愿望会帮另一岸恢复光。' : '最后一段，你与远方轮流送短光。'
     : relay.phase === 'answer' ? '按住后松手，才会送出这一束。' : relay.phase === 'listen' ? '等它说完，再回应同样的节奏。' : relay.phase === 'help' ? '已经送达的愿望，也能帮忙。' : '';
-  return <section className={'echo-relay relay-' + (arrived ? relay.phase : 'arrival') + (round === 1 ? ' relay-reversed' : '') + (clockBlocked || relay.listeningPaused ? ' is-paused' : '')} aria-label="把愿望送过星海" data-round={round}>
-    <div className="relay-guidance"><output className="relay-verse" aria-live="polite">{verse}</output><p className="relay-subline">{subline || '\u00a0'}</p></div>
+  return <section className={'echo-relay relay-' + (arrived ? relay.phase : 'arrival') + (round === 1 ? ' relay-reversed' : '') + (paused || hidden || access || relay.listeningPaused ? ' is-paused' : '')} aria-label="把愿望送过星海" data-round={round}
+    data-entry={arrived ? 'ready' : entry.docked ? 'settling' : 'flying'}
+    style={{ '--relay-horizon': arrived ? 1 : entry.horizon, '--relay-interface': arrived ? 1 : entry.interfaceLight } as CSSProperties}>
+    <div className="relay-guidance" aria-hidden={!arrived && entry.interfaceLight === 0}><output className="relay-verse" aria-live="polite">{verse}</output><p className="relay-subline">{subline || '\u00a0'}</p></div>
     <div className="relay-sky">
       <svg className="relay-bridge" viewBox="0 0 360 300" preserveAspectRatio="none" aria-label={`已接通 ${delivered.length} 段星路，共三段`}>
         {ROUTES.map((path, i) => <path key={path} d={path} className={'relay-path' + (i < round ? ' relay-route-complete' : i === round ? ' relay-route-current' : '')} />)}
@@ -142,9 +144,9 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
         {SHORES.slice(1).map(([x, y], i) => <text key={i} x={x + (i === 1 ? 24 : -28)} y={y + 5} className={'relay-route-letter' + (i < round ? ' lit' : '')}>{i < round ? 'W25'[i] : '·'}</text>)}
         {RELAY_MARKS.filter((mark) => mark.round < round || mark.round === round && mark.index < relay.draft.length).map((mark) => <line key={`${mark.round}-${mark.index}`} className="relay-sent-mark"
           x1={mark.point[0] - (mark.symbol === '-' ? 7 : 0)} y1={mark.point[1]} x2={mark.point[0] + (mark.symbol === '-' ? 7 : .1)} y2={mark.point[1]} />)}
-        {!arrived && <path className="relay-entry-trail" d="M230 132 Q128 120 60 203" style={{ opacity: entry.trail }} />}
+        {!arrived && <path className="relay-entry-trail" d={entry.trailPath} style={{ opacity: entry.trail }} aria-hidden="true" />}
       </svg>
-      <div className={'relay-far' + (farLit ? ' is-speaking' : '') + (relay.phase === 'help' ? ' is-faint' : '')} style={position(SHORES[round + 1])}>
+      <div className={'relay-far' + (farLit ? ' is-speaking' : '') + (relay.phase === 'help' ? ' is-faint' : '')} style={position(SHORES[round + 1])} aria-hidden={!arrived && entry.horizon === 0}>
         <Spark lit={farLit} />
         <span>{relay.phase === 'help' ? '远方 · 有些模糊' : relay.phase === 'echo' ? '远方 · 正在回应' : relay.phase === 'cross' ? '收到了' : '远方'}</span>
       </div>
@@ -161,15 +163,15 @@ export function EchoRelay({ choices, delivered, paused, onDelivered, onTone, onT
       </button>
       <fieldset className="wish-hand" aria-label="愿望与同行的光">
         {choices.map((wish, i) => <button key={wish} className={(delivered.includes(wish) ? 'delivered ' : '') + (relay.wish === wish ? 'carried ' : '') + (relay.helper === wish ? 'helping' : '')}
-          style={{ ...position(arrived ? RELAY_WISHES[i] : entry.companions[i]), '--wish-label': arrived ? 1 : entry.settle } as CSSProperties} disabled={blocked || (relay.phase !== 'help' && (relay.phase !== 'choose' || delivered.includes(wish)))}
+          style={{ ...position(arrived ? RELAY_WISHES[i] : entry.companions[i]), '--wish-label': arrived ? 1 : entry.companionLabels[i] } as CSSProperties} disabled={blocked || (relay.phase !== 'help' && (relay.phase !== 'choose' || delivered.includes(wish)))}
           aria-label={`${NOUNS[wish][0]}。${relay.phase === 'help' ? '帮助远方恢复星光。' : delivered.includes(wish) ? '已经送达，仍在同行。' : WISH_LIGHTS[wish].line}`}
           onClick={() => { callbacks.current.onTouch(); send({ type: relay.phase === 'help' ? 'help' : 'choose', wish }); }}>
-          <Spark lit={companions.includes(wish)} /><strong>{NOUNS[wish][0]}</strong>
+          <Spark lit={!arrived || companions.includes(wish)} /><strong>{NOUNS[wish][0]}</strong>
           <small>{relay.helper === wish ? '陪光接通' : delivered.includes(wish) ? '仍在同行' : relay.wish === wish ? '正在同行' : ''}</small>
         </button>)}
       </fieldset>
     </div>
-    <div className="relay-console">
+    <div className="relay-console" aria-hidden={!arrived}>
     <div className="relay-readback">
       <div className="relay-footsteps" aria-label={'已经回应的节奏：' + relay.draft.replaceAll('.', '短 ').replaceAll('-', '长 ')}>
         {target.split('').map((_, i) => <i key={i} className={(i < relay.draft.length ? 'lit ' : '') + (round === 2 && i % 2 === 0 ? 'from-far' : 'from-near')} aria-hidden="true">

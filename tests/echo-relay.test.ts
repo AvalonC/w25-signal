@@ -2,13 +2,28 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshRelay, relayStep, wishLight, deliveredWishes } from '../lib/echo-relay.ts';
 import { MORSE_CODES, fresh, readSave } from '../lib/journey.ts';
-import { RELAY_SHORES, RELAY_WISHES, RELAY_MARKS, relayArrival, relayCurve, relayReveal } from '../lib/relay-motion.ts';
+import { RELAY_SHORES, RELAY_WISHES, RELAY_ENTRY_START, RELAY_ENTRY_TIMING, RELAY_MARKS, relayArrival, relayCurve, relayReveal } from '../lib/relay-motion.ts';
 
 void test('entry, completed routes and W25 reveal use the same world coordinates', () => {
-  assert.equal(relayArrival(2599).ready, false);
-  const arrival = relayArrival(2600);
+  const opening = relayArrival(0);
+  assert.deepEqual(opening.main, RELAY_ENTRY_START);
+  assert.notDeepEqual(RELAY_ENTRY_START, RELAY_SHORES[0]);
+  assert.notDeepEqual(RELAY_ENTRY_START, RELAY_SHORES[1], 'the star enters from its own sky position, not the far shore');
+  assert.notDeepEqual(relayArrival(900).main, opening.main, 'the star travels toward the player-side dock');
+  const dock = relayArrival(RELAY_ENTRY_TIMING.dock);
+  assert.deepEqual(dock.main, RELAY_SHORES[0]);
+  assert.equal(dock.ready, false, 'docking is not the start of the playable round');
+  assert.equal(dock.horizon, 0, 'the onward route does not appear before docking');
+  assert.equal(dock.interfaceLight, 0, 'the Morse console waits for the stars');
+  assert.notDeepEqual(dock.companions, RELAY_WISHES);
+  assert.equal(relayArrival(RELAY_ENTRY_TIMING.ready - 1).ready, false);
+  const arrival = relayArrival(RELAY_ENTRY_TIMING.ready);
   assert.deepEqual(arrival.main, RELAY_SHORES[0]);
   assert.deepEqual(arrival.companions, RELAY_WISHES);
+  assert.equal(arrival.horizon, 1);
+  assert.equal(arrival.interfaceLight, 1);
+  assert.deepEqual(arrival.companionLabels, [1, 1, 1]);
+  assert.equal(arrival.trail, 0);
   for (let i=0; i<3; i++) {
     assert.deepEqual(relayCurve(i, 0), RELAY_SHORES[i]);
     assert.deepEqual(relayCurve(i, 1), RELAY_SHORES[i+1]);
@@ -25,6 +40,37 @@ void test('entry, completed routes and W25 reveal use the same world coordinates
   assert.equal(relayReveal(5499).ready, false);
   assert.equal(relayReveal(1000,true).ready, true);
   assert.equal(relayArrival(400,true).ready, true);
+});
+
+void test('arrival stays in the foreground and stops before the stars and interface unfold', () => {
+  let previous = RELAY_ENTRY_START;
+  for (let ms = 0; ms <= RELAY_ENTRY_TIMING.dock; ms += 40) {
+    const frame = relayArrival(ms);
+    assert.ok(frame.main[0] >= previous[0] && frame.main[1] <= previous[1], 'entry never reverses its direction');
+    assert.ok(frame.main[0] <= RELAY_SHORES[0][0] && frame.main[1] >= RELAY_SHORES[0][1], 'entry stays on the near side of every route');
+    for (const shore of RELAY_SHORES.slice(1)) assert.ok(Math.hypot(frame.main[0]-shore[0], frame.main[1]-shore[1]) > 90, 'entry never crosses a future station');
+    assert.equal(frame.horizon, 0);
+    assert.equal(frame.interfaceLight, 0);
+    previous = frame.main;
+  }
+  const early = relayArrival(1750);
+  const offsets = [[18,-12], [27,4], [12,19]];
+  assert.notDeepEqual(early.companions[0], RELAY_SHORES[0].map((value, axis) => value+offsets[0][axis]));
+  assert.deepEqual(early.companions[2], RELAY_SHORES[0].map((value, axis) => value+offsets[2][axis]), 'companions fan out in sequence, not all at once');
+  for (const ms of [1900, 2300, 2800]) {
+    assert.deepEqual(relayArrival(ms).main, RELAY_SHORES[0], 'the star stays docked while the scene unfolds');
+    assert.equal(relayArrival(ms).ready, false);
+  }
+  assert.ok(relayArrival(2300).horizon > 0);
+  assert.equal(relayArrival(2300).interfaceLight, 0, 'show the next destination before the console');
+  assert.ok(relayArrival(2800).interfaceLight > 0);
+  for (const ms of [0, 120, 399, 400]) {
+    const reduced = relayArrival(ms, true);
+    assert.deepEqual(reduced.main, RELAY_SHORES[0], 'reduced motion has no flight');
+    assert.deepEqual(reduced.companions, RELAY_WISHES, 'reduced motion has no companion flight');
+    assert.equal(reduced.trail, 0);
+    assert.equal(reduced.ready, ms >= RELAY_ENTRY_TIMING.reduced);
+  }
 });
 
 void test('wish effects combine; delivery order changes the help on the first crossing', () => {
