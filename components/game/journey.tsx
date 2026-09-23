@@ -22,6 +22,7 @@ import type {StarArrival} from '@/lib/bracelet-transition';
 export default function JourneyGame(){
   const [s,setS]=useState<Journey>(fresh),[ready,setReady]=useState(false),[boot,setBoot]=useState(true);
   const [sound,setSound]=useState(false),[help,setHelp]=useState(false),[revisit,setRevisit]=useState(false),[saveOK,setSaveOK]=useState(true);
+  const [lessonReplay,setLessonReplay]=useState<boolean|null>(null);
   const [wishField,setWishField]=useState<WishField|null>(null),[arrival,setArrival]=useState<StarArrival|null>(null);
   const [endingMode,setEndingMode]=useState<'cipher'|'letter'>('cipher'),[letterVisit,setLetterVisit]=useState(0);
   const [modelBurst,setModelBurst]=useState(false),[returning,setReturning]=useState(false),[charge,setCharge]=useState(0);
@@ -57,7 +58,8 @@ export default function JourneyGame(){
     return()=>{silence();};
   },[s.stage,endingMode,letterVisit,boot,sound,returning]);
   useEffect(()=>{cancel();setModelBurst(false);},[s.stage]);
-  const start=(replay=false)=>{tap();setArrival(null);setEndingMode('cipher');setRevisit(false);setS(p=>restart(p,replay));};
+  const start=(replay=false)=>{setLessonReplay(null);setArrival(null);setEndingMode('cipher');setRevisit(false);setS(p=>restart(p,replay));};
+  const beginLesson=(replay:boolean)=>{tap();setRevisit(false);setArrival(null);setLessonReplay(replay);};
   const showLetter=()=>{tap();setArrival(null);setEndingMode('letter');setLetterVisit(n=>n+1);setRevisit(false);setS(p=>finish(p));};
   const revisitAt=(stage:6|7)=>{
     tap();setArrival(null);setEndingMode(stage===7?'letter':'cipher');setLetterVisit(n=>n+1);setRevisit(false);setS(p=>revisitJourney(p,stage));
@@ -77,7 +79,7 @@ export default function JourneyGame(){
     s.path?.place==='prism'?'慢慢转动棱镜，观察光谱。粉色留下时，等待同行的星从光里飞出。':'把主星带到棱镜或星盘，也可以直接轻触它们。两份发现会在宝石里相遇。':
     s.stage===5?'先轻触愿望伴星。远方示范时看它闪动，轮到你时轻按主星送出短光，按住一秒送出长光。也可用下方的短光、长光按钮。第二段光暗下时请伴星帮忙，第三段轮流回应。':
     '把主星带到缺口另一端，或轻触终点。看长短光在手链上亮起，然后把礼物带到眼前。';
-  const fieldText=s.stage===0?(s.completed?'Project\nW25':'Project\nN7A-3914'):s.stage===7&&endingMode==='letter'?'HBD, Leah':'';
+  const fieldText=s.stage===0?(s.completed&&lessonReplay===null?'Project\nW25':'Project\nN7A-3914'):s.stage===7&&endingMode==='letter'?'HBD, Leah':'';
   return <div className={'cosmos free-flow immersive-journey stage-'+s.stage+(boot?' booting':'')+(modelBurst?' bracelet-leaving':'')+(help||revisit?' journey-paused':'')}
     style={{'--pink':PINK,...MOTION_STYLE} as CSSProperties}>
     <Starfield text={fieldText} wishes={s.stage===1?wishField:null} paused={help||revisit} arrival={arrival} burst={returning} charge={charge}/>
@@ -90,7 +92,8 @@ export default function JourneyGame(){
       </div>
     </header>
     {boot?<main className="journey-boot" aria-label="星光正在汇聚"><button aria-label="进入星海" onClick={()=>setBoot(false)}><span aria-hidden="true">✧</span></button></main>:
-      s.stage===0?!s.completed?<GuidingLight onArrive={()=>start()} paused={help||revisit}/>:
+      s.stage===0?!s.completed||lessonReplay!==null?<GuidingLight onArrive={()=>start(lessonReplay??false)} paused={help||revisit}
+        onFeedback={symbol=>{if(symbol==='.')tap();else feedback(140,soundRef.current);}}/>:
         <button className="start-sky known" aria-label="Project W25，点击选择重新开始或重温" onClick={()=>setRevisit(true)}><span className="start-cue">旧的星光，也可以有新的相遇。</span></button>:
       <main className={'scene scene-'+s.stage+(s.stage===2?' scene-path':'')}>
         {s.stage===1&&<WishSky choices={s.choices} paused={help||revisit} onField={setWishField}
@@ -125,8 +128,8 @@ export default function JourneyGame(){
       <DialogTitle>又见面了，Leah。</DialogTitle><DialogDescription>愿望和回信，都还在这里。</DialogDescription>
       <button className="continue" onClick={()=>revisitAt(6)}>看看手链与现实中的光</button>
       <button className="soft-button" onClick={()=>revisitAt(7)}>读生日回信</button>
-      <button className="continue" onClick={()=>start(true)}>重温之前的选择 <ArrowRight size={16}/></button>
-      <button className="soft-button" onClick={()=>start(false)}>重新开始，选择新的愿望</button>
+      <button className="continue" onClick={()=>beginLesson(true)}>重温之前的选择 <ArrowRight size={16}/></button>
+      <button className="soft-button" onClick={()=>beginLesson(false)}>重新开始，选择新的愿望</button>
       <DialogClose className="soft-button">再看一会星空</DialogClose>
     </DialogContent></Dialog>
     <Dialog open={help} onOpenChange={setHelp}><DialogContent className="sky-dialog"><DialogTitle>让星光再亮一点</DialogTitle>

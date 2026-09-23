@@ -1,0 +1,42 @@
+/* One visual verb at a time: a blinking star for tap, expanding rings for hold. */
+.opening-lesson .guiding-route { opacity:.08; transition:opacity 900ms; }
+.opening-lesson[data-phase=depart] .guiding-route { opacity:.45; }
+.opening-lesson .lesson-echo { position:absolute; left:72%; top:43%; width:48px; height:48px; transform:translate(-50%,-50%); display:grid; place-items:center; pointer-events:none; color:#f1d3e7; }
+.lesson-echo > span { font:18px Georgia; opacity:.15; }
+.opening-lesson[data-phase=tap-reply] .lesson-echo > span,.opening-lesson[data-phase=held] .lesson-echo > span { animation:lesson-answer 1s ease-out both; }
+.immersive-journey .opening-lesson .guiding-carrier { width:88px; height:88px; cursor:pointer; }
+.immersive-journey .opening-lesson .guiding-carrier .path-company-star { animation:none; }
+.immersive-journey .opening-lesson[data-phase=tap] .guiding-carrier .path-company-star { animation:lesson-tap-cue 2.4s ease-in-out infinite; }
+.immersive-journey .opening-lesson.is-pressing .guiding-carrier .path-company-star { animation:none; opacity:1; filter:drop-shadow(0 0 13px #ffe1f1); }
+.opening-lesson .guiding-carrier > .path-company { transform:scale(calc(1 + var(--lesson-charge,0)*.22)); transition:transform 80ms linear; pointer-events:none; }
+.lesson-ripples,.lesson-charge,.lesson-success { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.lesson-ripples { opacity:0; }
+.lesson-ripples i { position:absolute; inset:25%; border:1px solid #f1c9e6; border-radius:50%; opacity:0; }
+.opening-lesson[data-phase=hold] .lesson-ripples { opacity:1; }
+.opening-lesson[data-phase=hold]:not(.is-pressing) .lesson-ripples i { animation:lesson-hold-cue 2.6s ease-out infinite; }
+.lesson-ripples i:nth-child(2) { animation-delay:.85s!important; }
+.lesson-ripples i:nth-child(3) { animation-delay:1.7s!important; }
+.lesson-charge { opacity:0; overflow:visible; transform:rotate(-90deg); transition:opacity 220ms; }
+.opening-lesson.is-pressing[data-phase=hold] .lesson-charge,.opening-lesson[data-phase=held] .lesson-charge { opacity:1; }
+.lesson-charge circle { fill:none; }
+.lesson-charge-track { stroke:#dfb9d832; stroke-width:1; }
+.lesson-charge-fill { stroke:#ffe1f1; stroke-width:1.6; stroke-linecap:round; filter:drop-shadow(0 0 3px #ffd0ea); }
+.lesson-success { inset:15%; width:70%; height:70%; border:1px solid #ffe5f5; border-radius:50%; opacity:0; }
+.opening-lesson[data-phase=tap-reply] .lesson-success { border:0; background:radial-gradient(circle,#ffe2f538,transparent 68%); animation:lesson-answer 900ms ease-out both; }
+.opening-lesson[data-phase=held] .lesson-success { animation:lesson-caught 950ms ease-out both; }
+.lesson-caption { position:absolute; left:7%; right:7%; top:86%; min-height:3.4em; text-align:center; font:14px/1.7 'Songti SC','Microsoft YaHei',serif; color:#ddd0e3; letter-spacing:0; pointer-events:none; }
+.opening-lesson[data-phase=launch] .lesson-caption { visibility:hidden; }
+.opening-lesson[data-phase=held] .lesson-caption { color:#ffdaee; }
+@keyframes lesson-tap-cue { 0%,100% { opacity:.45; filter:drop-shadow(0 0 3px #d5dbef); } 35%,53% { opacity:1; filter:drop-shadow(0 0 12px #ffe2f1); } }
+@keyframes lesson-hold-cue { 0% { opacity:.6; transform:scale(.72); } 80%,100% { opacity:0; transform:scale(2.1); } }
+@keyframes lesson-answer { 0% { opacity:.3; transform:scale(.8); } 28% { opacity:1; transform:scale(1.2); } 100% { opacity:.4; transform:scale(1); } }
+@keyframes lesson-caught { 0% { opacity:.8; transform:scale(1); } 100% { opacity:0; transform:scale(1.7); } }
+@media(max-height:650px) { .lesson-caption { top:87%; font-size:13px; } }
+@media(prefers-reduced-motion:reduce) {
+ .immersive-journey .opening-lesson[data-phase=tap] .guiding-carrier .path-company-star { animation:none; opacity:1; }
+ .opening-lesson[data-phase=hold]:not(.is-pressing) .lesson-ripples i { animation:none; opacity:.3; }
+ .lesson-ripples i:nth-child(2) { transform:scale(1.4); }
+ .lesson-ripples i:nth-child(3) { transform:scale(1.8); }
+ .opening-lesson[data-phase=tap-reply] .lesson-echo > span,.opening-lesson[data-phase=held] .lesson-echo > span { animation:none; opacity:1; }
+ .opening-lesson .guiding-carrier > .path-company,.lesson-charge { transition:none; }
+}

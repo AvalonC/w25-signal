@@ -13,5 +13,6 @@ import './app/journey-continuity.css';
 import './app/sapphire-discovery.css';
 import './app/path-closure.css';
 import './app/immersive.css';
+import './app/opening-lesson.css';
 
 createRoot(document.getElementById('root')!).render(<JourneyGame />);
