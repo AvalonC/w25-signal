@@ -30,7 +30,7 @@ registerHooks({
 const { PathClosure } = await import('../components/game/path-closure.tsx');
 const { CLOSURE_START, CLOSURE_TARGET, closureTimeline } = await import('../lib/path-closure.ts');
 
-async function scene(reduced, body) {
+async function scene(reduced, body, fromRelay = false) {
   const keys = ['document', 'window', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, completions = 0;
@@ -48,7 +48,7 @@ async function scene(reduced, body) {
   } });
   globalThis.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
   globalThis.cancelAnimationFrame = (id) => frames.delete(id);
-  const render = (paused = false) => React.createElement(PathClosure, { choices: [0, 3, 5], paused, onComplete: () => { completions++; } });
+  const render = (paused = false) => React.createElement(PathClosure, { choices: [0, 3, 5], paused, fromRelay, onComplete: () => { completions++; } });
   const advance = async (ms) => {
     for (let i = 0; i < ms; i += 40) {
       now += 40; const callbacks = [...frames.values()]; frames.clear();
@@ -137,4 +137,35 @@ test('reduced motion retains all model groups and the same explicit completion g
     await act(() => root.root.findByProps({ className: 'closure-continue' }).props.onClick());
     assert.equal(completions(), 1);
   });
+});
+
+
+test('the onward star arrives at the ring before the last gap becomes playable', async () => {
+  for (const reduced of [false,true]) await scene(reduced, async ({root,advance,pause,visibility,completions}) => {
+    const carried=()=>root.root.findByProps({className:'closure-carried'});
+    const target=()=>root.root.findByProps({'aria-label':'接通最后一段星路'});
+    const first=carried().props.style;
+    assert.equal(target().props.disabled,true);
+    await act(()=>target().props.onClick());
+    assert.equal(root.root.findAllByProps({className:'closure-continue'}).length,0);
+    await advance(reduced?120:600);
+    if(!reduced) {
+      assert.ok(parseFloat(carried().props.style.left)>parseFloat(first.left));
+      assert.ok(parseFloat(carried().props.style.top)<parseFloat(first.top));
+    }
+    await pause(true);
+    const frozen=carried().props.style;
+    await advance(4000);
+    assert.deepEqual(carried().props.style,frozen);
+    assert.equal(target().props.disabled,true);
+    await pause(false);await visibility(true);await advance(4000);
+    assert.deepEqual(carried().props.style,frozen);
+    await visibility(false);await advance(2400);
+    assert.equal(carried().props.style.left, `${CLOSURE_START.x}%`);
+    assert.equal(carried().props.style.top, `${CLOSURE_START.y}%`);
+    assert.equal(target().props.disabled,false);
+    assert.equal(completions(),0,'the flight only opens the next chapter; the player still closes the gap');
+    await act(()=>target().props.onClick());
+    assert.equal(root.root.findByProps({className:'closure-continue'}).props.disabled,true);
+  },true);
 });

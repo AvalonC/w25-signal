@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshRelay, relayStep, wishLight, deliveredWishes } from '../lib/echo-relay.ts';
 import { MORSE_CODES, fresh, readSave } from '../lib/journey.ts';
-import { RELAY_SHORES, RELAY_WISHES, RELAY_ENTRY_START, RELAY_ENTRY_TIMING, RELAY_MARKS, relayArrival, relayCurve, relayReveal } from '../lib/relay-motion.ts';
+import { RELAY_SHORES, RELAY_WISHES, RELAY_ENTRY_START, RELAY_ENTRY_TIMING, RELAY_MARKS, relayArrival, relayCurve } from '../lib/relay-motion.ts';
 
-void test('entry, completed routes and W25 reveal use the same world coordinates', () => {
+void test('entry and completed routes use the same world coordinates without decoding the pulses', () => {
   const opening = relayArrival(0);
   assert.deepEqual(opening.main, RELAY_ENTRY_START);
   assert.notDeepEqual(RELAY_ENTRY_START, RELAY_SHORES[0]);
@@ -29,16 +29,6 @@ void test('entry, completed routes and W25 reveal use the same world coordinates
     assert.deepEqual(relayCurve(i, 1), RELAY_SHORES[i+1]);
   }
   assert.equal(RELAY_MARKS.length, 13);
-  const start = relayReveal(0), end = relayReveal(5500);
-  assert.equal(start.gather, 0);
-  assert.deepEqual(start.main, RELAY_SHORES[3]);
-  assert.deepEqual(start.companions, RELAY_WISHES);
-  assert.equal(end.ready, true);
-  assert.equal(end.gather, 1);
-  assert.equal(end.returnLight, 1);
-  assert.deepEqual(end.main, [180,215]);
-  assert.equal(relayReveal(5499).ready, false);
-  assert.equal(relayReveal(1000,true).ready, true);
   assert.equal(relayArrival(400,true).ready, true);
 });
 
@@ -173,4 +163,13 @@ void test('new delivery order persists, while old or corrupt optional order fall
     assert.equal(restored.decoded, 2);
     assert.deepEqual(deliveredWishes(restored.choices, restored.decoded, restored.echoWishes), [0, 3]);
   }
+});
+
+void test('a saved final Morse crossing resumes before the next chapter without replaying its answers', () => {
+  const saved = { ...fresh(), choices:[0,3,5], stage:5, color:true, stars:13, stone:true, rotation:150, decoded:3, echoWishes:[5,0,3] };
+  const resumed = readSave(JSON.stringify(saved));
+  assert.equal(resumed.stage, 5);
+  assert.equal(resumed.decoded, 3);
+  assert.deepEqual(deliveredWishes(resumed.choices,resumed.decoded,resumed.echoWishes),[5,0,3]);
+  assert.equal(readSave(JSON.stringify({...resumed,stage:6,pathClosed:false})).stage,6);
 });

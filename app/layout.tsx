@@ -5,6 +5,7 @@ import './atmosphere.css';
 import './bracelet.css';
 import './motion.css';
 import './relay.css';
+import './relay-departure.css';
 import './path-sky.css';
 import './path-journey.css';
 import './date-motion.css';

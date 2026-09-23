@@ -8,7 +8,7 @@ import { useVisibleClock } from './scene-clock';
 import { BRACELET_ASSETS } from '@/lib/model-assets';
 import { projectPoint, smooth } from '@/lib/bracelet-transition';
 import { CLOSURE_CODES, CLOSURE_GEM, CLOSURE_LETTERS, CLOSURE_ORBIT, CLOSURE_PARTS,
-  CLOSURE_START, CLOSURE_TARGET, closureFrame, closureNear, closurePoint, closureRingPoint } from '@/lib/path-closure';
+  CLOSURE_START, CLOSURE_TARGET, closureArrival, closureFrame, closureNear, closurePoint, closureRingPoint } from '@/lib/path-closure';
 import metadata from '../../public/models/jewelry-metadata.json';
 
 type Point = { x: number; y: number };
@@ -18,8 +18,8 @@ const ring = pathOf(route);
 const gap = pathOf(Array.from({ length: 21 }, (_, i) => closureRingPoint(345 + i * 35 / 20)));
 const words = ['一瞬的光，和两次长长的停留。', '两点、三划，接成第二段回应。', '五点星光，接住了最后一个愿望。'];
 
-export function PathClosure({ choices, paused = false, onComplete }: {
-  choices: number[]; paused?: boolean; onComplete: () => void;
+export function PathClosure({ choices, paused = false, fromRelay = false, onComplete }: {
+  choices: number[]; paused?: boolean; fromRelay?: boolean; onComplete: () => void;
 }) {
   const [closed, setClosed] = useState(false), [loaded, setLoaded] = useState(false);
   const [reduced, setReduced] = useState(false), [hidden, setHidden] = useState(false);
@@ -33,7 +33,8 @@ export function PathClosure({ choices, paused = false, onComplete }: {
   const elapsed = useVisibleClock(closed && !paused && !hidden);
   const phase = closureFrame(elapsed, reduced);
   const overview = reduced ? 1 : smooth(opening / 2200);
-  const entryReady = reduced || opening >= 1800;
+  const arrival = closureArrival(opening, reduced);
+  const entryReady = fromRelay ? arrival.ready : reduced || opening >= 1800;
   const group = selected ?? phase.group;
   const clear = useCallback(() => {
     const previous = pointer.current;
@@ -74,12 +75,13 @@ export function PathClosure({ choices, paused = false, onComplete }: {
   const showPart = (index: number) => closed && (selected === null ? phase.lit[index] : CLOSURE_PARTS[index].group === selected);
   const showGem = closed && selected === null ? phase.gemstone : 0;
   const start = closed ? { x: point.x + (CLOSURE_TARGET.x-point.x) * phase.join,
-    y: point.y + (CLOSURE_TARGET.y-point.y) * phase.join } : point;
+    y: point.y + (CLOSURE_TARGET.y-point.y) * phase.join } : fromRelay && !entryReady ? arrival.point : point;
   const markClass = (index: number) => 'closure-stone' + (showPart(index) ? ' is-lit' : '') +
     (phase.active === index && !phase.ready || selected !== null && CLOSURE_PARTS[index].group === selected ? ' is-speaking' : '') +
     (CLOSURE_PARTS[index].symbol === '-' ? ' is-bar' : '');
   return <section className={'path-closure' + (closed ? ' is-closed' : '') + (dragging ? ' is-carrying' : '') +
-    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '')} aria-label="让星路在手链上闭合">
+    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '') + (fromRelay ? ' from-relay' : '')} aria-label="让星路在手链上闭合"
+    style={{ '--closure-arrival-copy': fromRelay ? arrival.copy : 1 } as CSSProperties}>
     <output className="closure-whisper">{!closed ? '走过的光，原来围成了一圈。'
       : phase.settled ? '那些长短的回应，一直藏在它身上。' : group >= 0 ? words[group] : '最后一段星路，被你接通了。'}</output>
     <div className="closure-world" ref={area} style={{ '--closure-overview': overview,
@@ -120,7 +122,7 @@ export function PathClosure({ choices, paused = false, onComplete }: {
           style={{ left: `${CLOSURE_TARGET.x}%`, top: `${CLOSURE_TARGET.y}%` }} disabled={paused || !entryReady}
           onClick={join} aria-label="接通最后一段星路"><span aria-hidden="true">✦</span></button>}
       {(!closed || phase.join < 1) && <button ref={light} type="button" className="closure-carried" disabled={closed || paused || !entryReady}
-          style={{ left: `${start.x}%`, top: `${start.y}%`, opacity: closed ? 1-phase.join : overview } as CSSProperties}
+          style={{ left: `${start.x}%`, top: `${start.y}%`, opacity: closed ? 1-phase.join : fromRelay ? arrival.opacity : overview } as CSSProperties}
           aria-label="把同行的星光拖到对端，也可按回车接通星路"
           onPointerDown={(event) => {
             if (paused || document.hidden || begun.current || pointer.current || !entryReady || event.button > 0 || event.isPrimary === false) return;

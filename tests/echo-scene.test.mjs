@@ -26,7 +26,8 @@ registerHooks({
   },
 });
 const { EchoRelay } = await import('../components/game/echo-relay.tsx');
-const { RelayReveal } = await import('../components/game/relay-reveal.tsx');
+const { RelayDeparture } = await import('../components/game/relay-departure.tsx');
+const { RELAY_DEPARTURE } = await import('../lib/relay-departure.ts');
 const { RELAY_ENTRY_START, RELAY_SHORES, relayArrival } = await import('../lib/relay-motion.ts');
 
 test('real relay performs three different crossings, pauses clocks, visibly shares the final letter and delivers once', async () => {
@@ -59,6 +60,10 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
   const wishButton = (name) => root.root.findAllByType('button').find((b) => b.props['aria-label']?.startsWith(name + '。'));
   const short = () => root.root.findAllByType('button').find((b) => b.children.join('') === '送出短光 ·');
   const event = { key:' ', repeat:false, preventDefault() {} };
+  const suspense = () => {
+    assert.equal(root.root.findAllByType('text').length, 0, 'no decoded letters appear beside the route stars');
+    assert.doesNotMatch(JSON.stringify(root.toJSON()), /W25|组成同一个名字|relay-forming-letter|relay-reveal/, 'the Morse chapter must not reveal the name through visible or accessible content');
+  };
   try {
     await act(() => { root = create(React.createElement(EchoRelay, props)); });
     assert.match(phase(), /relay-arrival/);
@@ -161,6 +166,7 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
     await act(() => root.update(React.createElement(EchoRelay, {
       ...props, key: 'hint-regression', choices: [5, 2, 4], delivered: [5],
     })));
+    suspense();
     const wonder = wishButton('惊喜');
     await act(() => wonder.props.onClick());
     await advance(8000);
@@ -193,6 +199,7 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
     const lastProps = { ...props, key: 'shared-final', choices: [0, 3, 5], delivered: [0, 3] };
     await act(() => root.update(React.createElement(EchoRelay, lastProps)));
     assert.equal(root.root.findAllByType('path').filter((p) => p.props.className?.includes('relay-route-complete')).length, 2);
+    suspense();
     await act(() => wishButton('好奇').props.onClick());
     assert.match(phase(), /relay-echo/);
     for (let i=0; i<7; i++) await act(() => short().props.onClick());
@@ -228,45 +235,60 @@ test('real relay performs three different crossings, pauses clocks, visibly shar
     assert.deepEqual(received, [0, 2, 5]);
     await advance(3000);
     assert.deepEqual(received, [0, 2, 5], 'the final shared crossing also delivers only once');
-    assert.equal(root.root.findAllByType('line').filter((line) => line.props.className === 'relay-sent-mark').length, 13, 'all thirteen completed pulses remain for the reveal');
+    assert.equal(root.root.findAllByType('line').filter((line) => line.props.className === 'relay-sent-mark').length, 13, 'all thirteen completed pulses remain in the sky before departure');
 
+    suspense();
     let proceeded = 0;
-    const revealProps = { choices: props.choices, paused: false, onContinue() { proceeded++; } };
-    await act(() => root.update(React.createElement(RelayReveal, revealProps)));
-    const revealButton = () => root.root.findAllByType('button').find((b) => b.props.className === 'relay-reveal-continue');
-    await act(() => revealButton().props.onClick());
-    assert.equal(proceeded, 0, 'the light must finish forming before the player continues');
-    const line = () => root.root.findAllByType('line')[0];
-    const lineStart = line().props.x1;
-    await advance(1700);
-    assert.notEqual(line().props.x1, lineStart, 'the actual previous light positions move into letter strokes');
-    await act(() => root.update(React.createElement(RelayReveal, {...revealProps, paused:true})));
-    const frozenLine = line().props.x1;
-    await advance(6000);
-    assert.equal(line().props.x1, frozenLine);
-    await act(() => root.update(React.createElement(RelayReveal, revealProps)));
-    globalThis.document.hidden = true;
+    const departureProps = { choices: props.choices, paused: false, onContinue() { proceeded++; } };
+    await act(() => root.update(React.createElement(RelayDeparture, departureProps)));
+    const flyingStar = () => root.root.findByProps({className:'relay-departure-main'});
+    const map = () => root.root.findByProps({className:'relay-departure-map'});
+    const firstMain = flyingStar().props.style;
+    assert.equal(firstMain.left, `${RELAY_SHORES[3][0]/3.6}%`);
+    assert.equal(root.root.findAllByType('button').length,0,'departure needs no extra continue action');
+    const originalMarks=root.root.findAllByType('line').map(n=>[n.props.x1,n.props.y1,n.props.x2,n.props.y2]);
+    assert.equal(originalMarks.length,13);
+    suspense();
+    await advance(1400);
+    assert.ok(parseFloat(flyingStar().props.style.left)>parseFloat(firstMain.left),'the star continues beyond the last shore');
+    assert.ok(map().props.style.opacity<1,'the old route recedes');
+    assert.deepEqual(root.root.findAllByType('line').map(n=>[n.props.x1,n.props.y1,n.props.x2,n.props.y2]),originalMarks,'marks fade in place and never assemble into a name');
+    assert.equal(proceeded,0);
+    await act(() => root.update(React.createElement(RelayDeparture, {...departureProps,paused:true})));
+    const frozenStar=flyingStar().props.style;
+    const frozenRoute=map().props.style;
+    await advance(5000);
+    assert.deepEqual(flyingStar().props.style,frozenStar);
+    assert.deepEqual(map().props.style,frozenRoute);
+    assert.equal(proceeded,0);
+    await act(() => root.update(React.createElement(RelayDeparture,departureProps)));
+    globalThis.document.hidden=true;
     await act(() => document.dispatchEvent(new Event('visibilitychange')));
-    await advance(6000);
-    assert.equal(line().props.x1, frozenLine);
-    globalThis.document.hidden = false;
+    await advance(5000);
+    assert.deepEqual(flyingStar().props.style,frozenStar);
+    assert.equal(proceeded,0);
+    globalThis.document.hidden=false;
     await act(() => document.dispatchEvent(new Event('visibilitychange')));
-    await advance(4600);
-    assert.equal(revealButton().props.disabled, false);
-    const returnedStar = root.root.findByProps({className:'relay-returned-control'});
-    assert.equal(returnedStar.props.style.opacity, 1, 'the star and companions return after W25 is formed');
-    assert.equal(proceeded, 0, 'forming W25 never automatically changes chapter');
-    await act(() => revealButton().props.onClick());
-    await act(() => revealButton().props.onClick());
-    assert.equal(proceeded, 1);
+    await advance(1200);
+    assert.equal(proceeded,1,'finishing the onward flight automatically enters the next chapter');
+    await advance(3000);
+    await act(() => root.update(React.createElement(RelayDeparture,{...departureProps,onContinue(){proceeded++;}})));
+    assert.equal(proceeded,1,'rerenders cannot repeat the chapter handoff');
+    suspense();
 
     globalThis.window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
     await act(() => root.update(React.createElement(EchoRelay, {...props, key:'reduced-arrival'})));
     await advance(480);
     assert.match(phase(), /relay-choose/, 'reduced motion has a short, non-travelling arrival');
-    await act(() => root.update(React.createElement(RelayReveal, {...revealProps, key:'reduced-reveal'})));
-    await advance(1100);
-    assert.equal(revealButton().props.disabled, false, 'reduced motion completes the reveal without a long flight');
+    await act(() => root.update(React.createElement(RelayDeparture, {...departureProps, key:'reduced-departure'})));
+    const reducedStart=flyingStar().props.style;
+    await advance(RELAY_DEPARTURE.reduced-80);
+    assert.equal(flyingStar().props.style.left,reducedStart.left);
+    assert.equal(flyingStar().props.style.top,reducedStart.top);
+    assert.equal(proceeded,1,'reduced motion retains a short transition before continuing');
+    await advance(160);
+    assert.equal(proceeded,2,'reduced motion continues automatically after its brief fade');
+    suspense();
     await act(() => root.unmount());
     assert.equal(frames.size, 0);
   } finally {

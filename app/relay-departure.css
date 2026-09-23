@@ -1,0 +1,17 @@
+.relay-departure { position:relative; display:grid; grid-template-rows:62px minmax(0,1fr) 88px; width:min(100%,960px); height:100%; min-height:0; margin:0 auto; padding:0; box-sizing:border-box; overflow:hidden; }
+.relay-departure-guidance,.relay-departure-console { min-height:0; pointer-events:none; }
+.relay-departure .relay-departure-sky { position:relative; width:100%; min-height:0; margin:0; overflow:visible; }
+.relay-departure-map { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.relay-departure .relay-path { fill:none; stroke:#f6c3deaa; stroke-width:2; stroke-linecap:round; }
+.relay-departure .relay-route-stop.reached { fill:#f7c9e6; filter:drop-shadow(0 0 6px #ed9dc877); }
+.relay-departure-mark { stroke:#f5d7e9; stroke-width:2.2; stroke-linecap:round; opacity:.75; }
+.relay-departure-main,.relay-departure-companion { position:absolute; transform:translate(-50%,-50%); pointer-events:none; }
+.relay-departure-main { width:35px; height:35px; }
+.relay-departure-companion { width:23px; height:23px; }
+.relay-departure-main svg,.relay-departure-companion svg { display:block; width:100%; height:100%; overflow:visible; }
+.relay-departure-main path { fill:#ffe1f1; filter:drop-shadow(0 0 11px #ffb3debb); }
+.relay-departure-companion path { fill:#fff0f9; filter:drop-shadow(0 0 11px #ffb3debb); }
+.is-paused.relay-departure * { animation-play-state:paused!important; }
+@media(max-height:700px) { .relay-departure { grid-template-rows:58px minmax(0,1fr) 78px; } }
+@media(max-width:360px) { .relay-departure { grid-template-rows:66px minmax(0,1fr) 78px; } }
+@media(prefers-reduced-motion:reduce) { .relay-departure-map,.relay-departure-main,.relay-departure-companion { transition:none; } }

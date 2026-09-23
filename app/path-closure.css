@@ -1,4 +1,5 @@
 .path-closure { width:100%; max-width:780px; margin:0 auto; position:relative; min-width:0; }
+.path-closure.from-relay > .closure-whisper,.path-closure.from-relay > .closure-reading { opacity:var(--closure-arrival-copy,1); }
 .closure-whisper { display:block; min-height:3.8em; margin:8px auto 0; max-width:600px; padding:0 12px; text-align:center; font:20px/1.9 Georgia,'Songti SC',serif; color:#ead7e5; text-wrap:balance; }
 .closure-world { width:min(100%,480px); aspect-ratio:1; position:relative; margin:0 auto; }
 .closure-object,.closure-sky { position:absolute; inset:0; pointer-events:none; }

@@ -33,6 +33,14 @@ export function closureRingPoint(angle: number) {
 }
 export const CLOSURE_START = closureRingPoint(345);
 export const CLOSURE_TARGET = closureRingPoint(20);
+// The camera catches up with the travelling star at the near side of the ring.
+export function closureArrival(ms: number, reduced = false) {
+  const flight = reduced ? 1 : smooth(ms/1600);
+  return { point: { x: CLOSURE_START.x - 18*(1-flight), y: CLOSURE_START.y + 24*(1-flight) },
+    opacity: smooth(ms/(reduced ? 350 : 280)),
+    copy: smooth((ms-(reduced ? 0 : 850))/(reduced ? 350 : 950)),
+    ready: ms >= (reduced ? 400 : 1800) };
+}
 export function closureNear(point: { x: number; y: number }, width: number, height: number) {
   return Math.hypot((point.x - CLOSURE_TARGET.x) * width / 100,
     (point.y - CLOSURE_TARGET.y) * height / 100) <= Math.max(28, Math.min(44, width * .12));
