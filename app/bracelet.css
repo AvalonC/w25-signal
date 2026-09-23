@@ -62,3 +62,5 @@
 
 .ending-returning .blessing-ascent { opacity:0; transition:opacity 800ms; }
 @media(prefers-reduced-motion:reduce) { .ending-returning .blessing-ascent { transition:opacity 180ms; } }
+
+.immersive-journey .bracelet-actions .bracelet-name { display:block; font:18px/1.5 Georgia,serif; letter-spacing:.04em; color:#f4dce9; }

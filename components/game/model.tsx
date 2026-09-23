@@ -6,6 +6,7 @@ import type { ModelSurfaceHandle } from './model-surface';
 import { BraceletStardust } from './bracelet-stardust';
 import { QuickLookLink } from './quick-look-link';
 import { BRACELET_ASSETS } from '@/lib/model-assets';
+import { gift } from '@/lib/gift-config';
 import { useVisibleClock } from './scene-clock';
 import { braceletPhase, clickOrigin, type CameraView, type StarArrival, type Vec3, type ViewPoint } from '@/lib/bracelet-transition';
 import metadata from '../../public/models/jewelry-metadata.json';
@@ -62,7 +63,7 @@ export function BraceletActions({loaded,paused,departing,enabled,onDeliver}:{loa
     return()=>{document.removeEventListener('visibilitychange',returned);window.removeEventListener('focus',returned);};
   },[]);
   return <div className="bracelet-actions" inert={!enabled||departing||paused} aria-hidden={!enabled||departing}>
-    <p className="bracelet-caption">{loaded?'拖动看一看，让光经过每一面。':'星光在这里，慢慢靠近。'}</p>
+    <p className="bracelet-caption bracelet-name" title={loaded?'拖动看一看，让光经过每一面。':'星光在这里，慢慢靠近。'}>{gift.name}</p>
     <p className="bracelet-delivery">把目光从屏幕移开。<br/>最后一束光，正等着来到你手里。</p>
     <button className="bracelet-send" disabled={!enabled||paused||departing} onClick={event=>onDeliver(clickOrigin(event,event.currentTarget.getBoundingClientRect(),window.innerWidth,window.innerHeight))}>礼物已在身边，读完这封信</button>
     <QuickLookLink onOpen={()=>setArRequested(true)}/>

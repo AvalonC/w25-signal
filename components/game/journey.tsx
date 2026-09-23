@@ -12,6 +12,7 @@ import {RelayDeparture} from './relay-departure';
 import {PathClosure} from './path-closure';
 import {BlessingAscent} from './blessing-ascent';
 import {freshPath} from '@/lib/star-path';
+import {gift} from '@/lib/gift-config';
 import {deliveredWishes} from '@/lib/echo-relay';
 import {fresh,readSave,restart,revisitJourney,finish,PINK,type Journey} from '@/lib/journey';
 import {MOTION_STYLE} from '@/lib/motion';
@@ -76,7 +77,7 @@ export default function JourneyGame(){
     s.stage===5&&s.decoded===3?'愿望已经送达。星光会带你继续向前。':
     s.stage===5?'先轻触愿望伴星。远方示范时看它闪动，轮到你时轻按主星送出短光，按住一秒送出长光。也可用下方的短光、长光按钮。第二段光暗下时请伴星帮忙，第三段轮流回应。':
     '把主星带到缺口另一端，或轻触终点。看长短光在手链上亮起，然后把礼物带到眼前。';
-  const fieldText=s.stage===0?(s.completed&&lessonReplay===null?'Project\nW25':'Project\nN7A-3914'):'';
+  const fieldText=s.stage===0?(s.completed&&lessonReplay===null?gift.name.replace(' & ','\n& '):'Project\nN7A-3914'):'';
   return <div className={'cosmos free-flow immersive-journey stage-'+s.stage+(boot?' booting':'')+(modelBurst?' bracelet-leaving':'')+(help||revisit?' journey-paused':'')+(returning?' ending-returning':'')}
     style={{'--pink':PINK,...MOTION_STYLE} as CSSProperties}>
     <Starfield text={fieldText} wishes={s.stage===1||s.stage===2&&s.path?.place==='sky'?wishField:null} paused={help||revisit} arrival={arrival} burst={returning}/>
@@ -91,7 +92,7 @@ export default function JourneyGame(){
     {boot?<main className="journey-boot" aria-label="星光正在汇聚"><button aria-label="进入星海" onClick={()=>setBoot(false)}><span aria-hidden="true">✧</span></button></main>:
       s.stage===0?!s.completed||lessonReplay!==null?<GuidingLight onArrive={()=>start(lessonReplay??false)} paused={help||revisit}
         onFeedback={symbol=>{if(symbol==='.')tap();else feedback(140,soundRef.current);}}/>:
-        <button className="start-sky known" aria-label="Project W25，点击选择重新开始或重温" onClick={()=>setRevisit(true)}><span className="start-cue">旧的星光，也可以有新的相遇。</span></button>:
+        <button className="start-sky known" aria-label={gift.name+'，点击选择重新开始或重温'} onClick={()=>setRevisit(true)}><span className="start-cue">旧的星光，也可以有新的相遇。</span></button>:
       <main className={'scene scene-'+s.stage+(s.stage===2?' scene-path':'')}>
         {s.stage===1&&<WishSky choices={s.choices} paused={help||revisit} onField={setWishField}
           onChoose={i=>{tap();setS(p=>p.choices.includes(i)||p.choices.length>=3?p:{...p,choices:[...p.choices,i]});}}

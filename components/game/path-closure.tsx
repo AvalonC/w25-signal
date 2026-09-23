@@ -8,6 +8,7 @@ import { BraceletActions, BraceletDissolve, useBraceletDelivery } from './model'
 import { handoffFrame, HANDOFF_DURATION, HANDOFF_REDUCED_DURATION } from '@/lib/bracelet-handoff';
 import { useVisibleClock } from './scene-clock';
 import { BRACELET_ASSETS } from '@/lib/model-assets';
+import { gift } from '@/lib/gift-config';
 import { smooth, clickOrigin, type CameraView, type StarArrival, type Vec3 } from '@/lib/bracelet-transition';
 import { CLOSURE_CODES, CLOSURE_GEM, CLOSURE_LETTERS, CLOSURE_ORBIT, CLOSURE_PARTS,
   closureArrival, closureFrame, closureNear, closurePoint, closureRingPosition } from '@/lib/path-closure';
@@ -134,7 +135,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, showca
   const tail=pathOf(travelled.slice(-12));
   const select=(index:number)=>{if(!paused&&!document.hidden&&phase.ready)setSelected(selected===index?null:index);};
   return <section className={'path-closure bracelet-experience' + (closed ? ' is-closed' : '') + (dragging ? ' is-carrying' : '') +
-    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '') + (fromRelay ? ' from-relay' : '') + (presentation ? ' is-presenting' : '') + (arrived||showcase ? ' is-showcase' : '') + (delivery.departing ? ' is-departing' : '')} aria-label={presentation?'星光手链':'让星路在手链上闭合'}
+    (paused || hidden ? ' is-paused' : '') + (reduced ? ' is-reduced' : '') + (fromRelay ? ' from-relay' : '') + (presentation ? ' is-presenting' : '') + (arrived||showcase ? ' is-showcase' : '') + (delivery.departing ? ' is-departing' : '')} aria-label={presentation?gift.name+' 手链':'让星路在手链上闭合'}
     data-presentation={arrived||showcase?'interactive':presenting?'moving':'closure'}
     style={{ '--closure-arrival-copy': fromRelay&&!presentation ? arrival.copy : 1, '--closure-footer-height':footerHeight+'px', '--bracelet-ar-reveal':presentation?handoff.arOpacity:0 } as CSSProperties}>
     <output className="closure-whisper" style={{opacity:presentation?handoff.closureOpacity:undefined}} aria-hidden={presentation}>{!closed ? '走过的光，原来围成了一圈。'
@@ -145,7 +146,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, showca
       <div className="closure-object" aria-hidden={!closed&&!presentation}>
         <ModelSurface src={BRACELET_ASSETS.model} poster={BRACELET_ASSETS.poster} orbit={presentation?handoff.orbit:CLOSURE_ORBIT}
           target={presentation?metadata.poster.target.map(value=>value*handoff.cameraProgress+'m').join(' '):'0m 0m 0m'}
-          label={presentation?'可旋转的完整手链：四角星镶座、粉色宝石、长短银链和自然垂落的尾饰':'长短钻石链节组成 W25 的真实手链'}
+          label={presentation?gift.name+'，可旋转的完整手链：四角星镶座、粉色宝石、长短银链和自然垂落的尾饰':'长短钻石链节组成 W25 的真实手链'}
           onReady={setLoaded} onViewChange={setView} viewerRef={viewer} frozen={delivery.departing}
           interactive={(arrived||showcase)&&!paused&&!hidden&&!delivery.departing} interpolationDecay={presenting&&!arrived?0:undefined}>
           {CLOSURE_PARTS.flatMap((part, index) => part.stones.map((stone, j) => <span key={part.node+'-'+j}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { gift } from '@/lib/gift-config';
 import './globals.css';
 import './flow.css';
 import './atmosphere.css';
@@ -20,7 +21,7 @@ import './date-nebula.css';
 import './date-nebula-scene.css';
 import './stone-entry.css';
 export const metadata: Metadata = {
-  title: '星间来信 · A Signal Between Stars',
+  title: '星间来信 · '+gift.name,
   description: '一束穿过星海的信号，正在寻找某个人。七段旅程，一次相遇。',
   robots: { index: false, follow: false },
 };
