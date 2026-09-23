@@ -64,26 +64,6 @@ html:has(.immersive-journey),body:has(.immersive-journey) { height:100%; overflo
 .immersive-journey .path-infusion-view .path-wish-verse { flex:0 0 26px; min-height:26px; margin:0; padding:0 8px; line-height:1.5; overflow:hidden; }
 .immersive-journey .path-view-sapphire .sapphire-discovery-copy { min-height:54px; }
 .immersive-journey .path-view-sapphire .sapphire-discovery-controls { min-height:50px; }
-.cipher-reveal { display:flex; flex-direction:column; flex:1; min-height:0; width:100%; max-width:760px; margin:auto; align-items:center; }
-.cipher-whisper { font:17px/1.8 'Songti SC',serif; text-align:center; padding:12px 0; }
-.cipher-canvas { flex:1; min-height:100px; width:100%; }
-.cipher-key-row { flex:none; display:flex; flex-direction:column; align-items:center; max-width:370px; }
-.cipher-key { min-width:120px; min-height:64px; display:grid; gap:4px; place-content:center; font:22px Georgia; color:#eac3df; letter-spacing:4px; padding:8px; }
-.cipher-key small { font:12px/1.6 Georgia; letter-spacing:0; color:#c7c1d8; }
-.cipher-note { font:13px/1.8 'Songti SC',serif; color:#b8b4c9; text-align:center; min-height:3.6em; margin:8px auto; }
-.cipher-continue { flex:none; display:flex; align-items:center; justify-content:center; gap:12px; min-height:48px; padding:8px 12px; color:#f5d3e8; font-size:14px; }
-.cipher-continue:disabled { opacity:.15; }
-.birthday-letter { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:10px 0 0; }
-.birthday-title { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:130px; }
-.birthday-title h1 { font:32px/1.7 Georgia; color:#f7ddea; text-shadow:0 0 22px #ffc4e13a; }
-.birthday-title span { display:block; color:#e8bbd9; font:20px/1.8 Georgia; padding-top:14px; }
-.birthday-lines { flex:none; display:grid; gap:18px; text-align:center; font:16px/1.9 'Songti SC',serif; color:#ddd0df; padding:0 4px; }
-.birthday-signature { font-size:13px; color:#b4adc1; margin-top:6px; }
-.birthday-return { flex:1; min-height:60px; max-height:130px; width:72px; display:grid; place-items:center; color:#ffd2e8; font:26px Georgia; touch-action:none; }
-.birthday-return span { filter:drop-shadow(0 0 calc(4px + var(--return-charge)*20px) #eab4d4); transform:scale(calc(1 + var(--return-charge)*.6)); }
-.letter-home { flex:none; display:flex; justify-content:center; align-items:center; gap:8px; min-height:44px; padding:8px 12px; font-size:12px; color:#b3a9bf; }
-.birthday-letter.is-returning { opacity:0; transition:opacity 900ms; }
-.immersive-journey.stage-7 .starfield { opacity:.24; }
 .immersive-journey .sky-dialog[data-slot=dialog-content] { max-height:calc(100dvh - 40px); overflow-y:auto; padding:22px; gap:12px; }
 .journey-paused * { animation-play-state:paused!important; }
 @keyframes main-light-drift { 0%,100%{transform:translate(0,0) rotate(-8deg) scale(.9)} 38%{transform:translate(4px,-5px) rotate(10deg) scale(1.06)} 70%{transform:translate(-3px,2px) rotate(-3deg) scale(.97)} }
@@ -95,11 +75,6 @@ html:has(.immersive-journey),body:has(.immersive-journey) { height:100%; overflo
  .immersive-journey .bracelet-caption { display:none; }
  .immersive-journey .sapphire-discovery-copy { min-height:72px; }
  .immersive-journey .sapphire-identity h2 { font-size:17px; }
- .birthday-lines { font-size:14px; gap:12px; }
- .birthday-title h1 { font-size:28px; }
- .birthday-title { min-height:100px; }
- .cipher-whisper { font-size:15px; }
- .cipher-key { min-height:54px; }
 }
-@media(min-width:800px) { .immersive-journey .scene { padding-inline:40px; } .wish-world { max-width:800px; margin:auto; } .birthday-letter { max-width:600px; margin:auto; width:100%; } .immersive-journey .bracelet-viewport { max-height:56dvh; } }
+@media(min-width:800px) { .immersive-journey .scene { padding-inline:40px; } .wish-world { max-width:800px; margin:auto; } .immersive-journey .bracelet-viewport { max-height:56dvh; } }
 @media(prefers-reduced-motion:reduce) { .immersive-journey .guiding-carrier { transform:translate(-50%,-50%); } .immersive-journey .guiding-carrier::after { display:none; } .immersive-journey .guiding-carrier .path-company-star { animation:none; } }

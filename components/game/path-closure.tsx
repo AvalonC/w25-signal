@@ -8,7 +8,7 @@ import { BraceletActions, BraceletDissolve, useBraceletDelivery } from './model'
 import { handoffFrame, HANDOFF_DURATION, HANDOFF_REDUCED_DURATION } from '@/lib/bracelet-handoff';
 import { useVisibleClock } from './scene-clock';
 import { BRACELET_ASSETS } from '@/lib/model-assets';
-import { smooth, type CameraView, type StarArrival, type Vec3 } from '@/lib/bracelet-transition';
+import { smooth, clickOrigin, type CameraView, type StarArrival, type Vec3 } from '@/lib/bracelet-transition';
 import { CLOSURE_CODES, CLOSURE_GEM, CLOSURE_LETTERS, CLOSURE_ORBIT, CLOSURE_PARTS,
   closureArrival, closureFrame, closureNear, closurePoint, closureRingPosition } from '@/lib/path-closure';
 import { closureSweep, closureSweepPath } from '@/lib/closure-sweep';
@@ -156,7 +156,7 @@ export function PathClosure({ choices, paused = false, fromRelay = false, showca
           {(arrived||showcase)&&!delivery.departing&&<button slot="hotspot-gem" className="bracelet-gem-target"
             data-position={metadata.hotspot.map(value=>value+'m').join(' ')} data-normal={metadata.normal.join(' ')}
             data-visibility-attribute="visible" aria-label="触碰粉色蓝宝石，让手链化作星光"
-            disabled={paused||hidden} onClick={event=>{event.stopPropagation();delivery.depart();}}><span aria-hidden="true">✧</span></button>}
+            disabled={paused||hidden} onClick={event=>{event.stopPropagation();delivery.depart(clickOrigin(event,event.currentTarget.getBoundingClientRect(),window.innerWidth,window.innerHeight));}}><span aria-hidden="true">✧</span></button>}
         </ModelSurface>
         {!loaded&&!presentation && <svg className="closure-poster-lights" viewBox="0 0 100 100" aria-hidden="true">
           {CLOSURE_PARTS.flatMap((part,index)=>part.stones.map((stone,j)=>{

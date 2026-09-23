@@ -13,7 +13,6 @@ import {
   symbolFromHold,
   constellationDelay,
   blessingDuration,
-  endingPhase,
   sapphireCanAdvance,
 } from '../lib/journey.ts';
 
@@ -143,11 +142,6 @@ test('light timelines preserve 1:3 duration, inter-symbol and letter spacing', (
   const full = morseTimeline(MORSE_CODES.join(' '), 110);
   assert.equal(full.frames.length, 13);
   assert.equal(full.duration, 4400);
-});
-test('Project W25 remains fully formed before the birthday morph begins', () => {
-  assert.equal(endingPhase(0), 'project');
-  assert.equal(endingPhase(5399), 'project');
-  assert.equal(endingPhase(6400), 'hbd');
 });
 test('each sapphire blessing requires both a turn and enough reading time', () => {
   assert.equal(sapphireCanAdvance(4599, true), false);

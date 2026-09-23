@@ -1,7 +1,7 @@
 'use client';
 /* oxlint-disable react/react-compiler */
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
-import {Volume2,VolumeX,HelpCircle,ArrowRight,ArrowLeft} from 'lucide-react';
+import {Volume2,VolumeX,HelpCircle,ArrowRight} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/components/ui/dialog';
 import {Starfield,type WishField} from './particles';
 import {GuidingLight} from './guiding-light';
@@ -10,10 +10,10 @@ import {StarPathJourney} from './star-path-journey';
 import {EchoRelay} from './echo-relay';
 import {RelayDeparture} from './relay-departure';
 import {PathClosure} from './path-closure';
-import {CipherReveal} from './cipher-reveal';
+import {BlessingAscent} from './blessing-ascent';
 import {freshPath} from '@/lib/star-path';
 import {deliveredWishes} from '@/lib/echo-relay';
-import {fresh,readSave,restart,revisitJourney,finish,NOUNS,PINK,type Journey} from '@/lib/journey';
+import {fresh,readSave,restart,revisitJourney,finish,PINK,type Journey} from '@/lib/journey';
 import {MOTION_STYLE} from '@/lib/motion';
 import {switchTap,tone,feedback,silence,playBirthday} from '@/lib/feedback';
 import type {StarArrival} from '@/lib/bracelet-transition';
@@ -26,13 +26,12 @@ export default function JourneyGame(){
   const [skyHandoff,setSkyHandoff]=useState<SkyHandoff|null>(null);
   const [relayFlight,setRelayFlight]=useState(false);
   const [wishField,setWishField]=useState<WishField|null>(null),[arrival,setArrival]=useState<StarArrival|null>(null);
-  const [endingMode,setEndingMode]=useState<'cipher'|'letter'>('cipher'),[letterVisit,setLetterVisit]=useState(0);
-  const [modelBurst,setModelBurst]=useState(false),[returning,setReturning]=useState(false),[charge,setCharge]=useState(0);
-  const haptic=useRef<HTMLInputElement>(null),hold=useRef<number|null>(null),frame=useRef(0),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const [letterVisit,setLetterVisit]=useState(0);
+  const [modelBurst,setModelBurst]=useState(false),[returning,setReturning]=useState(false);
+  const haptic=useRef<HTMLInputElement>(null),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const soundRef=useRef(sound);soundRef.current=sound;
   const patch=(value:Partial<Journey>)=>setS(p=>({...p,...value}));
   const tap=()=>switchTap(haptic.current,soundRef.current);
-  const cancel=()=>{hold.current=null;cancelAnimationFrame(frame.current);setCharge(0);};
   useEffect(()=>{
     haptic.current?.setAttribute('switch','');
     try{
@@ -51,29 +50,24 @@ export default function JourneyGame(){
     const timer=setTimeout(()=>setBoot(false),700);return()=>clearTimeout(timer);
   },[ready,boot]);
   useEffect(()=>{
-    const stop=()=>{cancel();silence();};
+    const stop=()=>{silence();};
     window.addEventListener('blur',stop);document.addEventListener('visibilitychange',stop);
-    return()=>{window.removeEventListener('blur',stop);document.removeEventListener('visibilitychange',stop);cancelAnimationFrame(frame.current);if(returnTimer.current)clearTimeout(returnTimer.current);silence();};
+    return()=>{window.removeEventListener('blur',stop);document.removeEventListener('visibilitychange',stop);if(returnTimer.current)clearTimeout(returnTimer.current);silence();};
   },[]);
   useEffect(()=>{
-    if(s.stage===7&&endingMode==='letter'&&!boot&&sound&&!returning)playBirthday();
+    if(s.stage===7&&!boot&&sound&&!returning)playBirthday();
     return()=>{silence();};
-  },[s.stage,endingMode,letterVisit,boot,sound,returning]);
-  useEffect(()=>{cancel();setModelBurst(false);},[s.stage]);
-  const start=(replay=false)=>{setRelayFlight(false);setSkyHandoff(null);setWishField(null);setLessonReplay(null);setArrival(null);setEndingMode('cipher');setRevisit(false);setS(p=>restart(p,replay));};
+  },[s.stage,letterVisit,boot,sound,returning]);
+  useEffect(()=>{setModelBurst(false);},[s.stage]);
+  const start=(replay=false)=>{setRelayFlight(false);setSkyHandoff(null);setWishField(null);setLessonReplay(null);setArrival(null);setRevisit(false);setS(p=>restart(p,replay));};
   const beginLesson=(replay:boolean)=>{tap();setRevisit(false);setArrival(null);setLessonReplay(replay);};
-  const showLetter=()=>{tap();setArrival(null);setEndingMode('letter');setLetterVisit(n=>n+1);setRevisit(false);setS(p=>finish(p));};
+  const showLetter=()=>{tap();setArrival(null);setLetterVisit(n=>n+1);setRevisit(false);setS(p=>finish(p));};
   const revisitAt=(stage:6|7)=>{
-    tap();setArrival(null);setEndingMode(stage===7?'letter':'cipher');setLetterVisit(n=>n+1);setRevisit(false);setS(p=>revisitJourney(p,stage));
+    tap();setArrival(null);setLetterVisit(n=>n+1);setRevisit(false);setS(p=>revisitJourney(p,stage));
   };
   const home=()=>{
-    cancel();setReturning(true);setArrival(null);
-    returnTimer.current=setTimeout(()=>{patch({stage:0});setReturning(false);setEndingMode('cipher');},matchMedia('(prefers-reduced-motion: reduce)').matches?200:1000);
-  };
-  const beginReturn=()=>{
-    if(hold.current!==null||returning)return;hold.current=performance.now();
-    const tick=()=>{if(hold.current===null)return;const q=(performance.now()-hold.current)/3000;setCharge(Math.min(1,q));if(q>=1){home();return;}frame.current=requestAnimationFrame(tick);};
-    frame.current=requestAnimationFrame(tick);
+    if(returning)return;setReturning(true);setArrival(null);
+    returnTimer.current=setTimeout(()=>{patch({stage:0});setReturning(false);},matchMedia('(prefers-reduced-motion: reduce)').matches?200:1000);
   };
   const hint=s.stage===1?'轻触你想留下的三个愿望。它们会化成伴星，陪你继续。':s.stage===2?
     s.path?.place==='sapphire'?'左右转动宝石，寻找光停留的角度。光变亮时松手等一会。三处发现之后，触碰右上方的粉光。':
@@ -82,16 +76,16 @@ export default function JourneyGame(){
     s.stage===5&&s.decoded===3?'愿望已经送达。星光会带你继续向前。':
     s.stage===5?'先轻触愿望伴星。远方示范时看它闪动，轮到你时轻按主星送出短光，按住一秒送出长光。也可用下方的短光、长光按钮。第二段光暗下时请伴星帮忙，第三段轮流回应。':
     '把主星带到缺口另一端，或轻触终点。看长短光在手链上亮起，然后把礼物带到眼前。';
-  const fieldText=s.stage===0?(s.completed&&lessonReplay===null?'Project\nW25':'Project\nN7A-3914'):s.stage===7&&endingMode==='letter'?'HBD, Leah':'';
-  return <div className={'cosmos free-flow immersive-journey stage-'+s.stage+(boot?' booting':'')+(modelBurst?' bracelet-leaving':'')+(help||revisit?' journey-paused':'')}
+  const fieldText=s.stage===0?(s.completed&&lessonReplay===null?'Project\nW25':'Project\nN7A-3914'):'';
+  return <div className={'cosmos free-flow immersive-journey stage-'+s.stage+(boot?' booting':'')+(modelBurst?' bracelet-leaving':'')+(help||revisit?' journey-paused':'')+(returning?' ending-returning':'')}
     style={{'--pink':PINK,...MOTION_STYLE} as CSSProperties}>
-    <Starfield text={fieldText} wishes={s.stage===1||s.stage===2&&s.path?.place==='sky'?wishField:null} paused={help||revisit} arrival={arrival} burst={returning} charge={charge}/>
+    <Starfield text={fieldText} wishes={s.stage===1||s.stage===2&&s.path?.place==='sky'?wishField:null} paused={help||revisit} arrival={arrival} burst={returning}/>
     <input ref={haptic} type="checkbox" className="haptic-switch" tabIndex={-1} aria-hidden="true"/>
     <header className="sky-header">
       <span className="sky-brand" aria-label="星间来信">✧<span>星 间 来 信</span></span>
       <div>
         <button title={sound?'关闭声音':'开启声音'} aria-label={sound?'关闭声音':'开启声音'} aria-pressed={sound} onClick={()=>{setSound(v=>!v);if(!sound)tone(140);else silence();}}>{sound?<Volume2 size={18}/>:<VolumeX size={18}/>}</button>
-        {s.stage>1&&s.stage<7&&<button title="查看提示" aria-label="查看提示" onClick={()=>{cancel();setHelp(true);}}><HelpCircle size={18}/></button>}
+        {s.stage>1&&s.stage<7&&<button title="查看提示" aria-label="查看提示" onClick={()=>{setHelp(true);}}><HelpCircle size={18}/></button>}
       </div>
     </header>
     {boot?<main className="journey-boot" aria-label="星光正在汇聚"><button aria-label="进入星海" onClick={()=>setBoot(false)}><span aria-hidden="true">✧</span></button></main>:
@@ -113,20 +107,12 @@ export default function JourneyGame(){
         {s.stage===6&&<>
           <PathClosure choices={s.choices} paused={help||revisit} fromRelay={relayFlight} showcase={!!s.pathClosed}
             onComplete={()=>{tap();patch({pathClosed:true});}} onScatter={()=>{tap();setModelBurst(true);}}
-            onGem={points=>{setArrival(points);setModelBurst(false);setEndingMode('cipher');setS(p=>finish(p));}}/>
-          {s.completed&&<nav className="journey-revisit" aria-label="重访星间来信" inert={!s.pathClosed} aria-hidden={!s.pathClosed} style={{visibility:s.pathClosed?'visible':'hidden'}}><button onClick={showLetter}>读生日回信</button><button onClick={home}>回到星空</button></nav>}
+            onGem={points=>{setArrival(points);setModelBurst(false);setLetterVisit(n=>n+1);setS(p=>finish(p));}}/>
+          {s.completed&&<nav className="journey-revisit" aria-label="重访星间来信" inert={!s.pathClosed||modelBurst} aria-hidden={!s.pathClosed||modelBurst} style={{visibility:s.pathClosed&&!modelBurst?'visible':'hidden'}}><button onClick={showLetter}>读生日回信</button><button onClick={home}>回到星空</button></nav>}
         </>}
-        {s.stage===7&&(endingMode==='cipher'?<CipherReveal paused={help||revisit} onDone={()=>{tap();setEndingMode('letter');setLetterVisit(n=>n+1);}}/>:
-          <section key={letterVisit} className={'birthday-letter'+(returning?' is-returning':'')} aria-label="给 Leah 的生日回信">
-            <div className="birthday-title"><h1>HBD, Leah</h1><span aria-hidden="true">✧</span></div>
-            <div className="birthday-lines">{s.choices.filter(i=>NOUNS[i][2]).map(i=><p key={i}>{NOUNS[i][2]}</p>)}<p className="birthday-signature">愿你珍爱的，都能陪你走过新的岁月。</p></div>
-            <button className="birthday-return" aria-label="按住星光三秒回到星空，也可轻触返回" onContextMenu={e=>e.preventDefault()}
-              onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);beginReturn();}}
-              onPointerUp={cancel} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={cancel}
-              onKeyDown={e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();beginReturn();}}} onKeyUp={cancel}
-              style={{'--return-charge':charge} as CSSProperties}><span aria-hidden="true">✧</span></button>
-            <button className="letter-home" onClick={home}><ArrowLeft size={15}/> 回到星空</button>
-          </section>)}
+        {s.stage===7&&<BlessingAscent key={letterVisit} choices={s.choices} paused={help||revisit||returning}
+          origin={arrival?.origin} onFeedback={tap} onExit={home}/>}
+
       </main>}
     {!saveOK&&<output className="storage-note">当前浏览器无法保存旅程，请保持页面打开。</output>}
     <Dialog open={revisit} onOpenChange={setRevisit}><DialogContent className="sky-dialog">

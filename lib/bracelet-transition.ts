@@ -5,16 +5,22 @@ export type CameraView = {
   left: number; top: number; width: number; height: number;
   orthographicSpan?: number;
 };
-export type StarArrival = { id: number; points: ViewPoint[] };
-export const BRACELET_DURATION = 5800;
+// Origin is normalized to the viewport; the star particles retain pixel coordinates.
+export type StarArrival = { id: number; points: ViewPoint[]; origin?: ViewPoint; viewport?: { width:number; height:number } };
+export const BRACELET_DURATION = 3600;
+export function clickOrigin(event:{detail:number;clientX:number;clientY:number},rect:{left:number;top:number;width:number;height:number},width:number,height:number):ViewPoint {
+  const pointer=event.detail>0&&Number.isFinite(event.clientX)&&Number.isFinite(event.clientY);
+  return {x:Math.max(0,Math.min(1,(pointer?event.clientX:rect.left+rect.width/2)/Math.max(1,width))),
+    y:Math.max(0,Math.min(1,(pointer?event.clientY:rect.top+rect.height/2)/Math.max(1,height)))};
+}
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 export const smooth = (n: number) => { const t = clamp(n); return t * t * (3 - 2 * t); };
 export function braceletPhase(ms: number, reduced = false) {
-  if (reduced) return { solid: 1 - smooth(ms / 900), stars: smooth(ms / 900), spread: 0, done: ms >= 1800 };
+  if (reduced) return { solid: 1 - smooth(ms / 650), stars: smooth(ms / 650), spread: 0, done: ms >= 1000 };
   return {
-    solid: 1 - smooth(ms / 1700),
-    stars: smooth((ms - 180) / 1350),
-    spread: smooth((ms - 2800) / 3000),
+    solid: 1 - smooth(ms / 1100),
+    stars: smooth((ms - 80) / 1000),
+    spread: smooth((ms - 1350) / 2250),
     done: ms >= BRACELET_DURATION,
   };
 }

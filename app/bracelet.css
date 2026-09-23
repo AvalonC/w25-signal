@@ -56,3 +56,9 @@
 @media (prefers-reduced-motion:reduce) {
  .bracelet-actions,.free-flow .scene-6 .scene-heading { transition:opacity .2s; }
 }
+
+.bracelet-origin-star { position:fixed; width:32px; height:32px; transform:translate(-50%,-50%); z-index:46; pointer-events:none; }
+.bracelet-origin-star svg { display:block; width:100%; height:100%; fill:#ffe5f4; filter:drop-shadow(0 0 10px #ffb3debb); }
+
+.ending-returning .blessing-ascent { opacity:0; transition:opacity 800ms; }
+@media(prefers-reduced-motion:reduce) { .ending-returning .blessing-ascent { transition:opacity 180ms; } }

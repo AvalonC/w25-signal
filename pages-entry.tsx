@@ -14,6 +14,7 @@ import './app/journey-continuity.css';
 import './app/sapphire-discovery.css';
 import './app/path-closure.css';
 import './app/immersive.css';
+import './app/blessing-ascent.css';
 import './app/opening-lesson.css';
 import './app/path-destinations.css';
 import './app/date-nebula.css';

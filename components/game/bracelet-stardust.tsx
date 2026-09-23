@@ -5,10 +5,11 @@ import { braceletPhase, projectPoint, scatteredPoint, type CameraView, type Vec3
 
 export function BraceletStardust({ elapsed, reduced, points, view, onPositions }: {
   elapsed: number; reduced: boolean; points: Vec3[]; view: CameraView;
-  onPositions: (points: ViewPoint[]) => void;
+  onPositions: (points: ViewPoint[], viewport:{width:number;height:number}) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const callback = useRef(onPositions); callback.current = onPositions;
+  const callback = useRef(onPositions);
+  useEffect(()=>{callback.current=onPositions;},[onPositions]);
   useEffect(() => {
     const c = ref.current, g = c?.getContext('2d');
     if (!c || !g) return;
@@ -19,7 +20,7 @@ export function BraceletStardust({ elapsed, reduced, points, view, onPositions }
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, width, height);
     const phase = braceletPhase(elapsed, reduced);
     const positions = points.map((point, i) => scatteredPoint(projectPoint(point, view), i, phase.spread, width, height));
-    callback.current(positions);
+    callback.current(positions,{width,height});
     positions.forEach((point, i) => {
       const shimmer = reduced ? .8 : .72 + .28 * Math.sin(i * 2.1 + elapsed * .002) ** 2;
       g.globalAlpha = phase.stars * shimmer * (1 - phase.spread * .22);

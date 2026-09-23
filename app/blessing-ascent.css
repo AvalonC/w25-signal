@@ -1,0 +1,36 @@
+/* The final star owns a viewport coordinate system shared with the clicked gem. */
+.blessing-ascent { position:fixed; inset:0; z-index:4; overflow:hidden; pointer-events:none; color:#f6ddeb; --blessing-hold:0; }
+.blessing-sky-glow { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 28%,#37213d31 0,transparent 55%),radial-gradient(ellipse at 50% 82%,#19253e3d 0,transparent 65%); }
+.blessing-dust { position:absolute; inset:0; }
+.blessing-dust i { position:absolute; width:var(--dust-size); height:var(--dust-size); border-radius:50%; background:#f7d9eb; box-shadow:0 0 8px #e9b6ed77; opacity:.25; animation:blessing-dust-breathe 4.7s var(--dust-delay) ease-in-out infinite; }
+.blessing-starthread { position:absolute; left:50%; width:1px; transform:translateX(-50%); background:linear-gradient(#ffe1f2b8,#e8b7de1c,transparent); filter:drop-shadow(0 0 5px #ffd8f2); }
+.blessing-main-star { position:absolute; display:grid; place-items:center; width:78px; height:78px; padding:0; margin:0; transform:translate(-50%,-50%); border:0; border-radius:50%; color:#ffdfed; background:transparent; pointer-events:auto; touch-action:none; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; cursor:pointer; }
+.blessing-main-star:disabled { cursor:default; opacity:1; }
+.blessing-main-star:focus-visible { outline:1px solid #ffe3f0aa; outline-offset:7px; }
+.blessing-star-shape { width:calc(32px + var(--blessing-focus,1)*16px); height:calc(32px + var(--blessing-focus,1)*16px); overflow:visible; filter:drop-shadow(0 0 9px #f8bedccc) drop-shadow(0 0 21px #c897ca66); transform:scale(calc(1 + var(--blessing-hold)*.12)); }
+.blessing-star-shape path { fill:#ffe0ee; }
+.blessing-star-shape circle { fill:#fff8f7; }
+.blessing-hold-track { position:absolute; inset:0; width:100%; height:100%; overflow:visible; transform:rotate(-90deg); }
+.blessing-hold-track circle { fill:none; stroke:#fff1f7; stroke-width:1.1; stroke-linecap:round; opacity:calc(var(--blessing-hold)*.85); filter:drop-shadow(0 0 4px #ffcfea); }
+.blessing-hold-ripple { position:absolute; left:50%; top:50%; width:48px; height:48px; border:1px solid #f6cade; border-radius:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none; }
+.is-ready .blessing-hold-ripple { animation:blessing-hold-invitation 3.3s ease-out infinite; }
+.is-ready .blessing-ripple-two { animation-delay:1.65s; }
+.blessing-verses { position:absolute; top:31%; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:clamp(12px,2.1dvh,20px); width:min(84%,560px); text-align:center; }
+.blessing-verse { flex:none; width:100%; min-height:1.8em; margin:0; font:clamp(16px,4.2vw,19px)/1.8 'Songti SC','STSong','Noto Serif SC',serif; text-wrap:balance; letter-spacing:.06em; }
+.blessing-heading { min-height:1.5em; margin-bottom:clamp(2px,1.4dvh,12px); color:#fce7f3; font:italic clamp(26px,7vw,34px)/1.5 Georgia,'Times New Roman',serif; letter-spacing:.08em; }
+.blessing-last { color:#d7c5dd; font-size:clamp(15px,3.9vw,18px); }
+.blessing-exit-hint { position:absolute; bottom:max(25px,env(safe-area-inset-bottom)); left:0; width:100%; margin:0; text-align:center; color:#c5b1cc; font:12px/1.5 'Songti SC',serif; letter-spacing:.13em; transition:opacity 700ms; }
+.blessing-ascent.is-paused *, .blessing-ascent.is-paused *::before, .blessing-ascent.is-paused *::after { animation-play-state:paused!important; }
+.blessing-ascent.is-reduced .blessing-dust i { animation:none; }
+.blessing-ascent.is-reduced .blessing-hold-ripple { animation:none; }
+.blessing-ascent.is-reduced.is-ready .blessing-ripple-one { opacity:.25; width:68px; height:68px; }
+@media (max-height:650px) {
+  .blessing-verses { top:31%; gap:10px; width:min(87%,520px); }
+  .blessing-verse { font-size:16px; line-height:1.65; letter-spacing:.015em; }
+  .blessing-heading { font-size:26px; line-height:1.4; margin-bottom:5px; }
+  .blessing-last { font-size:15px; }
+  .blessing-main-star { width:70px; height:70px; }
+
+}
+@keyframes blessing-dust-breathe { 0%,100% { opacity:.16; } 50% { opacity:.56; } }
+@keyframes blessing-hold-invitation { 0% { opacity:0; transform:translate(-50%,-50%) scale(.6); } 18% { opacity:.32; } 100% { opacity:0; transform:translate(-50%,-50%) scale(1.8); } }

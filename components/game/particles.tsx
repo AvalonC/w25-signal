@@ -60,7 +60,9 @@ export function Starfield({
       last = '',
       targets: Point[] = [],
       previous = 0;
-    let lastArrival = 0, hadWishes = false;
+    let lastArrival: number | null = null, hadWishes = false;
+    let arrivalPoints: Point[] = [], arrivalStarted = 0;
+    let arrivalWidth = 0, arrivalHeight = 0, sourceWidth = 0, sourceHeight = 0;
     const wishGlyphs = new Map<string,Point[]>();
     let phaseTime=0,lastTime=0;
     const reduced = window.matchMedia(
@@ -70,13 +72,14 @@ export function Starfield({
       const n = Math.sin(i * 127.1 + 311.7) * 43758.5453;
       return n - Math.floor(n);
     };
-    const stars = Array.from({ length: 2300 }, (_, i) => ({
+    const makeStar = (i: number) => ({
       x: rand(i) * innerWidth,
       y: rand(i + 2000) * innerHeight,
       seed: rand(i + 100),
       r: 0.5 + rand(i + 900) * 1.2,
       tone: rand(i + 4100),
-    }));
+    });
+    const stars = Array.from({ length: 2300 }, (_, i) => makeStar(i));
     const resize = () => {
       w = c.clientWidth;
       h = c.clientHeight;
@@ -98,10 +101,31 @@ export function Starfield({
       const p = props.current;
       const resumeCompanions=!!p.wishes?.companions&&!hadWishes;
       hadWishes=!!p.wishes;
-      if (p.arrival && p.arrival.id !== lastArrival) {
-        lastArrival = p.arrival.id;
-        p.arrival.points.forEach((point, i) => { if (stars[i]) { stars[i].x = point.x; stars[i].y = point.y; } });
+      if (p.arrival) {
+        const newArrival = p.arrival.id !== lastArrival;
+        if (newArrival) {
+          lastArrival = p.arrival.id;
+          arrivalStarted = phaseTime;
+          sourceWidth = p.arrival.viewport?.width || w;
+          sourceHeight = p.arrival.viewport?.height || h;
+        }
+        if (newArrival || arrivalWidth !== w || arrivalHeight !== h) {
+          arrivalWidth = w; arrivalHeight = h;
+          // Keep the bracelet's final scatter, including through a viewport resize.
+          // Older handoffs used viewport pixels without recording their dimensions.
+          arrivalPoints = p.arrival.points.map((point) => ({
+            x: point.x * w / Math.max(1, sourceWidth),
+            y: point.y * h / Math.max(1, sourceHeight),
+          }));
+          while (stars.length < arrivalPoints.length) stars.push(makeStar(stars.length));
+          arrivalPoints.forEach((point, i) => { stars[i].x = point.x; stars[i].y = point.y; });
+        }
+      } else {
+        lastArrival = null; arrivalPoints = [];
       }
+      const keepArrival = !!p.arrival && !p.text && !p.wishes && !p.burst;
+      const arrivalFade = Math.min(1, Math.max(0, (phaseTime - arrivalStarted) / 2000));
+      const arrivalSoftness = arrivalFade * arrivalFade * (3 - 2 * arrivalFade);
       if (p.text !== last) {
         last = p.text;
         targets = p.text
@@ -112,7 +136,8 @@ export function Starfield({
       }
       g.clearRect(0, 0, w, h);
       stars.forEach((s, i) => {
-        const t =
+        const arrived = keepArrival && i < arrivalPoints.length;
+        const t = arrived ? arrivalPoints[i] :
           targets.length && i < 2080
             ? {...targets[Math.min(targets.length - 1, Math.floor((i / 2080) * targets.length))]}
             : { x: rand(i) * w, y: rand(i + 2000) * h };
@@ -148,11 +173,17 @@ export function Starfield({
         const wish=p.wishes?.nodes[Math.floor(i/260)];
         const inText = (!!targets.length && i < 2080 || !!wish && (wish.selected || !p.wishes?.companions)) && !p.burst;
         const companion=!!p.wishes?.nodes[Math.floor(i/260)]?.selected;
-        g.globalAlpha = inText
-          ? 0.62 + 0.3 * Math.sin(time * 0.001 + s.seed * 8) ** 2
-          : 0.12 + (0.28 + s.tone * 0.2) * Math.sin(time * 0.0003 + s.seed * 8) ** 2;
-        if (!inText && i > 230 && !p.burst) return;
-        g.fillStyle = inText
+        if (arrived) {
+          const arrivalGlow = .78 * (.72 + .28 * Math.sin(i * 2.1 + phaseTime * .002) ** 2);
+          const arrivalNight = .2 + .12 * Math.sin(phaseTime * .0003 + s.seed * 8) ** 2;
+          g.globalAlpha = arrivalGlow + (arrivalNight - arrivalGlow) * arrivalSoftness;
+        } else {
+          g.globalAlpha = inText
+            ? 0.62 + 0.3 * Math.sin(time * 0.001 + s.seed * 8) ** 2
+            : 0.12 + (0.28 + s.tone * 0.2) * Math.sin(time * 0.0003 + s.seed * 8) ** 2;
+        }
+        if (!arrived && !inText && i > 230 && !p.burst) return;
+        g.fillStyle = arrived ? i % 11 === 0 ? '#ffb3de' : '#fff0fa' : inText
           ? p.wishes&&!companion?'#e3e8f3':'#ffe2f2'
           : s.tone < 0.16
             ? '#d8e7ff'
@@ -163,7 +194,7 @@ export function Starfield({
         g.arc(
           s.x,
           s.y,
-          companion ? .55 : s.r * (inText ? 0.65 + p.charge * 0.6 : 1),
+          arrived ? i % 29 === 0 ? 1.45 : .68 + (i % 5) * .12 : companion ? .55 : s.r * (inText ? 0.65 + p.charge * 0.6 : 1),
           0,
           Math.PI * 2,
         );

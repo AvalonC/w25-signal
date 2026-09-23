@@ -13,6 +13,7 @@ import './journey-continuity.css';
 import './sapphire-discovery.css';
 import './path-closure.css';
 import './immersive.css';
+import './blessing-ascent.css';
 import './opening-lesson.css';
 import './path-destinations.css';
 import './date-nebula.css';

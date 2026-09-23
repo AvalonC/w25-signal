@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { Children, isValidElement } from 'react';
-import { braceletPhase, projectPoint, scatteredPoint, type CameraView } from '../lib/bracelet-transition.ts';
+import { braceletPhase, clickOrigin, projectPoint, scatteredPoint, type CameraView } from '../lib/bracelet-transition.ts';
 import { QuickLookLink } from '../components/game/quick-look-link.ts';
 import { BRACELET_ASSETS, MODEL_REVISION } from '../lib/model-assets.ts';
 
@@ -83,17 +83,17 @@ void test('solid fades into a held star silhouette before any scattering or chap
   assert.equal(braceletPhase(0).solid, 1);
   assert.equal(braceletPhase(0).stars, 0);
   assert.ok(braceletPhase(900).solid > 0 && braceletPhase(900).stars > 0);
-  for (const ms of [1700, 2200, 2800]) {
+  for (const ms of [1100, 1200, 1350]) {
     assert.equal(braceletPhase(ms).solid, 0);
     assert.equal(braceletPhase(ms).stars, 1);
     assert.equal(braceletPhase(ms).spread, 0);
     assert.equal(braceletPhase(ms).done, false);
   }
-  assert.ok(braceletPhase(4200).spread > 0);
-  assert.equal(braceletPhase(5799).done, false);
-  assert.equal(braceletPhase(5800).done, true);
-  assert.equal(braceletPhase(1800, true).done, true);
-  assert.equal(braceletPhase(1800, true).spread, 0, 'Reduced motion does not scatter');
+  assert.ok(braceletPhase(2400).spread > 0);
+  assert.equal(braceletPhase(3599).done, false);
+  assert.equal(braceletPhase(3600).done, true);
+  assert.equal(braceletPhase(1000, true).done, true);
+  assert.equal(braceletPhase(1000, true).spread, 0, 'Reduced motion does not scatter');
 });
 
 void test('camera projection keeps silhouette aligned at rotated poses and mobile aspect ratios', () => {
@@ -109,4 +109,14 @@ void test('camera projection keeps silhouette aligned at rotated poses and mobil
   assert.deepEqual(scatteredPoint(center, 12, 0, 390, 844), center);
   const end = scatteredPoint(center, 12, 1, 390, 844);
   assert.ok(end.x >= 0 && end.x <= 390 && end.y >= 0 && end.y <= 844);
+});
+
+
+void test('the farewell begins at the actual touch point, while keyboard activation uses its button center',()=>{
+  const gem={left:250,top:210,width:48,height:48},button={left:60,top:570,width:280,height:44};
+  assert.deepEqual(clickOrigin({detail:1,clientX:265,clientY:240},gem,400,800),{x:.6625,y:.3});
+  assert.deepEqual(clickOrigin({detail:1,clientX:140,clientY:590},button,400,800),{x:.35,y:.7375});
+  assert.deepEqual(clickOrigin({detail:0,clientX:0,clientY:0},button,400,800),{x:.5,y:.74});
+  assert.deepEqual(clickOrigin({detail:1,clientX:0,clientY:0},gem,400,800),{x:0,y:0},'a real touch at zero is not mistaken for a keyboard click');
+  assert.deepEqual(clickOrigin({detail:1,clientX:900,clientY:-50},gem,400,800),{x:1,y:0});
 });
