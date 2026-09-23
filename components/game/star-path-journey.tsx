@@ -18,6 +18,7 @@ import { inViewport, wishOrbit, type SkyHandoff, type SkyPoint } from '@/lib/pat
 import type { WishField } from './particles';
 import { DestinationDrawing } from './path-destinations';
 import { lightRoad, onwardPoint, returnFlight, tracePoint } from '@/lib/return-flight';
+import { isStoneEntry, STONE_LIGHT_ORIGIN, stoneEntry } from '@/lib/stone-entry';
 
 type Props = {
   path: StarPathState; choices: number[]; month: number; day: number; rotation: number; paused: boolean;
@@ -28,18 +29,26 @@ type Props = {
 
 /** All three places share one saved journey. Discoveries change the sky itself. */
 export function StarPathJourney(props: Props) {
-  const { path, choices, paused, onPath, onTap } = props;
+  const { path, choices, paused, onPath, onTap, onField } = props;
   const [hidden, setHidden] = useState(false);
   const root=useRef<HTMLElement>(null),mapLayer=useRef<HTMLDivElement>(null),closeView=useRef<HTMLDivElement>(null),returned=useRef(false);
   const [skyEntry,setSkyEntry]=useState(props.handoff??null),[placeEntry,setPlaceEntry]=useState<SkyHandoff|null>(null);
   const [returning,setReturning]=useState<{from:SkyPoint;to:SkyPoint;place:Exclude<StarPathState['place'],'sky'>;geometry?:{x:number;y:number;scale:number;originX:number;originY:number}}|null>(null);
   const returnStarted=useRef(false);
+  const meetingLayer=useRef<HTMLDivElement>(null),met=useRef(path.place==='sapphire'||path.infused),meetingDone=useRef(false);
+  const [meeting,setMeeting]=useState<{from:SkyPoint;to:SkyPoint;measured:boolean;gem?:{x:number;y:number;scale:number;cx:number;cy:number}}|null>(null);
+  const readyToMeet=path.color&&path.dateFound&&!path.infused&&!met.current&&path.place!=='sapphire'&&!returning;
+  const autoClock=useVisibleClock(readyToMeet&&!paused&&!hidden,path.place);
+  const meetClock=useVisibleClock(!!meeting&&!paused&&!hidden);
   const [returnId,setReturnId]=useState(0);
   const reduced=useReducedMotion(),returnTime=useVisibleClock(!!returning&&!paused&&!hidden,returnId);
+  const meetQ=softStep(meetClock/(reduced?350:1500));
+  const meetingPoint=meeting?tracePoint(meeting.from,meeting.to,meetQ):null;
+  const locked=paused||!!returning||!!meeting;
   const back=returnFlight(returnTime,reduced);
   const returnPoint=returning?tracePoint(returning.from,returning.to,back.star):null;
   const beginReturn=(source?:HTMLElement)=>{
-    if(paused||document.hidden||returning||path.place==='sky')return;
+    if(paused||document.hidden||returning||meeting||readyToMeet||path.place==='sky')return;
     if(returnStarted.current)return;
     const section=root.current,rect=section?.getBoundingClientRect();if(!rect)return;
     const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
@@ -71,45 +80,70 @@ export function StarPathJourney(props: Props) {
     changed(); document.addEventListener('visibilitychange', changed);
     return () => document.removeEventListener('visibilitychange', changed);
   }, []);
+  useEffect(()=>{
+    if(!readyToMeet||paused||document.hidden||meeting)return;
+    const delay=reduced?350:path.place==='date'?1600:path.place==='prism'?900:450;
+    if(autoClock<delay)return;
+    const rect=root.current?.getBoundingClientRect();if(!rect)return;
+    const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
+    const current=(root.current?.querySelector?.<HTMLElement>('.date-return-star')??root.current?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??root.current?.querySelector?.<HTMLElement>('.path-carrier'))?.getBoundingClientRect();
+    const from=current?{x:(current.left+current.width/2)/width,y:(current.top+current.height/2)/height}:inViewport({x:50,y:70},rect,width,height);
+    onField?.(null);setSkyEntry(null);setMeeting({from,to:inViewport(STONE_LIGHT_ORIGIN,rect,width,height),measured:false});
+  },[readyToMeet,autoClock,paused,meeting,path.place,reduced,onField]);
+  useLayoutEffect(()=>{
+    if(!meeting||meeting.measured)return;
+    const area=root.current?.getBoundingClientRect(),star=meetingLayer.current?.querySelector?.<HTMLElement>('.path-carried-light')?.getBoundingClientRect();
+    const width=window.innerWidth||area?.width||1,height=window.innerHeight||area?.height||1;
+    const from=closeView.current?.querySelector?.<HTMLElement>('.path-date-light .star-sapphire-canvas')?.getBoundingClientRect();
+    const to=meetingLayer.current?.querySelector?.<HTMLElement>('.path-infusion-sky')?.getBoundingClientRect();
+    const gem=from&&to?{x:to.left+to.width*.5-from.left-from.width*.5,y:to.top+to.height*.47-from.top-from.height*.47,
+      scale:Math.min(to.width*.3,to.height*.29)/Math.max(1,Math.min(from.width*.3,from.height*.29)),cx:from.width*.5,cy:from.height*.47}:undefined;
+    setMeeting(p=>p?{...p,to:star?{x:(star.left+star.width/2)/width,y:(star.top+star.height/2)/height}:p.to,measured:true,gem}:null);
+  },[meeting]);
+  useEffect(()=>{
+    if(!meeting||!meeting.measured||paused||document.hidden||meetQ<1||meetingDone.current)return;
+    meetingDone.current=true;met.current=true;setMeeting(null);setPlaceEntry(null);onPath(visitPath(path,'sapphire'));
+  },[meeting,meetQ,paused,path,onPath]);
   const visit = (place: StarPathState['place'],entry?:SkyHandoff) => {
-    if (paused || document.hidden || returning) return;
+    if (paused || document.hidden || returning || meeting || readyToMeet) return;
     if(place==='sky'){beginReturn();return;}
     const next = visitPath(path, place);
     if (next.place === path.place) return;
     setPlaceEntry(entry??null);setSkyEntry(null);onTap(); onPath(next);
   };
   const geometry=returning?.geometry;
-  return <section ref={root} className={'star-path-journey' + (paused ? ' path-paused' : '') + (hidden ? ' path-motion-paused' : '')+(returning?' journey-returning':'')}
+  return <section ref={root} className={'star-path-journey' + (paused ? ' path-paused' : '') + (hidden ? ' path-motion-paused' : '')+(returning?' journey-returning':'')+(meeting?' journey-meeting':'')+(meeting?.gem?' meeting-from-date':'')}
     style={{'--path-return':back.camera,'--return-copy':back.copyOpacity,'--return-opacity':back.closeOpacity,
       '--return-x':`${(geometry?.x??0)*back.camera}px`,'--return-y':`${(geometry?.y??0)*back.camera}px`,
-      '--return-scale':1+((geometry?.scale??1)-1)*back.camera,'--return-origin-x':`${geometry?.originX??0}px`,'--return-origin-y':`${geometry?.originY??0}px`} as CSSProperties} aria-label="陪星光接通归路">
-    <div ref={mapLayer} className="path-map-layer" inert={!!returning||paused} aria-hidden={returning?true:undefined}>
+      '--return-scale':1+((geometry?.scale??1)-1)*back.camera,'--return-origin-x':`${geometry?.originX??0}px`,'--return-origin-y':`${geometry?.originY??0}px`,'--meet':meetQ,
+      '--meet-blend':softStep((meetQ-.62)/.38),'--meet-gem-x':`${(meeting?.gem?.x??0)*meetQ}px`,'--meet-gem-y':`${(meeting?.gem?.y??0)*meetQ}px`,
+      '--meet-gem-scale':1+((meeting?.gem?.scale??1)-1)*meetQ,'--meet-gem-cx':`${meeting?.gem?.cx??0}px`,'--meet-gem-cy':`${meeting?.gem?.cy??0}px`} as CSSProperties} aria-label="陪星光接通归路">
+    <div ref={mapLayer} className="path-map-layer" inert={locked||readyToMeet} aria-hidden={returning?true:undefined}>
       {(path.place==='sky'||returning)&&<PathSky choices={choices} color={path.color} dateFound={path.dateFound} anchor={returning?.place??path.anchor}
-        paused={paused} onVisit={visit} handoff={returning?null:skyEntry} onField={props.onField}
+        paused={paused||readyToMeet||!!meeting} onVisit={visit} handoff={returning?null:skyEntry} onField={props.onField}
         presentation={returning?{progress:back.map,labels:back.labels,carrierHidden:true}:undefined}/>}
     </div>
-    {path.place !== 'sky' && <nav className="path-home" aria-label="同行的光">
+    {(path.place !== 'sky'||meeting) && <nav className="path-home" aria-label="同行的光" inert={locked||readyToMeet}>
       <CompanionLight choices={choices} pink={path.color} compact
         onClick={() => beginReturn(root.current?.querySelector?.<HTMLElement>('.path-home .path-company')??undefined)} label="带着光回到星路" />
     </nav>}
-    {path.place!=='sky'&&<div ref={closeView} key={path.place} className={'path-view path-view-' + path.place} inert={paused||!!returning}>
-      {path.place === 'prism' && <PrismPlace found={path.color} paused={paused||!!returning} onTap={onTap} choices={choices}
+    {path.place!=='sky'&&path.place!=='sapphire'&&<div ref={closeView} key={path.place} className={'path-view path-view-' + path.place} inert={locked||readyToMeet}>
+      {path.place === 'prism' && <PrismPlace found={path.color} paused={locked} onTap={onTap} choices={choices}
         entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
         onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
-        pink={path.color} paused={paused||!!returning} choices={choices} onDate={props.onDate} onTap={onTap}
+        pink={path.color} paused={locked} choices={choices} onDate={props.onDate} onTap={onTap}
         onFound={() => onPath(completeDatePath(path))} onReturn={()=>visit('sky')}/>}
-      {path.place === 'sapphire' && (path.infused
-        ? <SapphireScene fromPath rotation={props.rotation} paused={paused||!!returning} onProgress={props.onRotation}
-            onTap={onTap} onDone={props.onComplete} />
-        : <LightIntoStone choices={choices} paused={paused||!!returning} onInfuse={() => {
-            onTap(); onPath(infusePath(path));
-          }} />)}
+    </div>}
+    {(meeting||path.place==='sapphire')&&<div ref={meetingLayer} className="path-meeting-layer" inert={locked} style={{opacity:meeting?(meeting.gem?1:softStep(meetQ/.8)):1}}>
+      {path.infused?<SapphireScene fromPath rotation={props.rotation} paused={locked} onProgress={props.onRotation} onTap={onTap} onDone={props.onComplete}/>:
+        <LightIntoStone choices={choices} paused={paused||!!returning} presentation={!!meeting} onInfuse={()=>{onTap();onPath(infusePath(path));}}/>}
     </div>}
     {returnPoint&&<span className="path-returning-carrier" aria-hidden="true" style={{left:`${returnPoint.x*100}vw`,top:`${returnPoint.y*100}dvh`}}>
       <CompanionLight choices={[]} pink={path.color}/>
       {choices.map((choice,i)=>{const offset=wishOrbit(reduced?0:returnTime*.0008,i,15);return <i className="return-companion" key={choice} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}/>;})}
     </span>}
+    {meetingPoint&&<span className="path-meeting-carrier" aria-hidden="true" style={{left:`${meetingPoint.x*100}vw`,top:`${meetingPoint.y*100}dvh`}}><CompanionLight choices={choices} pink/></span>}
   </section>;
 }
 
@@ -248,16 +282,19 @@ function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, 
   </div>;
 }
 
-function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paused: boolean; onInfuse: () => void }) {
-  const [point, setPoint] = useState({ x: 24, y: 79 });
+function LightIntoStone({ choices, paused, presentation = false, onInfuse }: { choices: number[]; paused: boolean; presentation?:boolean; onInfuse: () => void }) {
+  const [point, setPoint] = useState<{x:number;y:number}>({...STONE_LIGHT_ORIGIN});
   const [near, setNear] = useState(false), [dragging, setDragging] = useState(false);
   const [source, setSource] = useState<{ x: number; y: number } | null>(null);
   const [trail, setTrail] = useState<{ x: number; y: number }[]>([]);
   const [reduced, setReduced] = useState(false);
-  const area = useRef<HTMLDivElement>(null), pointer = useRef<number | null>(null);
+  const area = useRef<HTMLDivElement>(null), carriedRef=useRef<HTMLButtonElement>(null),pointer = useRef<number | null>(null);
+  const [size,setSize]=useState({width:400,height:500});
+  const entry=stoneEntry(size.width,size.height),blocked=paused||presentation;
   const begun = useRef(false), done = useRef(false);
   const lastPoint = useRef(point), callback = useRef(onInfuse); callback.current = onInfuse;
-  const elapsed = useVisibleClock(!!source && !paused);
+  const elapsed = useVisibleClock(!!source && !blocked);
+  const guideTime=useVisibleClock(!source&&!blocked,'guide');
   const effect = infusionFrame(elapsed, reduced);
   useEffect(() => {
     const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -266,37 +303,46 @@ function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paus
     update(); media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
+  useLayoutEffect(()=>{
+    const el=area.current;if(!el)return;
+    const update=()=>{const rect=el.getBoundingClientRect();if(rect.width&&rect.height)setSize({width:rect.width,height:rect.height});};
+    update();const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect();
+  },[]);
+  const releaseCapture=()=>{
+    const id=pointer.current;pointer.current=null;
+    if(id!==null&&carriedRef.current?.hasPointerCapture(id))carriedRef.current.releasePointerCapture(id);
+  };
   const cancel = useCallback(() => {
-    pointer.current = null; setDragging(false);
+    const id=pointer.current;pointer.current=null;
+    if(id!==null&&carriedRef.current?.hasPointerCapture(id))carriedRef.current.releasePointerCapture(id);
+    setDragging(false);
     if (begun.current) return;
-    lastPoint.current = { x: 24, y: 79 }; setPoint(lastPoint.current); setNear(false); setTrail([]);
+    lastPoint.current = {...STONE_LIGHT_ORIGIN}; setPoint(lastPoint.current); setNear(false); setTrail([]);
   }, []);
-  useEffect(() => { if (paused) cancel(); }, [paused, cancel]);
+  useEffect(() => { if (blocked) cancel(); }, [blocked, cancel]);
   useEffect(() => {
     const stop = () => { if (document.hidden) cancel(); };
     document.addEventListener('visibilitychange', stop); window.addEventListener('blur', cancel);
     return () => { document.removeEventListener('visibilitychange', stop); window.removeEventListener('blur', cancel); };
   }, [cancel]);
   useEffect(() => {
-    if (!source || paused || !effect.done || done.current) return;
+    if (!source || blocked || document.hidden || !effect.done || done.current) return;
     done.current = true; callback.current();
-  }, [source, paused, effect.done]);
+  }, [source, blocked, effect.done]);
   const deliver = (from = lastPoint.current) => {
-    if (paused || begun.current || document.hidden) return;
-    begun.current = true; pointer.current = null; setDragging(false);
+    if (blocked || begun.current || document.hidden) return;
+    begun.current = true; releaseCapture(); setDragging(false);
     setNear(true); setSource({ x: from.x, y: from.y }); setTrail([]);
   };
   const position = (x: number, y: number) => {
     const r = area.current!.getBoundingClientRect();
-    return { x: Math.max(7, Math.min(93, (x - r.left) / r.width * 100)),
-      y: Math.max(8, Math.min(90, (y - r.top) / r.height * 100)),
-      near: Math.hypot(x - (r.left + r.width * .5), y - (r.top + r.height * .47)) < Math.min(90, r.width * .23) };
+    const p={x:Math.max(7,Math.min(93,(x-r.left)/r.width*100)),y:Math.max(8,Math.min(90,(y-r.top)/r.height*100))};
+    return {...p,near:isStoneEntry(p,r.width,r.height)};
   };
   const attract = (t: number) => {
-    const p = source ?? point, u = 1 - t;
-    const bend = Math.min(10, Math.hypot(50 - p.x, 47 - p.y) * .26);
-    const control = { x: (p.x + 50) / 2 - bend, y: (p.y + 47) / 2 - bend };
-    return { x: u*u*p.x + 2*u*t*control.x + t*t*50, y: u*u*p.y + 2*u*t*control.y + t*t*47 };
+    const p=source??point;
+    const cap=softStep(t/.7),inside=softStep((t-.7)/.3);
+    return {x:p.x+(entry.x-p.x)*cap,y:p.y+(entry.y-p.y)*cap+(47-entry.y)*inside};
   };
   const carried = source && !reduced ? attract(effect.pull) : point;
   const ray = source && !reduced
@@ -309,26 +355,31 @@ function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paus
     <div ref={area} className={'path-infusion-sky' + (near ? ' light-near' : '')}>
       <StarSapphire formation={1} release={0} angle={.32} paused={paused} demonstrate={false}
         tint={source ? effect.trace : near ? .15 : 0} infusion={source ? effect.trace : 0}
-        radiance={source ? effect.glow : 0} libra />
+        radiance={source ? effect.glow : 0} guide={{active:!source&&!presentation,near}} libra />
+      {!source&&<svg className="stone-entry-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style={{opacity:presentation?0:1}}>
+        <path d={`M50 15 L50 ${entry.y}`} />
+        {[0,1,2,3].map(i=>{const t=reduced?(i+.5)/4:(guideTime/2400+i/4)%1;return<circle key={i} cx="50" cy={15+t*(entry.y-15)} r=".36" opacity={reduced?.65:Math.sin(t*Math.PI)*.8}/>;})}
+        <path className="stone-entry-tip" d={`M47.8 ${entry.y-3}L50 ${entry.y}L52.2 ${entry.y-3}`}/>
+      </svg>}
       <svg className="path-light-thread" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         {!reduced && ray.length > 1 && <path d={rayPath} style={{ opacity: source ? (1-effect.pull)*.75 : .35 }} />}
         {source && !reduced && effect.pull < 1 && ray.filter((_, i) => i % 3 === 0).map((p, i) =>
           <circle key={i} cx={p.x} cy={p.y} r={.16 + i*.05} style={{ opacity: .12+i*.16 }} />)}
       </svg>
-      <button className="path-stone-target" disabled={paused || !!source} onClick={() => deliver()} aria-label="把找到的粉光送入宝石">
+      <button className="path-stone-target" style={{left:`${entry.x}%`,top:`${entry.y}%`}} disabled={blocked || !!source} onClick={() => deliver()} aria-label="把找到的粉光送入宝石">
         <span className="sr-only">{source ? '' : near ? '松开，让光留下来' : '让它们相遇'}</span>
       </button>
-      <button className="path-carried-light" disabled={paused || !!source} aria-label="拖动粉光到宝石，也可轻触宝石送入"
+      <button ref={carriedRef} className="path-carried-light" disabled={blocked || !!source} aria-label="从上方向下拖动粉光进入宝石，也可轻触顶部切面送入"
         style={{ '--light-x': `${carried.x}%`, '--light-y': `${carried.y}%`,
           '--light-opacity': source ? 1-effect.pull : 1,
-          '--light-scale': source ? 1-effect.pull*.78 : 1 } as CSSProperties}
+          '--light-scale': source ? 1-effect.pull*.78 : 1,visibility:presentation?'hidden':undefined } as CSSProperties}
         onPointerDown={(e) => {
-          if (paused || begun.current || document.hidden || pointer.current !== null || e.button > 0) return;
+          if (blocked || begun.current || document.hidden || pointer.current !== null || e.button > 0 || e.isPrimary===false) return;
           e.preventDefault(); pointer.current = e.pointerId; setDragging(true);
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={(e) => {
-          if (pointer.current !== e.pointerId || paused || begun.current) return;
+          if (pointer.current !== e.pointerId || blocked || begun.current) return;
           const p = position(e.clientX, e.clientY);
           const previous = lastPoint.current;
           setTrail((old) => [...old.slice(-9), previous]); lastPoint.current = { x: p.x, y: p.y };
@@ -339,14 +390,16 @@ function LightIntoStone({ choices, paused, onInfuse }: { choices: number[]; paus
           const p = position(e.clientX, e.clientY);
           if (p.near) deliver(p); else cancel();
         }}
-        onPointerCancel={cancel} onLostPointerCapture={cancel}
+        onPointerCancel={e=>{if(pointer.current===e.pointerId)cancel();}} onLostPointerCapture={e=>{if(pointer.current===e.pointerId)cancel();}} onBlur={cancel}
+        onContextMenu={e=>e.preventDefault()}
         onClick={(e) => { if (e.detail === 0) deliver(); }}>
         <CompanionLight choices={choices} pink />
       </button>
     </div>
-    <output className="path-gesture-whisper sr-only">{source
+    <div className="stone-infusion-footer"><output className="sr-only">{source
       ? effect.trace < .55 ? '粉光沿着切面，慢慢流过。' : '你的颜色，留在了星光里。'
-      : '把同行的粉光，轻轻带到星点之间。'}</output>
+      : '将上方的粉光沿星屑向下带入宝石顶部。'}</output>
     {NOUNS[choices[2]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[2]][2]}</p>}
+    </div>
   </div>;
 }

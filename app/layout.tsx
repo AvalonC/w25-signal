@@ -16,6 +16,7 @@ import './opening-lesson.css';
 import './path-destinations.css';
 import './date-nebula.css';
 import './date-nebula-scene.css';
+import './stone-entry.css';
 export const metadata: Metadata = {
   title: '星间来信 · A Signal Between Stars',
   description: '一束穿过星海的信号，正在寻找某个人。七段旅程，一次相遇。',

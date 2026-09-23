@@ -16,16 +16,16 @@ for(let layer=0;layer<2;layer++) for(let i=0;i<8;i++){
 vertices.push([0,-.9,0]);for(let i=0;i<8;i++)edges.push([8+i,16]);
 const seeds=edges.flatMap(([a,b],e)=>Array.from({length:9},(_,i)=>({v:vertices[a].map((v,k)=>v+(vertices[b][k]-v)*i/8) as V,seed:e*9+i})));
 const rand=(i:number)=>{const v=Math.sin(i*127.1+311.7)*43758.5453;return v-Math.floor(v);};
-export function StarSapphire({ formation, release, angle, paused, demonstrate, origin = 'stars', light = 0, dust = 1, tint = 1, libra = false, infusion = 0, radiance = 0, discovery }: {
+export function StarSapphire({ formation, release, angle, paused, demonstrate, origin = 'stars', light = 0, dust = 1, tint = 1, libra = false, infusion = 0, radiance = 0, discovery, guide }: {
   formation:number; release:number; angle:number; paused:boolean; demonstrate:boolean;
   origin?:'light'|'stars'|'nebula'; light?:number; dust?:number; tint?:number; libra?:boolean;
-  infusion?:number; radiance?:number; discovery?:DiscoverySight;
+  infusion?:number; radiance?:number; discovery?:DiscoverySight; guide?:{active:boolean;near:boolean};
 }){
-  const ref=useRef<HTMLCanvasElement>(null),live=useRef({formation,release,angle,paused,demonstrate,origin,light,dust,tint,libra,infusion,radiance,discovery});
-  live.current={formation,release,angle,paused,demonstrate,origin,light,dust,tint,libra,infusion,radiance,discovery};
+  const ref=useRef<HTMLCanvasElement>(null),live=useRef({formation,release,angle,paused,demonstrate,origin,light,dust,tint,libra,infusion,radiance,discovery,guide});
+  live.current={formation,release,angle,paused,demonstrate,origin,light,dust,tint,libra,infusion,radiance,discovery,guide};
   useEffect(()=>{
     const c=ref.current!,g=c.getContext('2d');if(!g)return;
-    let frame=0,last=0,turn=live.current.angle,time=0,shade=live.current.tint,libraFade=live.current.libra?1:0;
+    let frame=0,last=0,turn=live.current.angle,time=0,shade=live.current.tint,libraFade=live.current.libra?1:0,guideFade=0;
     const motion=matchMedia('(prefers-reduced-motion: reduce)');
     let reduced=motion.matches;
     const updateMotion=()=>{reduced=motion.matches;};motion.addEventListener('change',updateMotion);
@@ -37,23 +37,45 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
       g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
       turn+=(p.angle-turn)*(reduced?1:.12);
       shade+=(p.tint-shade)*(reduced?1:.045);libraFade+=((p.libra?1:0)-libraFade)*.06;
+      guideFade+=((p.guide?.active?(p.guide.near?1:.42):0)-guideFade)*.12;
       const rgb=[Math.round(205+50*shade),Math.round(223-44*shade),Math.round(255-33*shade)].join(',');
       const a=turn+(p.demonstrate&&!reduced?Math.sin(time*.0012)*.18:0),scale=Math.min(w*.3,h*.29);
       const project=(v:V)=>{const x=v[0]*Math.cos(a)-v[2]*Math.sin(a),z=v[0]*Math.sin(a)+v[2]*Math.cos(a),y=v[1]*.88-z*.48,depth=v[1]*.48+z*.88;return{x:w*.5+x*scale*(3/(3+depth)),y:h*.47-y*scale*(3/(3+depth)),z:depth};};
       const form=reduced?(p.formation>0?1:0):softStep(p.formation),exit=softStep(p.release);
-      const halo=g.createRadialGradient(w*.5,h*.47,0,w*.5,h*.47,scale*1.5);halo.addColorStop(0,`rgba(${rgb},${(.025+shade*.04)*form*(1-exit)})`);halo.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=halo;g.fillRect(0,0,w,h);
-      // The carried light enters one facet and spreads through the existing
-      // wireframe. This is a surface illumination, never a replacement mesh.
-      if(p.infusion>0){
-        const filled=softStep(p.infusion),bloom=reduced?0:p.radiance;
-        const heart=g.createRadialGradient(w*.5,h*.47,0,w*.5,h*.47,scale*(.6+bloom*.8));
-        heart.addColorStop(0,`rgba(255,207,237,${.08*filled+bloom*.12})`);heart.addColorStop(.35,`rgba(255,179,222,${bloom*.04})`);heart.addColorStop(1,'#ffb3de00');
-        g.fillStyle=heart;g.fillRect(0,0,w,h);
+      if(!p.guide&&p.infusion===0){
+        const halo=g.createRadialGradient(w*.5,h*.47,0,w*.5,h*.47,scale*1.5);halo.addColorStop(0,`rgba(${rgb},${(.025+shade*.04)*form*(1-exit)})`);halo.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=halo;g.fillRect(0,0,w,h);
+      }
+      // Light enters the flat crown, then travels through actual shoulder and
+      // pavilion faces. Every wash is clipped by a facet instead of a glow disc.
+      if(p.infusion>0||guideFade>.005){
+        const crown:V=[0,.4,0],entry=project(crown),bloom=reduced?0:p.radiance;
+        const quiet=reduced?1:.86+Math.sin(time*.0013)*.14;
+        const fillFace=(face:V[],delay:number,strength:number,guideAmount=0)=>{
+          const points=face.map(project),show=softStep((p.infusion-delay)/.5);
+          const alpha=(show*strength+guideAmount)*form*(1-exit);
+          if(alpha<.001)return;
+          const bottom=points.reduce((lowest,point)=>point.y>lowest.y?point:lowest,entry);
+          const wash=g.createLinearGradient(entry.x,entry.y,entry.x,Math.max(entry.y+scale*.18,bottom.y));
+          wash.addColorStop(0,`rgba(255,225,243,${alpha})`);
+          wash.addColorStop(.5,`rgba(255,182,220,${alpha*.68})`);
+          wash.addColorStop(1,`rgba(234,146,210,${alpha*.24})`);
+          g.fillStyle=wash;g.beginPath();g.moveTo(points[0].x,points[0].y);
+          for(const point of points.slice(1))g.lineTo(point.x,point.y);
+          g.closePath();g.fill();
+        };
         for(let i=0;i<8;i++){
-          const face=[project(vertices[i]),project(vertices[8+i]),project(vertices[8+(i+1)%8])];
-          const show=softStep((p.infusion-i*.04)/.65);
-          g.fillStyle=`rgba(255,179,222,${show*(.02+bloom*.035)*(1-exit)})`;
-          g.beginPath();g.moveTo(face[0].x,face[0].y);g.lineTo(face[1].x,face[1].y);g.lineTo(face[2].x,face[2].y);g.closePath();g.fill();
+          const next=(i+1)%8,offset=(i%3)*.018;
+          fillFace([crown,vertices[i],vertices[next]],offset,.045+bloom*.045,guideFade*quiet*(i%2?.065:.09));
+          fillFace([vertices[i],vertices[8+i],vertices[8+next]],.13+offset,.04+bloom*.05);
+          fillFace([vertices[i],vertices[8+next],vertices[next]],.18+offset,.03+bloom*.038);
+          fillFace([vertices[8+i],vertices[16],vertices[8+next]],.37+offset,.026+bloom*.04);
+        }
+        if(guideFade>.005){
+          g.strokeStyle=`rgba(255,226,243,${guideFade*quiet*.45*(1-exit)})`;g.lineWidth=.9;
+          g.beginPath();
+          const crownPoints=vertices.slice(0,8).map(project);
+          crownPoints.forEach((point,i)=>{if(i)g.lineTo(point.x,point.y);else g.moveTo(point.x,point.y);});
+          g.closePath();g.stroke();
         }
       }
       if(p.origin==='light'){
@@ -73,11 +95,18 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
       edges.forEach(([a,b],index)=>{const u=project(vertices[a]),v=project(vertices[b]);const glint=Math.max(0,Math.cos(turn*1.7+index*.8))**12;g.strokeStyle=`rgba(${rgb},${(.18+glint*.32)*softStep((form-.45)/.55)*(1-exit)*(.65+(u.z+1)*.12)})`;g.lineWidth=.6+glint*.3;g.beginPath();g.moveTo(u.x,u.y);g.lineTo(v.x,v.y);g.stroke();});
       if(p.infusion>0 && p.infusion<1 && !reduced){
         edges.forEach(([a,b],index)=>{
-          const at=softStep((p.infusion-(index%8)*.048)/.56);if(at<=0||at>=1)return;
-          const u=project(vertices[a]),v=project(vertices[b]);
-          g.strokeStyle=`rgba(255,209,238,${Math.sin(at*Math.PI)*.7})`;g.lineWidth=1;
-          g.beginPath();g.moveTo(u.x,u.y);g.lineTo(u.x+(v.x-u.x)*at,u.y+(v.y-u.y)*at);g.stroke();
-          g.fillStyle='#fff0fa';g.beginPath();g.arc(u.x+(v.x-u.x)*at,u.y+(v.y-u.y)*at,1.45,0,7);g.fill();
+          const delay=a<8&&b<8?0:a===16||b===16?.39:a<8||b<8?.15:.27;
+          const at=softStep((p.infusion-delay-(index%3)*.018)/.5);if(at<=0||at>=1)return;
+          const one=project(vertices[a]),two=project(vertices[b]);
+          const u=one.y<=two.y?one:two,v=one.y<=two.y?two:one;
+          const tail=Math.max(0,at-.24),start={x:u.x+(v.x-u.x)*tail,y:u.y+(v.y-u.y)*tail};
+          const head={x:u.x+(v.x-u.x)*at,y:u.y+(v.y-u.y)*at};
+          const strength=Math.sin(at*Math.PI)*.48*(1-exit);
+          const stream=g.createLinearGradient(start.x,start.y,head.x,head.y);
+          stream.addColorStop(0,'rgba(255,192,226,0)');stream.addColorStop(1,`rgba(255,231,245,${strength})`);
+          g.strokeStyle=stream;g.lineWidth=.95;
+          g.beginPath();g.moveTo(start.x,start.y);g.lineTo(head.x,head.y);g.stroke();
+          g.fillStyle=`rgba(255,238,248,${strength})`;g.beginPath();g.arc(head.x,head.y,.9,0,7);g.fill();
         });
       }
       if(p.discovery){

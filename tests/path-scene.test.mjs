@@ -27,12 +27,13 @@ registerHooks({
 });
 const { StarPathJourney } = await import('../components/game/star-path-journey.tsx');
 const { freshPath } = await import('../lib/star-path.ts');
+const { stoneEntry } = await import('../lib/stone-entry.ts');
 
 async function scene(initial, body) {
   const keys = ['document', 'window', 'ResizeObserver', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'IS_REACT_ACT_ENVIRONMENT'];
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, current;
-  const frames = new Map(), discoveries = [], fields=[];
+  const frames = new Map(), discoveries = [], fields=[],captures=new Set();
   const host = (element) => ({
     getContext: () => null,
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 500 }),
@@ -40,7 +41,7 @@ async function scene(initial, body) {
       ? () => initial.dialRects.map((rect) => ({ getBoundingClientRect: () => rect })) : undefined,
     closest: () => ({ querySelectorAll: () => [] }),
     style: { setProperty() {} },
-    setPointerCapture() {}, hasPointerCapture: () => false, releasePointerCapture() {},
+    setPointerCapture(id){captures.add(id);}, hasPointerCapture:id=>captures.has(id), releasePointerCapture(id){captures.delete(id);},
   });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   globalThis.window = new EventTarget();
@@ -74,7 +75,7 @@ async function scene(initial, body) {
   try {
     await act(() => { root = create(React.createElement(Harness), { createNodeMock: host }); });
     await body({
-      root, advance, discoveries, fields, current: () => current,
+      root, advance, discoveries, fields, captures, current: () => current,
       pause: async (paused) => act(() => root.update(React.createElement(Harness, { paused }))),
       visibility:async(hidden)=>act(()=>{document.hidden=hidden;document.dispatchEvent(new Event('visibilitychange'));}),
       pointer: (clientX, clientY, pointerId = 1) => ({
@@ -179,14 +180,14 @@ test('a birthday found after the colour gathers pink and reduced motion still pr
     const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
     assert.equal(stone().props.tint,1);
     assert.equal(current().path.dateFound,false);
-    await advance(2600);
+    await advance(2000);
     assert.equal(current().path.dateFound,true); assert.equal(stone().props.tint,1);
     assert.equal(discoveries.length,1);
   });
 });
 
 test('the date place uses the live nebula clock, preserves the selected light, and returns the born star once', async () => {
-  for (const pink of [false, true]) await scene({ path: { ...freshPath(), place: 'date', color: pink }, month: 10, day: 8 }, async ({ root, advance, current, pause, visibility, discoveries }) => {
+  for (const pink of [false]) await scene({ path: { ...freshPath(), place: 'date', color: pink }, month: 10, day: 8 }, async ({ root, advance, current, pause, visibility, discoveries }) => {
     const nebulaNodes = () => root.root.findAll((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
     const nebula = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
     const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
@@ -271,14 +272,14 @@ test('the date place uses the live nebula clock, preserves the selected light, a
 });
 
 test('the nebula sources use the rendered dial centers and reduced motion keeps the short return birth', async () => {
-  await scene({ reduced: true, path: { ...freshPath(), place: 'date', color: true }, month: 10, day: 8,
+  await scene({ reduced: true, path: { ...freshPath(), place: 'date', color: false }, month: 10, day: 8,
     dialRects: [{ left: 40, top: 50, width: 120, height: 120 }, { left: 230, top: 280, width: 120, height: 120 }] },
   async ({ root, advance, current }) => {
     await advance(960);
     const nebula = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
     assert.deepEqual(nebula.props.sources, [{ x: .25, y: .22 }, { x: .725, y: .68 }]);
     assert.equal(nebula.props.reduced, true);
-    assert.equal(nebula.props.pink, true);
+    assert.equal(nebula.props.pink, false);
     await advance(1800);
     assert.equal(current().path.dateFound, true);
     const returnStar = () => root.root.findByProps({ className: 'date-return-star' });
@@ -295,19 +296,25 @@ test('the nebula sources use the rendered dial centers and reduced motion keeps 
 });
 
 test('pink light only enters the stone on a completed delivery; cancellation, a missed drop and help remain safe', async () => {
-  await scene({ path: { place: 'sapphire', color: true, dateFound: true, infused: false } }, async ({ root, advance, current, discoveries, pause, pointer }) => {
+  await scene({ path: { place: 'sapphire', color: true, dateFound: true, infused: false } }, async ({ root, advance, current, discoveries, pause, pointer,captures }) => {
     const carried = () => root.root.findByProps({ className: 'path-carried-light' });
-    await act(() => carried().props.onPointerDown(pointer(96, 395)));
-    await act(() => carried().props.onPointerMove(pointer(200, 235)));
-    await act(() => carried().props.onPointerCancel());
-    await act(() => carried().props.onPointerUp(pointer(200, 235)));
+    const entry=stoneEntry(400,500),entryY=entry.y*5;
+    assert.equal(carried().props.style['--light-x'],'50%');assert.equal(carried().props.style['--light-y'],'10%');
+    await act(() => carried().props.onPointerDown(pointer(200,50)));
+    await act(() => carried().props.onPointerMove(pointer(200,entryY)));
+    assert.equal(captures.has(1),true);
+    await act(() => carried().props.onPointerCancel(pointer(200,entryY)));
+    assert.equal(captures.size,0);assert.equal(carried().props.style['--light-x'],'50%');assert.equal(carried().props.style['--light-y'],'10%');
+    await act(() => carried().props.onPointerUp(pointer(200,entryY)));
     assert.equal(current().path.infused, false);
-    await act(() => carried().props.onPointerDown(pointer(96, 395)));
+    await act(() => carried().props.onPointerDown(pointer(200,50)));
     await act(() => carried().props.onPointerUp(pointer(25, 460)));
     assert.equal(current().path.infused, false, 'dropping far away keeps the carried light');
-    await act(() => carried().props.onPointerDown(pointer(96, 395)));
+    assert.equal(carried().props.style['--light-y'],'10%');assert.equal(captures.size,0);
+    await act(() => carried().props.onPointerDown(pointer(200,50)));
     await pause(true);
-    await act(() => carried().props.onPointerUp(pointer(200, 235)));
+    await act(() => carried().props.onPointerUp(pointer(200,entryY)));
+    assert.equal(captures.size,0);
     assert.equal(current().path.infused, false, 'opening help cancels the gesture');
     const target = () => root.root.findByProps({ className: 'path-stone-target' });
     await act(() => target().props.onClick());
@@ -356,7 +363,7 @@ test('reduced motion uses a short quiet arrival and still hands off exactly once
 });
 
 test('the return reveals one persistent map, blocks background visits, and freezes all motion for help and hidden tabs',async()=>{
-  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true}},async({root,advance,current,pause,visibility,fields})=>{
+  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true,infused:true}},async({root,advance,current,pause,visibility,fields})=>{
     const sky=()=>root.root.find(node=>node.type==='section'&&node.props.className.startsWith('path-exploration'));
     const carrier=()=>root.root.findAllByType('button').find(node=>node.props.className.startsWith('path-carrier'));
     const place=name=>root.root.findAllByType('button').find(node=>node.props.className.includes('path-place-'+name));
@@ -389,7 +396,7 @@ test('the return reveals one persistent map, blocks background visits, and freez
 });
 
 test('a second discovery return gets a fresh clock instead of completing immediately',async()=>{
-  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true}},async({root,advance,current,discoveries})=>{
+  await scene({path:{...freshPath(),place:'prism',color:true,dateFound:true,infused:true}},async({root,advance,current,discoveries})=>{
     const returnLight=name=>root.root.findByProps({'aria-label':name});
     const date=()=>root.root.findAllByType('button').find(node=>node.props.className.includes('path-place-date'));
     await act(()=>returnLight('带着粉光回到星路').props.onClick());await advance(2360);
@@ -408,7 +415,7 @@ test('a second discovery return gets a fresh clock instead of completing immedia
 });
 
 test('the pink road draws first, then reveals the next destination and its nearby verse',async()=>{
-  for(const dateFound of [false,true])await scene({path:{...freshPath(),place:'prism',color:true,dateFound}},async({root,advance,pause,visibility})=>{
+  for(const dateFound of [false,true])await scene({path:{...freshPath(),place:'prism',color:true,dateFound,infused:dateFound}},async({root,advance,pause,visibility})=>{
     const road=()=>root.root.findByProps({className:'prism-road-core'});
     const copy=()=>root.root.findByProps({className:'prism-road-copy'});
     const icon=()=>root.root.find(node=>node.type?.name==='DestinationDrawing');
@@ -426,4 +433,86 @@ test('the pink road draws first, then reveals the next destination and its nearb
     assert.ok(icon().props.progress>0&&icon().props.progress<1);
     await advance(700);assert.equal(road().props['data-progress'],1);assert.equal(copy().props.style.opacity,1);assert.equal(icon().props.progress,1);
   });
+});
+
+test('both exploration orders automatically meet at the sapphire while leaving infusion to the player',async()=>{
+  for(const last of ['date','prism'])await scene({path:{...freshPath(),place:last,color:last==='date',dateFound:last==='prism'},month:10,day:7},async({root,advance,current,discoveries,pause,visibility,pointer})=>{
+    const meeting=()=>root.root.findAllByProps({className:'path-meeting-carrier'});
+    const waitUntil=async(predicate)=>{for(let i=0;i<350&&!predicate();i++)await advance(40);assert.ok(predicate(),'the expected visible scene phase arrives');};
+    if(last==='date'){
+      await advance(1200);await act(()=>root.root.findByProps({'aria-label':'日加一'}).props.onClick());
+    }else{
+      await advance(4480);const prism=root.root.findByProps({className:'prism-light'});
+      await act(()=>prism.props.onPointerDown(pointer(0,0)));await act(()=>prism.props.onPointerMove(pointer(162.5,0)));await act(()=>prism.props.onPointerUp());
+    }
+    await waitUntil(()=>current().path.color&&current().path.dateFound);
+    assert.equal(current().path.place,last);assert.equal(current().path.infused,false);assert.equal(meeting().length,0);
+    assert.equal(root.root.findByProps({className:'path-home'}).props.inert,true,'manual return cannot race the automatic meeting');
+    await act(()=>root.root.findByProps({'aria-label':'带着光回到星路'}).props.onClick());
+    assert.equal(root.root.findAllByProps({className:'path-returning-carrier'}).length,0);
+    await advance(320);await pause(true);await advance(6000);assert.equal(meeting().length,0);
+    await pause(false);await visibility(true);await advance(6000);assert.equal(meeting().length,0);
+    await visibility(false);await waitUntil(()=>meeting().length===1);
+    const light=()=>root.root.find(node=>node.type?.name==='LightIntoStone');
+    const active=light(),container=root.root.findByProps({className:'path-meeting-layer'});
+    const carried=()=>root.root.findByProps({className:'path-carried-light'}),target=()=>root.root.findByProps({className:'path-stone-target'});
+    assert.equal(carried().props.disabled,true);assert.equal(carried().props.style.visibility,'hidden');assert.equal(target().props.disabled,true);
+    await act(()=>target().props.onClick());await act(()=>carried().props.onClick({detail:0}));
+    await act(()=>carried().props.onPointerDown(pointer(200,50)));await act(()=>carried().props.onPointerUp(pointer(200,200)));
+    assert.equal(current().path.infused,false);
+    await advance(480);const frozen={...meeting()[0].props.style};
+    await pause(true);await advance(4000);assert.deepEqual(meeting()[0].props.style,frozen);
+    await pause(false);await visibility(true);await advance(4000);assert.deepEqual(meeting()[0].props.style,frozen);
+    await visibility(false);await waitUntil(()=>current().path.place==='sapphire');
+    assert.equal(light(),active,'the background sapphire is handed over without remounting');
+    assert.equal(root.root.findByProps({className:'path-meeting-layer'}),container);
+    assert.equal(carried().props.disabled,false);assert.equal(carried().props.style.visibility,undefined);
+    assert.equal(carried().props.style['--light-x'],'50%');assert.equal(carried().props.style['--light-y'],'10%');
+    await advance(5000);assert.equal(current().path.infused,false,'arrival and idle guidance never deliver the light automatically');
+    assert.equal(discoveries.filter(path=>path.place==='sapphire').length,1);
+    assert.equal(discoveries.filter(path=>path.infused).length,0);
+  });
+});
+
+test('a resumed sky with both discoveries meets once and respects a later voluntary return',async()=>{
+  for(const reduced of [false,true])await scene({reduced,path:{...freshPath(),color:true,dateFound:true}},async({root,advance,current,discoveries})=>{
+    const meeting=()=>root.root.findAllByProps({className:'path-meeting-carrier'});
+    await advance(reduced?320:440);assert.equal(meeting().length,0);assert.equal(current().path.place,'sky');
+    await advance(40);assert.equal(meeting().length,1);
+    await advance(reduced?320:1440);assert.equal(current().path.place,'sky','the flight remains separate from its initial delay');
+    await advance(reduced?40:80);assert.equal(current().path.place,'sapphire');assert.equal(current().path.infused,false);
+    assert.equal(discoveries.length,1);
+    await act(()=>root.root.findByProps({'aria-label':'带着光回到星路'}).props.onClick());
+    await advance(reduced?480:2360);assert.equal(current().path.place,'sky');
+    await advance(6000);assert.equal(current().path.place,'sky','returning after meeting never starts another automatic meeting');
+    assert.equal(meeting().length,0);assert.equal(discoveries.filter(path=>path.place==='sapphire').length,1);
+  });
+});
+
+test('downward guidance stops for help and backgrounding and only the primary uncancelled top-facet drop infuses',async()=>{
+ await scene({path:{place:'sapphire',color:true,dateFound:true,infused:false}},async({root,advance,current,discoveries,pause,visibility,pointer,captures})=>{
+   const carried=()=>root.root.findByProps({className:'path-carried-light'}),guide=()=>root.root.findByProps({className:'stone-entry-guide'});
+   const entry=stoneEntry(400,500),targetY=entry.y*5;
+   const dots=()=>guide().findAllByType('circle').map(node=>node.props.cy);
+   const initial=dots();await advance(240);assert.ok(dots()[0]>initial[0],'the guide particles travel down toward the upper facet');
+   const held=dots();await pause(true);await advance(3000);assert.deepEqual(dots(),held);
+   await pause(false);await visibility(true);await advance(3000);assert.deepEqual(dots(),held);await visibility(false);
+   await act(()=>carried().props.onPointerDown({...pointer(200,50),isPrimary:false}));assert.equal(captures.size,0);
+   await act(()=>carried().props.onPointerUp(pointer(200,targetY)));assert.equal(current().path.infused,false);
+   for(const reason of ['cancel','capture','blur','hidden']){
+     await act(()=>carried().props.onPointerDown(pointer(200,50)));await act(()=>carried().props.onPointerMove(pointer(200,targetY)));
+     if(reason==='cancel')await act(()=>carried().props.onPointerCancel(pointer(200,targetY)));
+     else if(reason==='capture')await act(()=>carried().props.onLostPointerCapture(pointer(200,targetY)));
+     else if(reason==='blur')await act(()=>window.dispatchEvent(new Event('blur')));
+     else{await visibility(true);await visibility(false);}
+     assert.equal(captures.size,0);assert.equal(carried().props.style['--light-y'],'10%');
+     await act(()=>carried().props.onPointerUp(pointer(200,targetY)));assert.equal(current().path.infused,false);
+   }
+   await act(()=>carried().props.onPointerDown(pointer(200,50)));await act(()=>carried().props.onPointerMove(pointer(200,targetY)));
+   await act(()=>carried().props.onPointerUp(pointer(200,targetY)));
+   assert.equal(captures.size,0);assert.equal(carried().props.disabled,true);assert.equal(current().path.infused,false);
+   await advance(2960);assert.equal(current().path.infused,false);
+   await visibility(true);await advance(4000);assert.equal(current().path.infused,false);
+   await visibility(false);await advance(80);assert.equal(current().path.infused,true);assert.equal(discoveries.length,1);
+ });
 });
