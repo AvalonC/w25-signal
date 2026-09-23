@@ -68,6 +68,7 @@ export function DateDial({
       : (-value * 360) / max });
   }
   const asleep = paused || hidden;
+  const previous=value===1?max:value-1, next=value===max?1:value+1;
   if (asleep && turning) setTurning(false);
   useEffect(() => {
     const cancel = () => {
@@ -120,6 +121,7 @@ export function DateDial({
         aria-valuemin={1}
         aria-valuemax={max}
         aria-valuenow={value}
+        aria-valuetext={value+label}
         onPointerDown={(e) => {
           if (asleep || e.isPrimary === false || e.button > 0) return;
           drag.current = { a: angle(e), v: value, id: e.pointerId };
@@ -173,8 +175,8 @@ export function DateDial({
             <circle className="dial-satellite dial-satellite-dim" cx="218" cy="176" r="1" />
           </g>
           <g className="dial-orbit dial-orbit-inner">
-            <circle className="dial-orbit-arc" cx="120" cy="120" r="60" />
-            <circle className="dial-satellite" cx="60" cy="120" r="1.1" />
+            <circle className="dial-orbit-arc" cx="120" cy="120" r="83" />
+            <circle className="dial-satellite" cx="37" cy="120" r="1.6" />
           </g>
           <g
             className="dial-scale"
@@ -188,47 +190,41 @@ export function DateDial({
               return (
                 <g key={i}>
                   <line
-                    x1={120 + 94 * Math.cos(a)}
-                    y1={120 + 94 * Math.sin(a)}
+                    x1={120 + (i+1===value?87:94) * Math.cos(a)}
+                    y1={120 + (i+1===value?87:94) * Math.sin(a)}
                     x2={120 + 104 * Math.cos(a)}
                     y2={120 + 104 * Math.sin(a)}
-                    className={i + 1 === value ? 'dial-active' : ''}
+                    className={i + 1 === value ? 'dial-active' : i%3===0?'dial-major':''}
                   />
-                  {(kind === 'month' || [1,5,10,15,20,25,31].includes(i+1) || i+1 === value) && <text
-                    x={120 + 80 * Math.cos(a)}
-                    y={120 + 80 * Math.sin(a)}
-                    className={i + 1 === value ? 'dial-label-active' : 'dial-label'}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                  >
-                    {kind === 'month' ? ZODIAC[i] : ROMAN[i + 1]}
-                  </text>}
                 </g>
               );
             })}
           </g>
-          <path className="dial-pointer" d="M117 3 123 3 120 15Z" />
+          <g className="dial-neighbours">
+            <text x="39" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[previous-1]:ROMAN[previous]}</text>
+            <text x="201" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[next-1]:ROMAN[next]}</text>
+          </g>
+          <path className="dial-pointer" d="M114 2 126 2 120 21Z" />
         </svg>
-        <div>
-          <strong>{kind === 'day' ? ROMAN[value] : String(value).padStart(2, '0')}</strong>
-          <small>
-            {label} {kind === 'month' ? ZODIAC[value - 1] : String(value).padStart(2, '0')}
-          </small>
+        <div className="dial-reading" aria-hidden="true">
+          {kind==='month'&&<span className="dial-zodiac">{ZODIAC[value-1]}</span>}
+          <strong>{String(value).padStart(2,'0')}</strong>
+          <small>{label}</small>
         </div>
       </div>
       <div className="dial-arrows">
         <button
           aria-label={label + '减一'}
           disabled={asleep}
-          onClick={() => onChange(value === 1 ? max : value - 1)}
+          onClick={() => {if(!asleep)onChange(previous);}}
         >
           −
         </button>
-        <span>转动星盘</span>
+        <span aria-hidden="true" />
         <button
           aria-label={label + '加一'}
           disabled={asleep}
-          onClick={() => onChange(value === max ? 1 : value + 1)}
+          onClick={() => {if(!asleep)onChange(next);}}
         >
           +
         </button>

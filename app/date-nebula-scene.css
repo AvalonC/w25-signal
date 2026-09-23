@@ -1,0 +1,29 @@
+/* The dials release their light in place; their particles meet in the same stage. */
+.date-nebula-player .path-date-stage { isolation:isolate; }
+.date-nebula-player.is-unveiling .date-wheels .dial-block,
+.date-nebula-player.is-unveiling .date-wheels .dial-block:last-child {
+  animation:none!important;
+  opacity:var(--dial-release-opacity,1);
+  transform:scale(var(--dial-release-scale,1)) rotate(var(--dial-release-angle,0deg));
+  transform-origin:50% 42%;
+  filter:drop-shadow(0 0 9px rgba(var(--date-rgb),.38));
+}
+.date-nebula-player.is-unveiling .date-wheels .dial-block:last-child { transform:scale(var(--dial-release-scale,1)) rotate(calc(var(--dial-release-angle,0deg)*-1)); }
+.date-nebula-player .path-date-light { z-index:2; }
+.date-nebula-player .path-date-light .star-sapphire-canvas { position:absolute;inset:0; }
+.date-result-overlay { position:absolute; inset:0; z-index:3; pointer-events:none; }
+.date-return-star { position:absolute; transform:translate(-50%,-50%); width:72px;height:72px;padding:0;pointer-events:auto;touch-action:manipulation; }
+.date-return-star:disabled { pointer-events:none; }
+.date-return-star:not(:disabled) .path-company-star { animation:return-light-call 2.6s ease-in-out infinite; }
+.date-result-verse { position:absolute;left:5%;right:5%;bottom:0;margin:0;text-align:center;font:13px/1.7 'Songti SC',serif;color:#cfbfd9; }
+.journey-returning .date-result-overlay { visibility:hidden; }
+.date-nebula-player .path-place-whisper { font-size:16px; min-height:40px;display:flex;align-items:center;justify-content:center; }
+@media(max-height:700px) {
+ .date-nebula-player .path-place-whisper { font-size:14px;min-height:34px; }
+ .date-result-verse { font-size:12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .date-nebula-player.is-unveiling .date-wheels .dial-block,
+ .date-nebula-player.is-unveiling .date-wheels .dial-block:last-child { transform:none; filter:none; }
+ .date-return-star:not(:disabled) .path-company-star { animation:none; }
+}

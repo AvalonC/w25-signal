@@ -10,7 +10,8 @@ import { SapphireScene } from './sapphire-scene';
 import { useVisibleClock } from './scene-clock';
 import { MOTION, softStep } from '@/lib/motion';
 import { NOUNS } from '@/lib/journey';
-import { SAPPHIRE_INTRO } from '@/lib/sapphire-discovery';
+import { DateNebula } from './date-nebula';
+import { DATE_NEBULA_TIMING, nebulaFrame, type NebulaPoint } from '@/lib/date-nebula';
 import { visitPath, completePrismPath, completeDatePath, infusePath, type StarPathState } from '@/lib/star-path';
 import { infusionFrame, prismEntranceFrame, prismReturnFrame, PRISM_RETURN_MS } from '@/lib/light-infusion';
 import { inViewport, wishOrbit, type SkyHandoff, type SkyPoint } from '@/lib/path-arrival';
@@ -42,7 +43,7 @@ export function StarPathJourney(props: Props) {
     if(returnStarted.current)return;
     const section=root.current,rect=section?.getBoundingClientRect();if(!rect)return;
     const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
-    const star=(source??section?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??section?.querySelector?.<HTMLElement>('.path-discovery-return .path-company')??section?.querySelector?.<HTMLElement>('.path-home .path-company'))?.getBoundingClientRect();
+    const star=(source??section?.querySelector?.<HTMLElement>('.prism-return-light .path-company')??section?.querySelector?.<HTMLElement>('.date-return-star')??section?.querySelector?.<HTMLElement>('.path-discovery-return .path-company')??section?.querySelector?.<HTMLElement>('.path-home .path-company'))?.getBoundingClientRect();
     const from=star?{x:(star.left+star.width/2)/width,y:(star.top+star.height/2)/height}:inViewport({x:23,y:72},rect,width,height);
     const to=inViewport(path.place==='date'?{x:76,y:46}:path.place==='sapphire'?{x:62,y:76}:{x:23,y:59},rect,width,height);
     returnStarted.current=true;returned.current=false;setReturnId(i=>i+1);onTap();props.onField?.(null);setSkyEntry(null);setReturning({from,to,place:path.place});
@@ -55,7 +56,7 @@ export function StarPathJourney(props: Props) {
     const canvas=close?.querySelector?.<HTMLElement>('.prism-light canvas, .star-sapphire-canvas, .date-dial')?.getBoundingClientRect();
     const closeRect=close?.getBoundingClientRect()??container,width=window.innerWidth||container.width,height=window.innerHeight||container.height;
     const to=carrier?{x:(carrier.left+carrier.width/2)/width,y:(carrier.top+carrier.height/2)/height}:returning.to;
-    const from=canvas?{x:canvas.left+canvas.width*(returning.place==='prism'?.44:.5),y:canvas.top+canvas.height*.49}:{x:closeRect.left+closeRect.width*.5,y:closeRect.top+closeRect.height*.49};
+    const from=canvas?{x:canvas.left+canvas.width*(returning.place==='prism'?.44:.5),y:canvas.top+canvas.height*(returning.place==='prism'?.49:.47)}:{x:closeRect.left+closeRect.width*.5,y:closeRect.top+closeRect.height*.49};
     const icon=target?{x:target.left+target.width/2,y:target.top+target.height/2}:{x:from.x,y:from.y};
     const extent=canvas?Math.min(canvas.width*.46,canvas.height*.46):closeRect.width*.46;
     setReturning(previous=>previous?{...previous,to,geometry:{x:icon.x-from.x,y:icon.y-from.y,scale:target?Math.min(.8,target.width/extent):.3,originX:from.x-closeRect.left,originY:from.y-closeRect.top}}:null);
@@ -96,12 +97,8 @@ export function StarPathJourney(props: Props) {
         entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
         onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
-        pink={path.color} paused={paused||!!returning} onDate={props.onDate} onTap={onTap} onFound={() => onPath(completeDatePath(path))}>
-        {path.dateFound && <div className="path-discovery-return">
-          <CompanionLight choices={choices} pink={path.color} onClick={() => visit('sky')} label="带着这一天的星光回到星路" />
-          {NOUNS[choices[1]]?.[2]&&<p className="path-wish-verse">{NOUNS[choices[1]][2]}</p>}
-        </div>}
-      </DatePlace>}
+        pink={path.color} paused={paused||!!returning} choices={choices} onDate={props.onDate} onTap={onTap}
+        onFound={() => onPath(completeDatePath(path))} onReturn={()=>visit('sky')}/>}
       {path.place === 'sapphire' && (path.infused
         ? <SapphireScene fromPath rotation={props.rotation} paused={paused||!!returning} onProgress={props.onRotation}
             onTap={onTap} onDone={props.onComplete} />
@@ -189,9 +186,9 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
   </div>;
 }
 
-function DatePlace({ month, day, found, paused, pink, onDate, onFound, onTap, children }: {
+function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, onTap, onReturn }: {
   month: number; day: number; found: boolean; paused: boolean; pink: boolean;
-  onDate: (month: number, day: number) => void; onFound: () => void; onTap: () => void; children: React.ReactNode;
+  choices:number[];onDate: (month: number, day: number) => void; onFound: () => void; onTap: () => void; onReturn:()=>void;
 }) {
   const [gathering, setGathering] = useState(false);
   const reduced = useReducedMotion();
@@ -202,58 +199,52 @@ function DatePlace({ month, day, found, paused, pink, onDate, onFound, onTap, ch
   const aligned = month === 10 && day === 8;
   const dwell = useVisibleClock(aligned && !paused && !found && !gathering && entered, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(gathering && !paused && !found);
-  const sky = useRef<HTMLDivElement>(null), done = useRef(false);
+  const sky = useRef<HTMLDivElement>(null), stage=useRef<HTMLDivElement>(null), done = useRef(false);
+  const [sources,setSources]=useState<[NebulaPoint,NebulaPoint]>([{x:.28,y:.29},{x:.72,y:.74}]);
   const callbacks = useRef({ onFound, onTap }); callbacks.current = { onFound, onTap };
-  const { orbits, light, weave } = reduced ? { orbits: 500, light: 400, weave: 800 } : SAPPHIRE_INTRO;
+  const duration=reduced?DATE_NEBULA_TIMING.reduced:DATE_NEBULA_TIMING.total;
+  const scene=nebulaFrame(found?duration:elapsed,reduced);
+  const returnBirth=useVisibleClock(found&&!paused,'return-star');
+  const returnLight=softStep(returnBirth/(reduced?300:1400));
   useEffect(() => {
     if (paused || found || document.hidden) return;
     if (!gathering && dwell >= 650) { setGathering(true); callbacks.current.onTap(); }
-    if (gathering && elapsed >= orbits + light + weave && !done.current) {
+    if (gathering && scene.done && !done.current) {
       done.current = true; callbacks.current.onFound();
     }
-  }, [dwell, elapsed, gathering, found, paused, orbits, light, weave]);
+  }, [dwell, gathering, found, paused, scene.done]);
   useLayoutEffect(() => {
-    if (!gathering || !sky.current) return;
-    const rect = sky.current.getBoundingClientRect();
-    sky.current.closest('.birth-chapter')?.querySelectorAll<HTMLElement>('.dial-block').forEach((dial) => {
-      const start = (dial.querySelector<HTMLElement>('.date-dial') ?? dial).getBoundingClientRect();
-      dial.style.setProperty('--orbit-to-x', `${rect.left + rect.width * .5 - (start.left + start.width / 2)}px`);
-      dial.style.setProperty('--orbit-to-y', `${rect.top + rect.height * .47 - (start.top + start.height / 2)}px`);
-    });
+    if(!gathering||!stage.current)return;
+    const area=stage.current,rect=area.getBoundingClientRect();
+    const dials=area.querySelectorAll?.<HTMLElement>('.date-dial');
+    if(dials?.length===2&&rect.width&&rect.height){
+      setSources(Array.from(dials).map(dial=>{const r=dial.getBoundingClientRect();return{x:(r.left+r.width/2-rect.left)/rect.width,y:(r.top+r.height/2-rect.top)/rect.height};}) as [NebulaPoint,NebulaPoint]);
+    }
   }, [gathering]);
-  const forming = found || elapsed >= orbits + light;
-  const gather = softStep(elapsed / orbits);
-  const energy = Math.max(0, Math.sin(Math.PI * Math.min(1, elapsed / (orbits + light))));
-  return <div className={'path-date-view birth-chapter' + (gathering || found ? ' is-unveiling' : '') + (pink ? ' date-pink' : '')}
+  return <div className={'path-date-view birth-chapter date-nebula-player' + (gathering || found ? ' is-unveiling' : '') + (pink ? ' date-pink' : '')}
     style={{ '--date-rgb': pink ? '255,179,222' : '229,237,255', '--date-enter':approach,
-      '--gather-clock': `${-elapsed}ms`, '--gather-duration': `${orbits}ms` } as CSSProperties}>
-    <p className="path-place-whisper">{found ? '这一天的光，还在。' : gathering ? '两段时光，正在相遇。' : '让时光，停在你来到世上的那天。'}</p>
-    <div className="path-date-stage">
+      '--dial-release-opacity':scene.dialOpacity,'--dial-release-scale':scene.dialScale,
+      '--dial-release-angle':`${scene.release*16}deg` } as CSSProperties}>
+    <p className="path-place-whisper">{found ? '那一天的星光，有了形状。' : gathering ? scene.formation>0?'星云里的光，慢慢有了形状。':scene.gather>=1?'两段时光，凝成一片星云。':'两段时光，正在相遇。' : '让时光，停在你来到世上的那天。'}</p>
+    <div ref={stage} className="path-date-stage" data-nebula-phase={!gathering&&!found?'dial':scene.formation>0?'forming':scene.gather>=1?'nebula':'gathering'}>
     {!found && <div className="date-wheels" inert={gathering || paused || !entered} aria-hidden={gathering}>
       <DateDial label="月" value={month} max={12} kind="month" paused={paused || gathering || !entered} aligned={month === 10} onChange={(n) => { if (!paused && entered) { onDate(n, day); onTap(); } }} />
       <DateDial label="日" value={day} max={31} kind="day" paused={paused || gathering || !entered} aligned={day === 8} onChange={(n) => { if (!paused && entered) { onDate(month, n); onTap(); } }} />
     </div>}
+    {(gathering||found)&&<DateNebula elapsed={found?duration:elapsed} paused={paused} pink={pink} reduced={reduced} sources={sources} settled={found}/>}
     <div ref={sky} className={'path-date-light' + (gathering || found ? ' is-visible' : '')} aria-hidden="true">
-      <StarSapphire formation={found ? 1 : forming ? Math.min(1, (elapsed - orbits - light) / weave) : 0}
+      <StarSapphire formation={scene.formation}
         release={0} angle={.32} paused={paused || (!gathering && !found)} demonstrate={false}
-        origin="light" light={Math.min(1, elapsed / orbits)}
-        dust={found ? 1 : Math.max(0, Math.min(1, (elapsed - orbits) / light))} tint={pink ? 1 : 0} libra={found} />
+        origin="nebula" light={0} dust={scene.formation} tint={pink ? 1 : 0} libra={found} />
     </div>
-    {gathering && !found && <svg className="date-confluence" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"
-      style={{ opacity: energy, '--gather-glow': reduced ? .3 : energy } as CSSProperties}>
-      {[-1,1].map((side) => <g key={side}>
-        <path d={`M${50+side*24} ${47+side*10}C${50+side*38*(1-gather)} ${47-side*28} ${50-side*22} ${47+side*24} 50 47`} />
-        {!reduced && Array.from({length:7},(_,i) => {
-          const t=((elapsed*.00038+i/7)%1), bend=Math.sin(t*Math.PI)*(1-gather)*side*18;
-          return <circle key={i} cx={50+side*24*(1-t)+bend} cy={47+side*10*(1-t)-Math.sin(t*Math.PI)*side*20}
-            r={.15+(i%3)*.07} opacity={Math.sin(t*Math.PI)*.85} />;
-        })}
-      </g>)}
-      <circle className="date-confluence-heart" cx="50" cy="47" r={1+gather*2.8} />
-      <circle className="date-confluence-ring" cx="50" cy="47" r={4+gather*16} />
-    </svg>}
+    {found&&<div className="date-result-overlay">
+      <button className="date-return-star" style={{left:`${50+Math.sin(returnLight*Math.PI)*7}%`,top:`${47+returnLight*39}%`,opacity:Math.min(1,returnLight*4+.2)}}
+        disabled={paused||returnLight<1} aria-label="带着这一天的星光回到星路" onClick={()=>{if(!paused&&returnLight===1)onReturn();}}>
+        <CompanionLight choices={choices} pink={pink}/>
+      </button>
+      {NOUNS[choices[1]]?.[2]&&<p className="date-result-verse" style={{opacity:softStep((returnLight-.6)/.4)}}>{NOUNS[choices[1]][2]}</p>}
+    </div>}
     </div>
-    {children}
   </div>;
 }
 

@@ -18,7 +18,7 @@ const seeds=edges.flatMap(([a,b],e)=>Array.from({length:9},(_,i)=>({v:vertices[a
 const rand=(i:number)=>{const v=Math.sin(i*127.1+311.7)*43758.5453;return v-Math.floor(v);};
 export function StarSapphire({ formation, release, angle, paused, demonstrate, origin = 'stars', light = 0, dust = 1, tint = 1, libra = false, infusion = 0, radiance = 0, discovery }: {
   formation:number; release:number; angle:number; paused:boolean; demonstrate:boolean;
-  origin?:'light'|'stars'; light?:number; dust?:number; tint?:number; libra?:boolean;
+  origin?:'light'|'stars'|'nebula'; light?:number; dust?:number; tint?:number; libra?:boolean;
   infusion?:number; radiance?:number; discovery?:DiscoverySight;
 }){
   const ref=useRef<HTMLCanvasElement>(null),live=useRef({formation,release,angle,paused,demonstrate,origin,light,dust,tint,libra,infusion,radiance,discovery});
@@ -141,10 +141,13 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
       }
       seeds.forEach(({v,seed},i)=>{
         const q=project(v),expansion=p.origin==='light'?softStep(p.dust):1;
-        const sx=w*.5+(rand(seed)-.5)*w*.84*expansion,sy=h*.47+(rand(seed+500)-.5)*h*.85*expansion;
+        const nebulaAngle=(seed%3)*Math.PI*2/3+rand(seed+17)*4.5;
+        const nebulaRadius=(.018+rand(seed+17)**.7*.2)*(1-form*.32);
+        const sx=p.origin==='nebula'?w*(.5+Math.cos(nebulaAngle)*nebulaRadius):w*.5+(rand(seed)-.5)*w*.84*expansion;
+        const sy=p.origin==='nebula'?h*.47+Math.sin(nebulaAngle)*nebulaRadius*w*.64:h*.47+(rand(seed+500)-.5)*h*.85*expansion;
         let x=sx+(q.x-sx)*form,y=sy+(q.y-sy)*form;
         if(!reduced){x+=(rand(seed+2300)*w-x)*exit;y+=(rand(seed+3400)*h-y)*exit;}
-        g.globalAlpha=(.28+.48*(reduced?.7:Math.sin(seed+time*.0008)**2))*(1-exit)*(p.origin==='light'?softStep(p.dust):1);
+        g.globalAlpha=(.28+.48*(reduced?.7:Math.sin(seed+time*.0008)**2))*(1-exit)*(p.origin==='light'||p.origin==='nebula'?softStep(p.dust):1);
         g.fillStyle=i%9===0?'#f1eeff':`rgb(${rgb})`;g.beginPath();g.arc(x,y,i%9===0?1.4:.55,0,7);g.fill();
       });g.globalAlpha=1;
       if(libraFade>.01){

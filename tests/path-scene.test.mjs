@@ -33,9 +33,11 @@ async function scene(initial, body) {
   const original = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let now = 0, frameId = 0, root, current;
   const frames = new Map(), discoveries = [], fields=[];
-  const host = () => ({
+  const host = (element) => ({
     getContext: () => null,
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 500 }),
+    querySelectorAll: element?.props?.className === 'path-date-stage' && initial.dialRects
+      ? () => initial.dialRects.map((rect) => ({ getBoundingClientRect: () => rect })) : undefined,
     closest: () => ({ querySelectorAll: () => [] }),
     style: { setProperty() {} },
     setPointerCapture() {}, hasPointerCapture: () => false, releasePointerCapture() {},
@@ -180,6 +182,115 @@ test('a birthday found after the colour gathers pink and reduced motion still pr
     await advance(2600);
     assert.equal(current().path.dateFound,true); assert.equal(stone().props.tint,1);
     assert.equal(discoveries.length,1);
+  });
+});
+
+test('the date place uses the live nebula clock, preserves the selected light, and returns the born star once', async () => {
+  for (const pink of [false, true]) await scene({ path: { ...freshPath(), place: 'date', color: pink }, month: 10, day: 8 }, async ({ root, advance, current, pause, visibility, discoveries }) => {
+    const nebulaNodes = () => root.root.findAll((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
+    const nebula = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
+    const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
+    const stage = () => root.root.findByProps({ className: 'path-date-stage' });
+    await advance(1080);
+    assert.equal(nebulaNodes().length, 0, 'the matching date cannot bypass the 1100ms entry');
+    assert.equal(root.root.findByProps({ className: 'date-wheels' }).props.inert, true);
+    await advance(40);
+    assert.equal(root.root.findByProps({ className: 'date-wheels' }).props.inert, false);
+    await advance(640);
+    assert.equal(nebulaNodes().length, 0, 'alignment still needs the full 650ms dwell after entry');
+    await advance(40);
+    assert.equal(root.root.findByProps({ className: 'date-wheels' }).props.inert, true);
+    assert.equal(root.root.findAllByProps({ className: 'date-confluence' }).length, 0, 'the old straight-line SVG is gone');
+    assert.equal(nebula().props.pink, pink, 'the nebula inherits the previously selected light');
+    assert.deepEqual(nebula().props.sources, [{ x: .28, y: .29 }, { x: .72, y: .74 }], 'the measured dial fallback stays normalized');
+    assert.equal(nebula().props.settled, false);
+    assert.equal(stage().props['data-nebula-phase'], 'gathering');
+    assert.equal(stone().props.formation, 0);
+    await advance(2000);
+
+    const held = nebula().props.elapsed;
+    await pause(true); await advance(2600);
+    assert.equal(nebula().props.elapsed, held, 'help freezes the gathering clock');
+    await pause(false);
+    await visibility(true); await advance(2600);
+    assert.equal(nebula().props.elapsed, held, 'a hidden tab cannot advance the gathering');
+    await visibility(false); await advance(2000);
+    assert.equal(current().path.dateFound, false, 'the star is not born during the gathering');
+    assert.ok(nebula().props.elapsed > held);
+    assert.equal(nebula().props.settled, false);
+    assert.equal(stage().props['data-nebula-phase'], 'nebula');
+    assert.equal(stone().props.formation, 0, 'a visible cloud precedes the sapphire outline');
+    assert.equal(root.root.findAllByProps({ className: 'date-confluence' }).length, 0);
+
+    await advance(1600);
+    assert.equal(current().path.dateFound, false, 'the formation phase still waits for the full nebula clock');
+    assert.ok(stone().props.formation > 0 && stone().props.formation < 1, 'the nebula has begun to form the sapphire');
+    assert.equal(stage().props['data-nebula-phase'], 'forming');
+    await advance(2200);
+    assert.equal(current().path.dateFound, true);
+    const born = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
+    assert.equal(born.props.origin, 'nebula');
+    assert.equal(born.props.libra, true);
+    assert.equal(nebula().props.settled, true, 'the finished star keeps a quiet nebula around it');
+
+    const returnStar = () => root.root.findByProps({ className: 'date-return-star' });
+    assert.equal(returnStar().props.disabled, true, 'the return star waits for its flight');
+    assert.equal(returnStar().props.style.top, '47%', 'the return light is born inside the sapphire');
+    await act(() => returnStar().props.onClick());
+    assert.equal(root.root.findAllByProps({ className: 'path-returning-carrier' }).length, 0, 'an early tap cannot skip the birth flight');
+    await advance(640);
+    const frozenBirth = { ...returnStar().props.style };
+    await pause(true); await advance(5000);
+    assert.deepEqual(returnStar().props.style, frozenBirth);
+    await pause(false); await visibility(true); await advance(5000);
+    assert.deepEqual(returnStar().props.style, frozenBirth, 'the star birth also freezes while the tab is hidden');
+    await act(() => returnStar().props.onClick());
+    assert.equal(root.root.findAllByProps({ className: 'path-returning-carrier' }).length, 0);
+    await visibility(false); await advance(720);
+    assert.equal(returnStar().props.disabled, true, '1360ms of visible birth time is still too early');
+    await advance(40);
+    assert.equal(returnStar().props.disabled, false, 'the star becomes clickable only after reaching the return point');
+    assert.equal(returnStar().props.style.top, '86%');
+    const clickReturn = returnStar().props.onClick;
+    await act(() => { clickReturn(); clickReturn(); });
+    const sky = () => root.root.find((node) => node.type === 'section' && node.props.className.startsWith('path-exploration'));
+    const returningSky = sky();
+    await advance(1200);
+    assert.equal(current().path.place, 'date', 'return starts a flight instead of cutting to the map');
+    await pause(true); await advance(3000); assert.equal(current().path.place, 'date', 'help freezes the return flight');
+    await pause(false); await advance(1300);
+    assert.equal(current().path.place, 'sky');
+    assert.equal(current().path.anchor, 'date');
+    assert.equal(sky(), returningSky, 'the return hands off to the already visible map');
+    assert.equal(root.root.findAllByProps({ className: 'date-return-star' }).length, 0);
+    assert.equal(discoveries.filter((path) => path.place === 'date' && path.dateFound).length, 1);
+    assert.equal(discoveries.filter((path) => path.place === 'sky').length, 1, 'double tapping only returns once');
+    await advance(5000);
+    assert.equal(discoveries.filter((path) => path.place === 'sky').length, 1);
+  });
+});
+
+test('the nebula sources use the rendered dial centers and reduced motion keeps the short return birth', async () => {
+  await scene({ reduced: true, path: { ...freshPath(), place: 'date', color: true }, month: 10, day: 8,
+    dialRects: [{ left: 40, top: 50, width: 120, height: 120 }, { left: 230, top: 280, width: 120, height: 120 }] },
+  async ({ root, advance, current }) => {
+    await advance(960);
+    const nebula = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
+    assert.deepEqual(nebula.props.sources, [{ x: .25, y: .22 }, { x: .725, y: .68 }]);
+    assert.equal(nebula.props.reduced, true);
+    assert.equal(nebula.props.pink, true);
+    await advance(1800);
+    assert.equal(current().path.dateFound, true);
+    const returnStar = () => root.root.findByProps({ className: 'date-return-star' });
+    assert.equal(returnStar().props.disabled, true);
+    await advance(280);
+    assert.equal(returnStar().props.disabled, true, 'the quiet birth still has a visible short interval');
+    await advance(40);
+    assert.equal(returnStar().props.disabled, false);
+    await act(() => returnStar().props.onClick());
+    await advance(400); assert.equal(current().path.place, 'date');
+    await advance(40); assert.equal(current().path.place, 'sky');
+    assert.equal(current().path.anchor, 'date');
   });
 });
 

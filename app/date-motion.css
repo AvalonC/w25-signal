@@ -1,9 +1,12 @@
 /* Only the fine orbits drift. The date scale always points at its actual value. */
-.dial-motion .date-dial { isolation:isolate; }
+.dial-motion .date-dial { isolation:isolate; container-type:inline-size; clip-path:circle(50%); }
+.dial-block.dial-motion { pointer-events:none; }
+.dial-motion .date-dial,.dial-motion .dial-arrows button { pointer-events:auto; }
 .path-date-view .date-dial { border-color:rgba(var(--date-rgb),.13); background:transparent; }
-.path-date-view .date-dial > svg > circle { stroke:rgba(var(--date-rgb),.25); stroke-width:.65; }
-.path-date-view .date-dial .dial-scale line { stroke:rgba(var(--date-rgb),.25); }
-.path-date-view .date-dial .dial-scale .dial-active { stroke:rgba(var(--date-rgb),.86); }
+.path-date-view .date-dial > svg > circle { stroke:rgba(var(--date-rgb),.32); stroke-width:1.25; }
+.path-date-view .date-dial .dial-scale line { stroke:rgba(var(--date-rgb),.49); stroke-width:1.9; stroke-linecap:round; }
+.path-date-view .date-dial .dial-scale .dial-major { stroke:rgba(var(--date-rgb),.7); stroke-width:2.4; }
+.path-date-view .date-dial .dial-scale .dial-active { stroke:rgb(var(--date-rgb)); stroke-width:3.2; }
 .path-date-view .date-dial .dial-scale text { font-size:10px; fill:rgba(var(--date-rgb),.65); letter-spacing:0; }
 .path-date-view .dial-month .date-dial .dial-scale text { font-size:13px; }
 .path-date-view .date-dial .dial-scale .dial-label-active { fill:rgba(var(--date-rgb),.95); }
@@ -44,6 +47,16 @@
 .dial-motion .date-dial .dial-pointer { transition:fill 900ms,filter 900ms; }
 .dial-motion.dial-aligned .date-dial .dial-pointer { fill:#ffe6f4; filter:drop-shadow(0 0 4px #ffb3de99); }
 .dial-motion .date-dial strong { transition:color 900ms,text-shadow 900ms; }
+.dial-motion .date-dial > .dial-reading { inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:0; padding:0; transform:translateY(1%); }
+.dial-motion .date-dial > .dial-reading strong { color:#f7effa; font:400 clamp(46px,41cqw,88px)/.98 Georgia,'Times New Roman',serif; font-variant-numeric:lining-nums tabular-nums; letter-spacing:0; }
+.dial-motion .date-dial > .dial-reading small { margin-top:4px; color:#e5dceb; font:400 clamp(14px,8cqw,18px)/1.1 'Songti SC',serif; letter-spacing:0; }
+.dial-motion .date-dial > .dial-reading .dial-zodiac { display:block; color:#efe2f5; font:400 clamp(30px,22cqw,46px)/1 'Segoe UI Symbol','Apple Symbols',serif; margin-bottom:2px; }
+.dial-motion.dial-day .date-dial > .dial-reading strong { font-size:clamp(50px,44cqw,92px); }
+.dial-motion .date-dial svg .dial-neighbours text { fill:#cfbfdc; font:16px Georgia,'Times New Roman',serif; letter-spacing:0; }
+.dial-motion.dial-month .date-dial svg .dial-neighbours text { font:24px 'Segoe UI Symbol','Apple Symbols',serif; }
+.dial-motion .date-dial .dial-pointer { fill:#f4e8fa; }
+.dial-motion .dial-arrows button { min-width:44px; min-height:44px; color:#e5d7ed; font-size:25px; }
+.dial-motion .dial-arrows span { width:14px; }
 .dial-motion.dial-aligned .date-dial strong { color:#ffe5f3; text-shadow:0 0 20px #ffb3de40; }
 .dial-motion.dial-paused .dial-orbit,
 .dial-motion.dial-turning .dial-orbit { animation-play-state:paused; }

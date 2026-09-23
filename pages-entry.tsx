@@ -15,5 +15,7 @@ import './app/path-closure.css';
 import './app/immersive.css';
 import './app/opening-lesson.css';
 import './app/path-destinations.css';
+import './app/date-nebula.css';
+import './app/date-nebula-scene.css';
 
 createRoot(document.getElementById('root')!).render(<JourneyGame />);
