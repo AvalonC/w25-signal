@@ -10,7 +10,7 @@ export interface StarPathState {
 }
 
 export const PATH_ANCHORS = {
-  origin: { x: 26, y: 78 }, prism: { x: 23, y: 59 },
+  origin: { x: 50, y: 77 }, prism: { x: 23, y: 59 },
   date: { x: 76, y: 46 }, sapphire: { x: 62, y: 76 },
 } as const;
 

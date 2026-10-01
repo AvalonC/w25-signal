@@ -39,9 +39,9 @@ export function PrismLight({ value, bloom, paused, locked, onChange, entrance = 
       const p=current.current, camera=prismEntranceFrame(p.entryTime,reduced);
       const spread = softStep(p.bloom/MOTION.prismBloom), close = Math.exp(-(((angle-68)/13)**2));
       const power = p.entrance*camera.spectrum, drift = reduced ? 0 : time*.00023;
-      const cameraTravel=reduced?1:camera.approach*.42+camera.turn*.58;
-      const cx = w*(.62-.18*cameraTravel), cy = h*(.41+.08*cameraTravel);
-      const size = Math.min(w*.23, h*.23)*(reduced?1:.45+.55*cameraTravel), end=w*1.08;
+      // The glass turns on its own axis; its screen position and size never zoom.
+      const cx = w*.44, cy = h*.49;
+      const size = Math.min(w*.23, h*.23), end=w*1.08;
       const yaw=reduced?-.35:-1.46+1.11*camera.turn, tilt=(angle-50)*.009*camera.turn;
       const project=(x:number,y:number,z:number)=>{
         const rx=x*Math.cos(yaw)+z*Math.sin(yaw),rz=z*Math.cos(yaw)-x*Math.sin(yaw);
@@ -63,10 +63,16 @@ export function PrismLight({ value, bloom, paused, locked, onChange, entrance = 
       }
       if(!camera.done){
         const box=c.getBoundingClientRect(),origin=p.entryOrigin?{x:p.entryOrigin.x*innerWidth-box.left,y:p.entryOrigin.y*innerHeight-box.top}:{x:w*.5,y:h*.86};
-        const meeting={x:w*.53,y:h*.52};
-        const advance=camera.approach,orbit=camera.turn;
-        const forward={x:origin.x+(meeting.x-origin.x)*advance,y:origin.y+(meeting.y-origin.y)*advance};
-        const star={x:forward.x+(source.x-forward.x)*orbit,y:forward.y+(source.y-forward.y)*orbit};
+        // Reach the incident source before the beam starts, on one shallow curve.
+        // The turn and beam overlap by 50ms, so normalize to the turn at beam onset.
+        const turnAtBeam=softStep((2650-1200)/1500);
+        const flight=softStep(camera.approach*.4+Math.min(1,camera.turn/turnAtBeam)*.6),u=1-flight;
+        const dx=source.x-origin.x,dy=source.y-origin.y,distance=Math.hypot(dx,dy);
+        const bend=reduced?0:Math.min(16,distance*.065),nx=distance?-dy/distance:0,ny=distance?dx/distance:0;
+        const first={x:origin.x+dx*.32+nx*bend,y:origin.y+dy*.32+ny*bend};
+        const second={x:origin.x+dx*.72+nx*bend*.4,y:origin.y+dy*.72+ny*bend*.4};
+        const star={x:u*u*u*origin.x+3*u*u*flight*first.x+3*u*flight*flight*second.x+flight*flight*flight*source.x,
+          y:u*u*u*origin.y+3*u*u*flight*first.y+3*u*flight*flight*second.y+flight*flight*flight*source.y};
         const at=beam>0?tip:star,opacity=1-softStep((camera.spectrum-.05)/.5);
         ctx.globalAlpha=opacity;ctx.fillStyle='#fff3fc';ctx.shadowColor='#dbe9ff';ctx.shadowBlur=14;
         const r=12-(camera.approach*4);ctx.beginPath();ctx.moveTo(at.x,at.y-r);ctx.lineTo(at.x+2,at.y-2);

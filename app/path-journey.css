@@ -54,8 +54,11 @@
 .free-flow .path-date-view .dial-block:first-child { transform:none; translate:0 -8%; }
 .free-flow .path-date-view .dial-block:last-child { transform:none; translate:0 8%; }
 .path-date-view .date-dial { width:100%; height:auto; aspect-ratio:1; max-width:none; max-height:none; touch-action:none; }
-.path-date-view:not(.is-unveiling) .date-dial { opacity:calc(.15 + var(--date-enter,1)*.85); transform:scale(calc(.64 + var(--date-enter,1)*.36)) rotate(calc((1 - var(--date-enter,1))*-28deg)); }
-.path-date-view:not(.is-unveiling) .dial-day .date-dial { transform:scale(calc(.64 + var(--date-enter,1)*.36)) rotate(calc((1 - var(--date-enter,1))*28deg)); }
+.path-date-view:not(.is-unveiling) .date-dial { transform:none; opacity:1; }
+.path-date-view:not(.is-unveiling) .date-dial { border-color:rgba(var(--date-rgb),calc(var(--date-enter,1)*.13)); }
+.path-date-view:not(.is-unveiling) .dial-arrows,.path-date-view:not(.is-unveiling) > .path-place-whisper { opacity:var(--date-enter,1); }
+.date-entering-star { position:fixed; width:72px; height:72px; transform:translate(-50%,-50%); z-index:4; pointer-events:none; }
+.date-entering-star .path-company-star { animation:none; }
 .path-date-view .date-dial svg { width:100%; height:100%; }
 .path-date-view .date-dial strong { font-size:28px; line-height:1.4; }
 .path-date-view .date-dial small { font-size:11px; line-height:1.6; letter-spacing:0; }

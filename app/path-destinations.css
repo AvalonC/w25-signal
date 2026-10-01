@@ -2,11 +2,18 @@
 .path-arriving .path-company-star { animation:none; }
 .path-arriving .path-place { transition:color 900ms,filter 600ms; }
 .path-destination-drawing .path-forming-point { fill:currentColor; stroke:none; filter:drop-shadow(0 0 3px #f5e1f4); }
-.path-destination-drawing .path-prism-face { fill:#e4d5f2; }
+.path-destination-drawing .path-prism-fold { fill:#e4d5f2; stroke:none; }
+.path-destination-drawing .path-prism-fold-right { fill:#bbd6ed; }
+.path-destination-drawing .path-prism-ridge { stroke-opacity:.8; }
 .path-destination-drawing .path-prism-input { stroke:#eee5f4; stroke-opacity:.55; }
 .path-destination-drawing .path-prism-ray-rose { stroke:#f4b9db; }
 .path-destination-drawing .path-prism-ray-pearl { stroke:#dfd5ed; }
 .path-destination-drawing .path-prism-ray-ice { stroke:#a9d2ea; }
+.path-destination-drawing .path-date-axis { stroke:#e7d8ef; stroke-opacity:.55; }
+.path-destination-drawing .path-date-ring,.path-destination-drawing .path-prism-outline { stroke-linecap:round; stroke-linejoin:round; }
+.path-destination-drawing .path-date-needle-growing { fill:#b7bfda18; }
+.path-destination-drawing .path-date-needle { animation-name:path-destination-needle-drift; }
+@keyframes path-destination-needle-drift { 0%,100% { transform:rotate(0); } 25% { transform:rotate(8deg); } 75% { transform:rotate(-8deg); } }
 .path-entry-route-mask { fill:none; stroke:white; stroke-width:3; }
 .path-arriving .path-place svg { filter:drop-shadow(0 0 5px #cdbada33); }
 .path-arriving .path-origin { opacity:0; }

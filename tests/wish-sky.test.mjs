@@ -100,44 +100,27 @@ test('wishes support an ordinary pointer tap, a dragged release and native keybo
   });
 });
 
-test('three wishes orbit before flying to the next scene and hand off only once', async () => {
-  await scene({ choices: [0, 3, 5] }, async ({ fields, handoffs, advance, completions }) => {
-    await advance(2000);
-    assert.equal(fields.at(-1).departing, false); assert.equal(completions(), 0);
-    assert.deepEqual(fields.at(-1).carrier, { x: 180, y: 485 });
-    await advance(160);
-    assert.equal(fields.at(-1).departing, true); assert.equal(completions(), 0);
-    await advance(720);
-    const middle = fields.at(-1).carrier;
-    assert.ok(middle.x < 180 && middle.x > 103.2 && middle.y < 485, 'flight bends upward while travelling to the star-path entry');
-    assert.equal(completions(), 0);
-    await advance(1000);
-    assert.equal(completions(), 1);
-    assert.ok(Math.abs(fields.at(-1).carrier.x - 103.2) < 1e-10);
-    assert.equal(fields.at(-1).carrier.y, 490);
-    assert.ok(Math.abs(handoffs[0].main.x*390-fields.at(-1).carrier.x)<1e-8);
-    assert.ok(Math.abs(handoffs[0].main.y*844-fields.at(-1).carrier.y)<1e-8);
-    assert.ok(Math.abs(handoffs[0].orbit-fields.at(-1).orbit)<.3,'handoff preserves the continuing orbit phase');
-    assert.equal(handoffs[0].companions.length,3);
-    await advance(5000); assert.equal(completions(), 1);
+test('the main star stays still while three wishes gather, then hands its exact orbit to the selection sky once', async () => {
+  await scene({choices:[0,3,5]},async({fields,handoffs,advance,completions})=>{
+    await advance(2000);assert.equal(completions(),0);
+    assert.ok(fields.every(field=>field.carrier.x===180&&field.carrier.y===485),'the wishes never move the main star toward a new start');
+    assert.ok(fields.every(field=>field.departing===false),'the companion orbit never shrinks for a departure flight');
+    await advance(160);assert.equal(completions(),1);
+    const transfer=handoffs[0];assert.equal(transfer.kind,'wish');
+    assert.ok(Math.abs(transfer.main.x*390-180)<1e-8);assert.ok(Math.abs(transfer.main.y*844-485)<1e-8);
+    transfer.companions.forEach(p=>assert.ok(Math.abs(Math.hypot((p.x-transfer.main.x)*390,(p.y-transfer.main.y)*844/.6)-30)<1e-8));
+    await advance(5000);assert.equal(completions(),1);
+    assert.ok(fields.every(field=>field.carrier.x===180&&field.carrier.y===485));
   });
 });
 
-test('help and a hidden document pause the orbit and flight instead of skipping either phase', async () => {
-  await scene({ choices: [0, 3, 5] }, async ({ fields, pause, visibility, advance, completions }) => {
-    await advance(1000); await pause(true); await advance(9000);
-    assert.equal(fields.at(-1).departing, false);
-    await pause(false); await visibility(true); await advance(9000);
-    assert.equal(fields.at(-1).departing, false);
-    await visibility(false); await advance(1200);
-    assert.equal(fields.at(-1).departing, true);
-    await advance(400); const before = fields.at(-1).carrier;
-    await pause(true); await advance(9000);
-    assert.deepEqual(fields.at(-1).carrier, before); assert.equal(completions(), 0);
-    await pause(false); await visibility(true); await advance(9000);
-    assert.deepEqual(fields.at(-1).carrier, before); assert.equal(completions(), 0);
-    await visibility(false); await advance(1300);
-    assert.equal(completions(), 1);
+test('help and a hidden document pause wish gathering without moving or prematurely handing off the star', async () => {
+  await scene({choices:[0,3,5]},async({fields,pause,visibility,advance,completions})=>{
+    await advance(1000);const before=fields.at(-1);
+    await pause(true);await advance(9000);assert.deepEqual(fields.at(-1),before);assert.equal(completions(),0);
+    await pause(false);await visibility(true);await advance(9000);assert.deepEqual(fields.at(-1),before);assert.equal(completions(),0);
+    await visibility(false);await advance(1200);assert.equal(completions(),1);
+    assert.deepEqual(fields.at(-1).carrier,before.carrier);
   });
 });
 
@@ -156,7 +139,7 @@ test('cancelled, lost, interrupted and mismatched gestures never choose a wish o
   }
 });
 
-test('keyboard choice respects help and visibility and reduced motion still preserves orbit before departure', async () => {
+test('keyboard choice respects help and visibility and reduced motion still preserves the orbit through a short stationary handoff', async () => {
   await scene({ reduced: true }, async ({ star, pause, visibility, advance, fields, completions }) => {
     await pause(true); await act(() => star(0).props.onClick({ detail: 0 }));
     assert.equal(star(0).props['aria-pressed'], false);
@@ -165,7 +148,7 @@ test('keyboard choice respects help and visibility and reduced motion still pres
     await visibility(false);
     for (const i of [0, 3, 5]) await act(() => star(i).props.onClick({ detail: 0 }));
     await advance(320); assert.equal(fields.at(-1).departing, false);
-    await advance(80); assert.equal(fields.at(-1).departing, true); assert.equal(completions(), 0);
-    await advance(320); assert.equal(completions(), 1);
+    await advance(80); assert.equal(fields.at(-1).departing, false); assert.equal(completions(), 1);
+    assert.deepEqual(fields.at(-1).carrier,{x:180,y:485});
   });
 });

@@ -9,9 +9,9 @@ import { PATH_ANCHORS, type StarPathState } from '@/lib/star-path';
 import { softStep } from '@/lib/motion';
 import { useVisibleClock } from './scene-clock';
 import { DestinationDrawing } from './path-destinations';
-import { inSky, pathArrival, pathReturn, wishOrbit, PATH_PLACES, type SkyBox, type SkyHandoff } from '@/lib/path-arrival';
+import { inSky, pathArrival, pathReturn, wishOrbit, PATH_PLACES, WISH_ORBIT_RADIUS, type SkyBox, type SkyHandoff } from '@/lib/path-arrival';
 import type { WishField } from './particles';
-import { onwardPoint } from '@/lib/return-flight';
+import { onwardPoint, tracePoint } from '@/lib/return-flight';
 
 export type PathPlace = 'sky' | 'prism' | 'date' | 'sapphire';
 type Destination = Exclude<PathPlace, 'sky'>;
@@ -67,6 +67,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const lightRef = useRef<HTMLButtonElement>(null);
   const gesture = useRef<{ id: number; dx: number; dy: number } | null>(null);
   const positionRef = useRef<Point>({ ...PATH_ANCHORS[anchor ?? 'origin'] });
+  const moved = useRef(false);
   const [position, setPosition] = useState<Point>(positionRef.current);
   const [dragging, setDragging] = useState(false);
   const [near, setNear] = useState<Destination | null>(null);
@@ -74,15 +75,18 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const [reduced, setReduced] = useState(() => typeof window!=='undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [entryHandoff] = useState(handoff??null);
   const [layout,setLayout] = useState<{box:SkyBox;width:number;height:number}|null>(null);
-  const elapsed=useVisibleClock(!paused);
+  const elapsed=useVisibleClock(!paused&&!hidden);
   const fieldCallback=useRef(onField);fieldCallback.current=onField;
   const lastField=useRef<WishField|null>(null);
   const box=layout?.box??{left:0,top:0,width:1,height:1};
   const start=entryHandoff&&layout?inSky(entryHandoff.main,box,layout.width,layout.height):position;
   const companionStarts=entryHandoff&&layout?entryHandoff.companions.map(p=>inSky(p,box,layout.width,layout.height)):[];
-  const entry=(entryHandoff?.kind==='return'?pathReturn:pathArrival)(elapsed,reduced,start,companionStarts,entryHandoff?.orbit??0,box.width,box.height,PATH_ANCHORS[anchor]);
+  const wishEntry=!!entryHandoff&&entryHandoff.kind!=='return';
+  const entry=entryHandoff?.kind==='return'
+    ?pathReturn(elapsed,reduced,start,companionStarts,entryHandoff.orbit,box.width,box.height,PATH_ANCHORS[anchor])
+    :pathArrival(elapsed,reduced,start,companionStarts,entryHandoff?.orbit??0,box.width,box.height);
   const entering=!presentation&&!!entryHandoff&&(!layout||!entry.done);
-  const [flight, setFlight] = useState<{ place: Destination; from: Point } | null>(null);
+  const [flight, setFlight] = useState<{ place: Destination; from: Point; to: Point } | null>(null);
   const flightTime = useVisibleClock(!!flight && !paused);
   const committed = useRef(false), visit = useRef(onVisit); visit.current = onVisit;
   const ready = color && dateFound;
@@ -101,6 +105,11 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
     return()=>{observer.disconnect();window.removeEventListener('resize',update);};
   },[]);
   useEffect(()=>()=>{if(!committed.current)fieldCallback.current?.(null);},[]);
+  useLayoutEffect(()=>{
+    if(!layout||!wishEntry||moved.current||presentation)return;
+    const at=inSky(entryHandoff!.main,layout.box,layout.width,layout.height);
+    positionRef.current=at;setPosition(at);
+  },[layout,wishEntry,entryHandoff,presentation]);
 
   const clearGesture = useCallback(() => {
     const current = gesture.current;
@@ -139,7 +148,10 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   }, [flight, flightTime, paused, reduced, box.width, box.height]);
   const travel = (place: Destination) => {
     if (blocked || document.hidden || (place === 'sapphire' && !ready)) return;
-    clearGesture(); setFlight({ place, from: { ...positionRef.current } });
+    const area=skyRef.current?.getBoundingClientRect();
+    const icon=skyRef.current?.querySelector?.<SVGSVGElement>('.path-place-'+place+' svg')?.getBoundingClientRect();
+    const to=area&&icon?{x:(icon.left+icon.width/2-area.left)/area.width*100,y:(icon.top+icon.height/2-area.top)/area.height*100}:{...PLACES[place]};
+    moved.current=true;clearGesture(); setFlight({ place, from: { ...positionRef.current },to });
   };
 
   function nearest(point: Point) {
@@ -157,7 +169,7 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   }
   function moveTo(point: Point) {
     const next = { x: Math.max(7, Math.min(93, point.x)), y: Math.max(10, Math.min(91, point.y)) };
-    positionRef.current = next;
+    moved.current=true;positionRef.current = next;
     setPosition(next);
     setNear(nearest(next));
   }
@@ -186,24 +198,30 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
     if (destination) travel(destination);
   }
   const fly = softStep(flightTime / (reduced ? 240 : 900));
-  const destination = flight ? { ...PLACES[flight.place], y: PLACES[flight.place].y - (flight.place === 'prism' ? 16 : 0) } : position;
-  const shown = flight ? { x: flight.from.x + (destination.x-flight.from.x)*fly,
-    y: flight.from.y + (destination.y-flight.from.y)*fly - (reduced ? 0 : Math.sin(fly*Math.PI)*10) } : entering?entry.main:position;
-  const approach = flight && !reduced ? softStep((flightTime-230)/670) : 0;
+  const destination = flight?.to ?? position;
+  const pathPoint=flight?tracePoint({x:flight.from.x/100,y:flight.from.y/100},{x:destination.x/100,y:destination.y/100},fly):null;
+  const shown = pathPoint?{x:pathPoint.x*100,y:pathPoint.y*100}:entering?entry.main:position;
+  const passage=flight?softStep((flightTime-(reduced?60:380))/(reduced?180:520)):0;
+  const travellingPath=flight?Array.from({length:31},(_,i)=>{
+    const p=tracePoint({x:flight.from.x/100,y:flight.from.y/100},{x:destination.x/100,y:destination.y/100},fly*i/30);
+    return `${i?'L':'M'}${p.x*100} ${p.y*100}`;
+  }).join(' '):'';
   const phase=(entryHandoff?.orbit??0)+(reduced?0:elapsed*.0008);
-  const companions=entering?entry.companions:choices.slice(0,3).map((_,i)=>{
-    const offset=wishOrbit(phase,i,15);return{x:shown.x+offset.x/box.width*100,y:shown.y+offset.y/box.height*100};
-  });
+  const companions=wishEntry?entry.companions.map(p=>({x:p.x+shown.x-entry.main.x,y:p.y+shown.y-entry.main.y}))
+    :entering?entry.companions:choices.slice(0,3).map((_,i)=>{
+      const offset=wishOrbit(phase,i,anchor==='origin'?WISH_ORBIT_RADIUS:15);
+      return{x:shown.x+offset.x/box.width*100,y:shown.y+offset.y/box.height*100};
+    });
   const companionFrame=useRef(companions);companionFrame.current=companions;
   useLayoutEffect(()=>{
     if(!layout||!fieldCallback.current||presentation)return;
-    const screen=(p:Point)=>({x:box.left+box.width*(destination.x+(p.x-destination.x)*(1+approach*1.6)+(50-destination.x)*approach)/100,
-      y:box.top+box.height*(destination.y+(p.y-destination.y)*(1+approach*1.6)+(47-destination.y)*approach)/100});
+    const screen=(p:Point)=>({x:box.left+box.width*p.x/100,y:box.top+box.height*p.y/100});
     const main=screen({x:shown.x,y:shown.y});
     const field:WishField={nodes:NOUNS.map(([word],i)=>({word,x:main.x,y:main.y,selected:choices.includes(i),order:choices.indexOf(i)})),
-      carrier:main,departing:true,orbit:phase,companions:companionFrame.current.map(screen)};
+      carrier:main,departing:true,orbit:phase,companions:companionFrame.current.map(screen),
+      ...(wishEntry&&!flight&&!dragging?{companionEase:.055}:{})};
     lastField.current=field;fieldCallback.current(field);
-  },[layout,choices,shown.x,shown.y,phase,entering,entry.main.x,entry.main.y,entry.phase,approach,destination.x,destination.y,box.left,box.top,box.width,box.height,presentation]);
+  },[layout,choices,shown.x,shown.y,phase,entering,entry.main.x,entry.main.y,entry.phase,destination.x,destination.y,box.left,box.top,box.width,box.height,presentation,wishEntry,flight,dragging]);
   const reveal=presentation?{prism:presentation.progress,date:presentation.progress,route:presentation.progress,labels:presentation.labels}:entering?entry:{prism:1,date:1,route:1,labels:1};
   const onward:Destination|null=anchor==='prism'&&color?(dateFound?'sapphire':'date'):anchor==='date'&&dateFound?(color?'sapphire':'prism'):null;
   const onwardRoute=onward?Array.from({length:41},(_,i)=>{
@@ -211,6 +229,11 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
     const p=onwardPoint({x:origin.x/100,y:origin.y/100},{x:end.x/100,y:end.y/100},reveal.route*i/40);
     return`${i?'L':'M'}${p.x*100} ${p.y*100}`;
   }).join(' '):'';
+  const routeOrigin=wishEntry?start:PATH_ANCHORS.origin;
+  const originPoint=`${routeOrigin.x} ${routeOrigin.y}`;
+  const prismRoute=`M${originPoint}C${routeOrigin.x-17} ${routeOrigin.y-12} 11 49 23 36M23 36C35 44 42 53 62 69`;
+  const dateRoute=`M${originPoint}C${routeOrigin.x+15} ${routeOrigin.y+4} 78 78 81 61`;
+  const dateAhead='C90 42 85 32 76 24M76 24C58 36 50 48 62 69';
   const words = ready ? '光与日子都在了。让它们在那颗星里相遇。' : color ? '你喜欢的光，正等着属于你的那一天。' : dateFound ? '那一天已经醒来。还缺一束你喜欢的光。' : '路还没有连起来。两处微光，在远方等你。';
   const labels: Record<Destination, string> = {
     prism: color ? '粉光，已在同行' : '光分开的地方',
@@ -220,31 +243,30 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   return <section className={`path-exploration${entering?' path-arriving':''}${presentation?' path-presenting':''}${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
     <p className="sr-only" aria-live="polite">{words}</p>
     <div ref={skyRef} className={`path-sky${dragging ? ' path-dragging' : ''}${flight ? ' path-flying' : ''}`}>
-      <div className="path-map-world" style={{transformOrigin:`${destination.x}% ${destination.y}%`,
-        transform:`translate(${(50-destination.x)*approach}%,${(47-destination.y)*approach}%) scale(${1+approach*1.6})`,
-        opacity:1-approach*.38}}>
+      <div className="path-map-world" style={{'--path-passage':passage} as CSSProperties}>
       <svg className="path-map" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <defs><mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-          <path className="path-entry-route-mask" d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
-          <path className="path-entry-route-mask" d="M26 78C48 82 78 78 81 61L83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
+          <path className="path-entry-route-mask" d={prismRoute} pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
+          <path className="path-entry-route-mask" d={dateRoute+'L83 51'+dateAhead} pathLength="1" strokeDasharray="1" strokeDashoffset={1-reveal.route}/>
         </mask></defs>
         <g mask={`url(#${maskId})`}>
-          <path className={`path-route${color ? ' path-route-found' : ''}`} d="M26 78C9 66 11 49 23 36M23 36C35 44 42 53 62 69" />
-          <path className={`path-route${dateFound ? ' path-route-found' : ''}`} d="M26 78C48 82 78 78 81 61M83 51C90 42 85 32 76 24M76 24C58 36 50 48 62 69" />
+          <path className={`path-route${color ? ' path-route-found' : ''}`} d={prismRoute} />
+          <path className={`path-route${dateFound ? ' path-route-found' : ''}`} d={dateRoute+'M83 51'+dateAhead} />
           <path className="path-missing" d="M81 61 83 51" />
         </g>
-        <circle className="path-origin" cx="26" cy="78" r=".6" />
+        <circle className="path-origin" cx={routeOrigin.x} cy={routeOrigin.y} r=".6" />
         {onward&&<path className="path-onward-route" d={onwardRoute}/>}
+        {flight&&<path className="path-entering-thread" d={travellingPath}/>}
       </svg>
       {(Object.keys(PLACES) as Destination[]).map((place) => {
         if (place === 'sapphire' && !dateFound) return null;
         const available = place !== 'sapphire' || ready;
         const found = place === 'prism' ? color : place === 'date' ? dateFound : ready;
         return <button type="button" key={place} className={`path-place path-place-${place}${found ? ' path-place-found' : ''}${near === place || flight?.place === place ? ' path-place-near' : ''}${onward===place?' path-place-onward':''}`} style={{ left: `${PLACES[place].x}%`, top: `${PLACES[place].y}%` }} disabled={blocked || !available} aria-label={`${labels[place]}${available ? '，轻触前往，也可以把同行的光拖到这里' : '，先找到颜色与日子'}`} onClick={() => { if (available) travel(place); }}>
-          <DestinationDrawing place={place} progress={place==='prism'?reveal.prism:place==='date'?reveal.date:reveal.route}/><span className="path-place-label" style={{'--path-label':reveal.labels} as CSSProperties}>{labels[place]}</span>
+          <DestinationDrawing place={place} reduced={reduced} progress={flight?.place===place?1-passage:place==='prism'?reveal.prism:place==='date'?reveal.date:reveal.route}/><span className="path-place-label" style={{'--path-label':reveal.labels*(1-passage)} as CSSProperties}>{labels[place]}</span>
         </button>;
       })}
-      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%`,visibility:presentation?.carrierHidden?'hidden':undefined }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
+      <button ref={lightRef} type="button" className={`path-carrier${near ? ' path-carrier-near' : ''}`} style={{ left: `${shown.x}%`, top: `${shown.y}%`,visibility:presentation?.carrierHidden||!!entryHandoff&&!layout?'hidden':undefined }} disabled={blocked} aria-label="同行的光。拖到一处微光再松手；也可直接轻触目的地，键盘方向键移动，回车前往。" onPointerDown={begin} onPointerMove={move} onPointerUp={release} onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={clearGesture} onKeyDown={(event) => {
         if (blocked) return;
         const shifts: Record<string, Point> = { ArrowLeft: { x: -6, y: 0 }, ArrowRight: { x: 6, y: 0 }, ArrowUp: { x: 0, y: -6 }, ArrowDown: { x: 0, y: 6 } };
         const shift = shifts[event.key];

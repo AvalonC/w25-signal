@@ -96,10 +96,10 @@ test('carried light visits a destination only after an uncancelled release', asy
     assert.equal(captures.has(1), true);
     assert.match(carrier().props.className, /path-carrier-near/);
     await act(() => carrier().props.onPointerUp(pointer(92, 180)));
-    assert.deepEqual(visits, [], 'the star first travels above the prism');
+    assert.deepEqual(visits, [], 'the star first travels to the prism outline');
     await advance(960);
     assert.deepEqual(visits, ['prism']);
-    assert.equal(carrier().props.style.top, '20%');
+    assert.equal(carrier().props.style.top, '36%');
     assert.equal(captures.size, 0);
     await act(() => carrier().props.onPointerUp(pointer(92, 180)));
     assert.deepEqual(visits, ['prism'], 'a stale duplicate release cannot enter twice');
@@ -167,6 +167,14 @@ test('the approach pauses for help and hidden tabs and cannot be redirected by a
   await scene({}, async ({ root, advance, visits, update }) => {
     const place = (name) => root.root.findAllByType('button').find((button) => button.props.className.includes('path-place-'+name));
     await act(() => place('prism').props.onClick()); await advance(320);
+    const world=root.root.findByProps({className:'path-map-world'});
+    assert.equal(world.props.style.transform,undefined,'entering a destination must not enlarge the map');
+    assert.equal(world.props.style.transformOrigin,undefined);
+    const guide=root.root.findByProps({className:'path-entering-thread'});
+    const end=guide.props.d.match(/-?\d+(?:\.\d+)?/g).map(Number).slice(-2);
+    const light=root.root.findAllByType('button').find(b=>b.props.className.startsWith('path-carrier'));
+    assert.ok(Math.abs(parseFloat(light.props.style.left)-end[0])<1e-8);
+    assert.ok(Math.abs(parseFloat(light.props.style.top)-end[1])<1e-8,'the light thread ends at the moving main star');
     await act(() => place('date').props.onClick());
     await update({paused:true}); await advance(5000); assert.deepEqual(visits, []);
     await update({paused:false}); document.hidden=true;
@@ -201,15 +209,21 @@ test('wish handoff starts at the exact viewport point and reveals the destinatio
     const drawing=()=>root.root.findAll(node=>node.type?.name==='DestinationDrawing'&&node.props.place==='prism')[0];
     assert.equal(carrier().props.disabled,true);assert.equal(drawing().props.progress,0);
     await act(()=>prism().props.onClick());assert.deepEqual(visits,[]);
-    await advance(2000);assert.ok(drawing().props.progress>0&&drawing().props.progress<1);
-    assert.ok(fields.at(-1).companions[0].y<first.companions[0].y-200,'a wish flies ahead to uncover the prism');
-    await advance(1840);assert.equal(carrier().props.disabled,false);assert.equal(drawing().props.progress,1);
-    assert.equal(carrier().props.style.left,'26%');assert.equal(carrier().props.style.top,'78%');
+    await advance(1200);assert.ok(drawing().props.progress>0&&drawing().props.progress<1);
+    assert.deepEqual(fields.at(-1).carrier,first.carrier);
+    assert.ok(fields.at(-1).companions.every(p=>Math.hypot(p.x-first.carrier.x,p.y-first.carrier.y)<40),'companions remain in their nearby orbit');
+    await advance(1320);assert.equal(carrier().props.disabled,true);
+    const beforeUnlock={left:carrier().props.style.left,top:carrier().props.style.top};
+    await advance(160);assert.equal(carrier().props.disabled,false);assert.equal(drawing().props.progress,1);
+    assert.deepEqual({left:carrier().props.style.left,top:carrier().props.style.top},beforeUnlock,'unlocking never returns the star to a hard-coded map anchor');
+    assert.ok(fields.every(field=>Math.hypot(field.carrier.x-first.carrier.x,field.carrier.y-first.carrier.y)<1e-8));
+    const origin=root.root.findByProps({className:'path-origin'});
+    assert.equal(origin.props.cx,parseFloat(carrier().props.style.left));assert.equal(origin.props.cy,parseFloat(carrier().props.style.top));
     assert.equal(root.root.findAll(node=>node.props.className==='path-companion-orbit').length,0,'the shared canvas keeps the same wishes after arrival');
   });
 });
 
-test('arrival waits through help and hidden tabs without restarting the wish flight',async()=>{
+test('arrival waits through help and hidden tabs without restarting destination formation',async()=>{
   await scene({handoff},async({root,fields,advance,update,visibility,carrier})=>{
     await advance(1200);const before=fields.at(-1);
     await update({paused:true});await advance(4000);assert.deepEqual(fields.at(-1),before);
@@ -254,5 +268,32 @@ test('a presented map stays inert and leaves particles alone until it becomes th
     assert.equal(drawing().props.progress,1);assert.equal(carrier().props.disabled,false);assert.equal(carrier().props.style.visibility,undefined);
     assert.deepEqual(fields.at(-1).carrier,{x:92,y:295});
     await act(()=>date().props.onClick());await advance(960);assert.deepEqual(visits,['date']);
+  });
+});
+
+
+test('a stationary handoff stays aligned on resize and the first flight leaves from that exact point',async()=>{
+  await scene({handoff},async({root,carrier,fields,advance,resize,visits})=>{
+    await advance(2800);
+    const actual={x:handoff.main.x*400,y:handoff.main.y*500};
+    await resize({left:12,top:44,width:366,height:422});
+    assert.ok(Math.hypot(fields.at(-1).carrier.x-actual.x,fields.at(-1).carrier.y-actual.y)<1e-8);
+    const previous={left:carrier().props.style.left,top:carrier().props.style.top};
+    const prism=root.root.findAllByType('button').find(b=>b.props.className.includes('path-place-prism'));
+    await act(()=>prism.props.onClick());
+    assert.deepEqual({left:carrier().props.style.left,top:carrier().props.style.top},previous,'the first travelling frame uses the visible resting point');
+    await advance(960);assert.deepEqual(visits,['prism']);
+  });
+});
+
+test('a resized sky never pulls a manually moved star back to its handoff origin',async()=>{
+  await scene({handoff},async({carrier,advance,resize,drag,pointer,root})=>{
+    await advance(2800);await drag(160,275);
+    await act(()=>carrier().props.onPointerUp(pointer(160,275)));
+    const position={left:carrier().props.style.left,top:carrier().props.style.top};
+    await resize({width:350,height:450});
+    assert.deepEqual({left:carrier().props.style.left,top:carrier().props.style.top},position);
+    const origin=root.root.findByProps({className:'path-origin'});
+    assert.notEqual(parseFloat(carrier().props.style.left),origin.props.cx,'the route stays tied to its origin rather than the dragged star');
   });
 });

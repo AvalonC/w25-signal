@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {inViewport,inSky,pathArrival,pathReturn,wishOrbit,PATH_ENTRY_MS,PATH_ENTRY_REDUCED_MS,PATH_RETURN_MS} from '../lib/path-arrival.ts';
+import {inViewport,inSky,pathArrival,pathReturn,PATH_ENTRY_MS,PATH_ENTRY_REDUCED_MS,PATH_RETURN_MS} from '../lib/path-arrival.ts';
 
 void test('viewport handoff preserves the same screen pixel across different scene rectangles',()=>{
   const oldBox={left:18,top:62,width:354,height:756},newBox={left:12,top:54,width:366,height:778};
@@ -9,21 +9,27 @@ void test('viewport handoff preserves the same screen pixel across different sce
   assert.ok(Math.abs(newBox.top+mapped.y*newBox.height/100-(oldBox.top+oldBox.height*.78))<1e-8);
 });
 
-void test('arrival carries the existing three wishes through two discoveries and returns each to its continuing orbit',()=>{
-  const start={x:29,y:84},companions=[{x:31,y:83},{x:28,y:85},{x:29,y:81}];
-  const first=pathArrival(0,false,start,companions,2.1,354,740);
+void test('the main star stays at the handoff while both destinations build and companions only orbit nearby',()=>{
+  const start={x:50,y:77},companions=[{x:54,y:76},{x:46,y:78},{x:50,y:75}];
+  const width=354,height=740;
+  const first=pathArrival(0,false,start,companions,2.1,width,height);
   assert.deepEqual(first.main,start);assert.deepEqual(first.companions,companions);
   assert.equal(first.prism,0);assert.equal(first.date,0);assert.equal(first.route,0);
-  const during=pathArrival(2200,false,start,companions,2.1,354,740);
-  assert.deepEqual(during.companions[0],{x:23,y:26});assert.deepEqual(during.companions[1],{x:76,y:17});
-  assert.ok(during.prism>during.date);assert.equal(during.done,false);
-  const last=pathArrival(PATH_ENTRY_MS,false,start,companions,2.1,354,740);
-  assert.deepEqual(last.main,{x:26,y:78});assert.equal(last.done,true);
-  for(let i=0;i<3;i++){
-    const offset=wishOrbit(last.phase,i,15);
-    assert.ok(Math.abs((last.companions[i].x-last.main.x)*3.54-offset.x)<1e-8);
-    assert.ok(Math.abs((last.companions[i].y-last.main.y)*7.4-offset.y)<1e-8);
+  const initialRadius=companions.map(p=>Math.hypot((p.x-start.x)*width/100,(p.y-start.y)*height/60));
+  for(let elapsed=0;elapsed<=PATH_ENTRY_MS+1000;elapsed+=40){
+    const frame=pathArrival(elapsed,false,start,companions,2.1,width,height);
+    assert.deepEqual(frame.main,start,'neither icon creation nor interaction unlock moves the main star');
+    frame.companions.forEach((p,i)=>{
+      const radius=Math.hypot((p.x-start.x)*width/100,(p.y-start.y)*height/60);
+      assert.ok(Math.abs(radius-initialRadius[i])<1e-8,'the received orbit radius is never replaced with a smaller one');
+      assert.ok(p.y>70,'no companion travels to the distant icons');
+    });
   }
+  const during=pathArrival(1000,false,start,companions,2.1,width,height);
+  assert.ok(during.prism>during.date&&during.date>0);assert.equal(during.done,false);
+  const last=pathArrival(PATH_ENTRY_MS,false,start,companions,2.1,width,height);
+  assert.equal(last.prism,1);assert.equal(last.date,1);assert.equal(last.route,1);assert.equal(last.done,true);
+  for(const elapsed of [0,240,480,2000])assert.deepEqual(pathArrival(elapsed,true,start,companions,2.1,width,height).companions,companions,'reduced motion retains the actual companion positions');
 });
 
 void test('reduced motion and a discovery return keep the first frame and complete without an extended expedition',()=>{

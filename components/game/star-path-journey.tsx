@@ -132,7 +132,7 @@ export function StarPathJourney(props: Props) {
         entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
         onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
-        pink={path.color} paused={locked} choices={choices} onDate={props.onDate} onTap={onTap}
+        pink={path.color} paused={locked} choices={choices} entryOrigin={placeEntry?.main} onDate={props.onDate} onTap={onTap}
         onFound={() => onPath(completeDatePath(path))} onReturn={()=>visit('sky')}/>}
     </div>}
     {(meeting||path.place==='sapphire')&&<div ref={meetingLayer} className="path-meeting-layer" inert={locked} style={{opacity:meeting?(meeting.gem?1:softStep(meetQ/.8)):1}}>
@@ -205,7 +205,7 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
         <circle className="prism-road-front" cx={roadTip.x*100} cy={roadTip.y*100} r=".55" opacity={road.trace<1?1:.3}/>
       </svg>
       <button className="prism-next-place" style={{left:`${nextPoint.x}%`,top:`${nextPoint.y}%`}} disabled={paused||road.destination<1} aria-label={next==='date'?'循着粉光回到通往星盘的路':'循着粉光回到通往宝石的路'} onClick={()=>{if(!paused&&road.destination===1)onReturn();}}>
-        <DestinationDrawing place={next} progress={road.destination}/>
+        <DestinationDrawing place={next} reduced={reduced} progress={road.destination}/>
       </button>
       <p className="prism-road-copy" style={{opacity:road.verse,transform:`translateY(${(1-road.verse)*4}px)`}}>
         {next==='date'?'你的颜色，照亮了通往那一天的路。':'你的颜色，照亮了那一天留下的星光。'}
@@ -220,21 +220,30 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
   </div>;
 }
 
-function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, onTap, onReturn }: {
+function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, onTap, onReturn,entryOrigin }: {
   month: number; day: number; found: boolean; paused: boolean; pink: boolean;
-  choices:number[];onDate: (month: number, day: number) => void; onFound: () => void; onTap: () => void; onReturn:()=>void;
+  choices:number[];onDate: (month: number, day: number) => void; onFound: () => void; onTap: () => void; onReturn:()=>void;entryOrigin?:SkyPoint;
 }) {
   const [gathering, setGathering] = useState(false);
   const reduced = useReducedMotion();
   const [entered, setEntered] = useState(found);
   const entryTime = useVisibleClock(!entered && !paused);
   const approach = found ? 1 : softStep(entryTime/(reduced ? 280 : 1100));
+  const secondDial=found?1:softStep((entryTime-(reduced?0:160))/(reduced?280:940));
   useEffect(() => { if (approach >= 1) setEntered(true); }, [approach]);
   const aligned = month === 10 && day === 8;
   const dwell = useVisibleClock(aligned && !paused && !found && !gathering && entered, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(gathering && !paused && !found);
   const sky = useRef<HTMLDivElement>(null), stage=useRef<HTMLDivElement>(null), done = useRef(false);
   const [sources,setSources]=useState<[NebulaPoint,NebulaPoint]>([{x:.28,y:.29},{x:.72,y:.74}]);
+  const [entryTarget,setEntryTarget]=useState<SkyPoint|null>(null);
+  useLayoutEffect(()=>{
+    if(!stage.current||!entryOrigin)return;
+    const measure=()=>{const rect=stage.current?.querySelector?.('.date-dial')?.getBoundingClientRect();if(rect&&rect.width&&rect.height)setEntryTarget({x:(rect.left+rect.width/2)/window.innerWidth,y:(rect.top+rect.height/2)/window.innerHeight});};
+    measure();const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);observer?.observe(stage.current);
+    return()=>observer?.disconnect();
+  },[entryOrigin]);
+  const entryStar=entryOrigin&&entryTarget?tracePoint(entryOrigin,entryTarget,softStep(entryTime/(reduced?280:850))):null;
   const callbacks = useRef({ onFound, onTap }); callbacks.current = { onFound, onTap };
   const duration=reduced?DATE_NEBULA_TIMING.reduced:DATE_NEBULA_TIMING.total;
   const scene=nebulaFrame(found?duration:elapsed,reduced);
@@ -260,10 +269,11 @@ function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, 
       '--dial-release-opacity':scene.dialOpacity,'--dial-release-scale':scene.dialScale,
       '--dial-release-angle':`${scene.release*16}deg` } as CSSProperties}>
     <p className="path-place-whisper">{found ? '那一天的星光，有了形状。' : gathering ? scene.formation>0?'星云里的光，慢慢有了形状。':scene.gather>=1?'两段时光，凝成一片星云。':'两段时光，正在相遇。' : '让时光，停在你来到世上的那天。'}</p>
+    {!entered&&entryStar&&<div className="date-entering-star" aria-hidden="true" style={{left:entryStar.x*100+'vw',top:entryStar.y*100+'dvh',opacity:1-softStep((entryTime-(reduced?90:650))/(reduced?190:450))}}><CompanionLight choices={[]} pink={pink}/></div>}
     <div ref={stage} className="path-date-stage" data-nebula-phase={!gathering&&!found?'dial':scene.formation>0?'forming':scene.gather>=1?'nebula':'gathering'}>
     {!found && <div className="date-wheels" inert={gathering || paused || !entered} aria-hidden={gathering}>
-      <DateDial label="月" value={month} max={12} kind="month" paused={paused || gathering || !entered} aligned={month === 10} onChange={(n) => { if (!paused && entered) { onDate(n, day); onTap(); } }} />
-      <DateDial label="日" value={day} max={31} kind="day" paused={paused || gathering || !entered} aligned={day === 8} onChange={(n) => { if (!paused && entered) { onDate(month, n); onTap(); } }} />
+      <DateDial formation={approach} label="月" value={month} max={12} kind="month" paused={paused || gathering || !entered} aligned={month === 10} onChange={(n) => { if (!paused && entered) { onDate(n, day); onTap(); } }} />
+      <DateDial formation={secondDial} label="日" value={day} max={31} kind="day" paused={paused || gathering || !entered} aligned={day === 8} onChange={(n) => { if (!paused && entered) { onDate(month, n); onTap(); } }} />
     </div>}
     {(gathering||found)&&<DateNebula elapsed={found?duration:elapsed} paused={paused} pink={pink} reduced={reduced} sources={sources} settled={found}/>}
     <div ref={sky} className={'path-date-light' + (gathering || found ? ' is-visible' : '')} aria-hidden="true">

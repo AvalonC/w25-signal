@@ -26,14 +26,15 @@ async function scene(kind,value,body){
  const host={getBoundingClientRect:()=>({left:0,top:0,width:200,height:200}),setPointerCapture:id=>captures.add(id),hasPointerCapture:id=>captures.has(id),releasePointerCapture:id=>captures.delete(id)};
  globalThis.document=Object.assign(new EventTarget(),{hidden:false});globalThis.window=new EventTarget();globalThis.IS_REACT_ACT_ENVIRONMENT=true;
  let root;
- function Harness({paused=false}){
+ function Harness({paused=false,formation=1}){
   const [current,setCurrent]=useState(value);
-  return React.createElement(DateDial,{kind,value:current,max:kind==='month'?12:31,label:kind==='month'?'月':'日',paused,onChange:next=>{changes.push(next);setCurrent(next);}});
+  return React.createElement(DateDial,{kind,value:current,max:kind==='month'?12:31,label:kind==='month'?'月':'日',paused,formation,onChange:next=>{changes.push(next);setCurrent(next);}});
  }
  try{
   await act(()=>{root=create(React.createElement(Harness),{createNodeMock:()=>host});});
   await body({root,changes,captures,dial:()=>root.root.findByProps({role:'slider'}),
    pause:paused=>act(()=>root.update(React.createElement(Harness,{paused}))),
+   form:formation=>act(()=>root.update(React.createElement(Harness,{formation}))),
    visibility:hidden=>act(()=>{document.hidden=hidden;document.dispatchEvent(new Event('visibilitychange'));}),
    pointer:(clientX,clientY,pointerId=1)=>({clientX,clientY,pointerId,isPrimary:true,button:0,currentTarget:host}),
   });
@@ -80,5 +81,22 @@ test('help and hidden tabs cancel pointer capture and keep arrow alternatives di
   await pause(false);await visibility(true);await act(()=>add().props.onClick());await act(()=>dial().props.onKeyDown({key:'ArrowRight',preventDefault(){}}));
   assert.deepEqual(changes,[]);assert.equal(dial().props.tabIndex,-1);
   await visibility(false);await act(()=>add().props.onClick());assert.deepEqual(changes,[1]);
+ });
+});
+
+
+test('a full-size dial is drawn in place and stays locked until its rings and ticks complete',async()=>{
+ await scene('month',1,async({root,dial,form,changes})=>{
+  const rings=()=>root.root.findAllByProps({className:'dial-entry-ring'});
+  const lines=()=>root.root.findAllByType('line');
+  await form(0);assert.ok(rings().every(n=>n.props.visibility==='hidden'));assert.ok(lines().every(n=>n.props.visibility==='hidden'));
+  assert.equal(dial().props['aria-disabled'],true);
+  await act(()=>dial().props.onKeyDown({key:'ArrowRight',preventDefault(){}}));assert.deepEqual(changes,[]);
+  await form(.45);assert.ok(rings().some(n=>n.props.strokeDashoffset>0&&n.props.strokeDashoffset<1));
+  const radii=rings().map(n=>n.props.r);assert.deepEqual(radii,['106','90']);
+  assert.ok(lines().some(n=>n.props.visibility==='visible')&&lines().some(n=>n.props.visibility==='hidden'));
+  const edges=lines().map(n=>n.props.x1);
+  await form(.8);assert.notDeepEqual(lines().map(n=>n.props.x1),edges,'ticks grow on the unchanged ring');
+  await form(1);assert.deepEqual(rings().map(n=>n.props.r),radii);assert.ok(rings().every(n=>n.props.strokeDashoffset===0));assert.equal(dial().props['aria-disabled'],false);
  });
 });

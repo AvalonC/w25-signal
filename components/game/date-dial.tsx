@@ -3,6 +3,7 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
 import { useEffect, useRef, useState } from 'react';
 import { advanceDialRotation } from '../../lib/dial-motion';
+import { softStep } from '@/lib/motion';
 // Text presentation keeps zodiac marks in the starlight palette on phones.
 const ZODIAC = ['♑', '♒', '♓', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐'].map((sign) => sign + '\uFE0E');
 const ROMAN = [
@@ -47,6 +48,7 @@ export function DateDial({
   onChange,
   aligned = false,
   paused = false,
+  formation = 1,
 }: {
   label: string;
   value: number;
@@ -55,6 +57,7 @@ export function DateDial({
   onChange: (n: number) => void;
   aligned?: boolean;
   paused?: boolean;
+  formation?: number;
 }) {
   const surface = useRef<HTMLDivElement>(null);
   const drag = useRef<{ a: number; v: number; id: number } | null>(null);
@@ -67,7 +70,10 @@ export function DateDial({
       ? advanceDialRotation(dial.rotation, dial.value, value, max)
       : (-value * 360) / max });
   }
-  const asleep = paused || hidden;
+  const p=Math.max(0,Math.min(1,formation));
+  const outer=softStep(p/.65),inner=softStep((p-.12)/.7),reading=softStep((p-.55)/.45);
+  const ring=(q:number)=>({pathLength:1,strokeDasharray:1,strokeDashoffset:1-q,visibility:q>0?'visible' as const:'hidden' as const});
+  const asleep = paused || hidden || p<1;
   const previous=value===1?max:value-1, next=value===max?1:value+1;
   if (asleep && turning) setTurning(false);
   useEffect(() => {
@@ -163,18 +169,18 @@ export function DateDial({
         }}
       >
         <svg viewBox="0 0 240 240" aria-hidden="true">
-          <g className="dial-aura">
+          <g className="dial-aura" visibility={p===1?'visible':'hidden'}>
             <circle className="dial-aura-wide" cx="120" cy="120" r="63" />
             <circle className="dial-aura-inner" cx="120" cy="120" r="49" />
           </g>
-          <circle cx="120" cy="120" r="106" />
-          <circle cx="120" cy="120" r="90" />
-          <g className="dial-orbit dial-orbit-outer">
+          <circle className="dial-entry-ring" cx="120" cy="120" r="106" transform="rotate(-90 120 120)" {...ring(outer)} />
+          <circle className="dial-entry-ring" cx="120" cy="120" r="90" transform="rotate(-90 120 120)" {...ring(inner)} />
+          <g className="dial-orbit dial-orbit-outer" visibility={outer>.98?'visible':'hidden'}>
             <circle className="dial-orbit-arc" cx="120" cy="120" r="113" />
             <circle className="dial-satellite" cx="120" cy="7" r="1.5" />
             <circle className="dial-satellite dial-satellite-dim" cx="218" cy="176" r="1" />
           </g>
-          <g className="dial-orbit dial-orbit-inner">
+          <g className="dial-orbit dial-orbit-inner" visibility={inner>.98?'visible':'hidden'}>
             <circle className="dial-orbit-arc" cx="120" cy="120" r="83" />
             <circle className="dial-satellite" cx="37" cy="120" r="1.6" />
           </g>
@@ -187,11 +193,13 @@ export function DateDial({
           >
             {Array.from({ length: max }, (_, i) => {
               const a = ((i + 1) * Math.PI * 2) / max - Math.PI / 2;
+              const tick=softStep((p-.22-i/max*.42)/.3),tip=104-((i+1===value)?17:10)*tick;
               return (
                 <g key={i}>
                   <line
-                    x1={120 + (i+1===value?87:94) * Math.cos(a)}
-                    y1={120 + (i+1===value?87:94) * Math.sin(a)}
+                    visibility={tick>0?'visible':'hidden'}
+                    x1={120 + tip * Math.cos(a)}
+                    y1={120 + tip * Math.sin(a)}
                     x2={120 + 104 * Math.cos(a)}
                     y2={120 + 104 * Math.sin(a)}
                     className={i + 1 === value ? 'dial-active' : i%3===0?'dial-major':''}
@@ -200,13 +208,13 @@ export function DateDial({
               );
             })}
           </g>
-          <g className="dial-neighbours">
+          <g className="dial-neighbours" opacity={reading}>
             <text x="39" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[previous-1]:ROMAN[previous]}</text>
             <text x="201" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[next-1]:ROMAN[next]}</text>
           </g>
-          <path className="dial-pointer" d="M114 2 126 2 120 21Z" />
+          <path className="dial-pointer" visibility={reading>0?'visible':'hidden'} d={`M${120-6*reading} 2 ${120+6*reading} 2 120 ${2+19*reading}Z`} />
         </svg>
-        <div className="dial-reading" aria-hidden="true">
+        <div className="dial-reading" aria-hidden="true" style={{clipPath:`inset(0 ${(1-reading)*50}% 0 ${(1-reading)*50}%)`}}>
           {kind==='month'&&<span className="dial-zodiac">{ZODIAC[value-1]}</span>}
           <strong>{String(value).padStart(2,'0')}</strong>
           <small>{label}</small>

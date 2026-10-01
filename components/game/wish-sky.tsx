@@ -5,7 +5,7 @@ import { CompanionLight } from './path-sky';
 import { useVisibleClock } from './scene-clock';
 import { NOUNS } from '@/lib/journey';
 import type { WishField } from './particles';
-import { inViewport, wishOrbit, type SkyHandoff } from '@/lib/path-arrival';
+import { inViewport, wishOrbit, WISH_ORBIT_RADIUS, type SkyHandoff } from '@/lib/path-arrival';
 
 const LOCATIONS = [[23,16],[72,12],[47,34],[16,47],[80,43],[29,66],[74,66],[50,85]];
 export function WishSky({choices,paused,onChoose,onField,onDone}: {
@@ -18,29 +18,26 @@ export function WishSky({choices,paused,onChoose,onField,onDone}: {
   callbacks.current={onField,onDone};
   const gathered=choices.length===3;
   const clock=useVisibleClock(gathered&&!paused, 'gather');
-  const flight=useVisibleClock(departure&&!paused,'flight');
   const orbitTime=useVisibleClock(!paused,'orbit');
   const orbit=reduced?0:orbitTime*.0008;
-  const q=Math.min(1,flight/(reduced?250:1600));
-  const ease=q*q*(3-2*q);
-  const carrier={x:50-24*ease,y:77+1*ease-Math.sin(ease*Math.PI)*22};
+  const carrier={x:50,y:77};
   useEffect(()=>{setReduced(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false);},[]);
   useEffect(()=>{
     if(paused||document.hidden)return;
     if(gathered&&clock>=(reduced?350:2100))setDeparture(true);
-    if(departure&&q>=1&&!finished.current&&sky.current){
+    if(departure&&!finished.current&&sky.current){
       const box=sky.current.getBoundingClientRect(),width=window.innerWidth||box.width,height=window.innerHeight||box.height;
       const main=inViewport({x:carrier.x,y:carrier.y},box,width,height);
-      const companions=[0,1,2].map(i=>{const offset=wishOrbit(orbit,i,15);return{x:main.x+offset.x/width,y:main.y+offset.y/height};});
-      finished.current=true;callbacks.current.onDone({main,companions,orbit});
+      const companions=[0,1,2].map(i=>{const offset=wishOrbit(orbit,i,WISH_ORBIT_RADIUS);return{x:main.x+offset.x/width,y:main.y+offset.y/height};});
+      finished.current=true;callbacks.current.onDone({main,companions,orbit,kind:'wish'});
     }
-  },[clock,gathered,departure,q,paused,reduced,carrier.x,carrier.y,orbit]);
+  },[clock,gathered,departure,paused,reduced,carrier.x,carrier.y,orbit]);
   useLayoutEffect(()=>{
     const area=sky.current;if(!area)return;
     const update=()=>{
       const r=area.getBoundingClientRect();
       callbacks.current.onField({nodes:LOCATIONS.map(([x,y],i)=>({word:NOUNS[i][0],x:r.left+r.width*x/100,y:r.top+r.height*y/100,selected:choices.includes(i),order:choices.indexOf(i)})),
-        carrier:{x:r.left+r.width*carrier.x/100,y:r.top+r.height*carrier.y/100},departing:departure,orbit});
+        carrier:{x:r.left+r.width*carrier.x/100,y:r.top+r.height*carrier.y/100},departing:false,orbit});
     };
     update();const observer=new ResizeObserver(update);observer.observe(area);
     return()=>observer.disconnect();

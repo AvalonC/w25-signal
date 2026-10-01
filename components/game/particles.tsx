@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import type { StarArrival } from '@/lib/bracelet-transition';
 type Point = { x: number; y: number };
-export type WishField = {nodes:{word:string;x:number;y:number;selected:boolean;order:number}[];carrier:Point;departing:boolean;orbit?:number;companions?:Point[]};
+export type WishField = {nodes:{word:string;x:number;y:number;selected:boolean;order:number}[];carrier:Point;departing:boolean;orbit?:number;companions?:Point[];companionEase?:number};
 function glyph(text: string, w: number, h: number, wish = false): Point[] {
   const c = document.createElement('canvas');
   c.width = w;
@@ -167,7 +167,7 @@ export function Starfield({
             }
           }
         }
-        const ease = reduced ? 1 : p.burst ? 0.12 : p.wishes?.companions ? .28 : p.wishes?.departing ? .14 : p.wishes ? .055 : 0.037;
+        const ease = reduced ? 1 : p.burst ? 0.12 : p.wishes?.companions ? p.wishes.companionEase??.28 : p.wishes?.departing ? .14 : p.wishes ? .055 : 0.037;
         s.x += (goal.x - s.x) * ease;
         s.y += (goal.y - s.y) * ease;
         const wish=p.wishes?.nodes[Math.floor(i/260)];
