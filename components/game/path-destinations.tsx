@@ -1,5 +1,6 @@
 'use client';
 import { softStep } from '@/lib/motion';
+import { gemstoneOutline, projectSapphire, SAPPHIRE_VERTICES, SAPPHIRE_EDGES, SAPPHIRE_FACES, type GemVertex } from '@/lib/sapphire-shape';
 
 type Destination = 'prism' | 'date' | 'sapphire';
 type Point = readonly [number, number];
@@ -70,8 +71,32 @@ export function DestinationDrawing({place, progress = 1, reduced = false}: {plac
       </g>
     </svg>;
   }
-  return <svg className="path-destination-drawing" viewBox="0 0 100 100" aria-hidden="true">
-    <path d="M31 24 68 24 84 46 51 85 16 46 31 24ZM16 46H84M31 24 38 46 51 85 63 46 68 24M31 24 63 46M68 24 38 46" {...trace(p)}/>
-    <g opacity={p}><circle cx="31" cy="24" r="1.8"/><circle cx="68" cy="24" r="1.8"/><circle cx="51" cy="85" r="1.8"/></g>
+  // The icon uses the same round stone, crown and viewing angle as the place ahead.
+  // A quiet four-point setting sits behind it; the stone remains the dominant shape.
+  const project = (vertex: GemVertex) => {
+    const at = projectSapphire(vertex, .32, 100, 100);
+    return {...at, x:50+(at.x-50)*1.14, y:47+(at.y-47)*1.14};
+  };
+  const projected = SAPPHIRE_VERTICES.map(project);
+  const shape = (points: {x:number;y:number}[]) => polygon(...points.map(at=>[at.x,at.y] as Point));
+  const line = ([a,b]: [number,number]) => `M${point([projected[a].x,projected[a].y])} ${point([projected[b].x,projected[b].y])}`;
+  const outline = softStep(p/.5), crown = softStep((p-.13)/.47);
+  const shoulder = softStep((p-.28)/.5), pavilion = softStep((p-.46)/.44), setting = softStep((p-.68)/.32);
+  const cradle = Array.from({length:8},(_,i)=>{
+    const angle=i*Math.PI/4, radius=i%2?.64:1.25;
+    return project([Math.cos(angle)*radius,-.13,Math.sin(angle)*radius]);
+  });
+  const shoulders = SAPPHIRE_EDGES.filter(([a,b])=>a<8&&b>=8&&b<16&&(projected[a].z+projected[b].z)/2<.28);
+  const lower = SAPPHIRE_EDGES.filter(([a,b])=>b===16&&projected[a].z<.4);
+  const facets = SAPPHIRE_FACES.slice(0,-1).map((indices,i)=>({indices,i,depth:indices.reduce((sum,index)=>sum+projected[index].z,0)/indices.length}))
+    .sort((a,b)=>b.depth-a.depth);
+  return <svg className="path-destination-drawing path-sapphire-drawing" viewBox="0 0 100 100" aria-hidden="true">
+    <path className="path-sapphire-setting" d={shape(cradle)} {...trace(setting)}/>
+    <path className="path-sapphire-body" d={shape(gemstoneOutline(projected))} fillOpacity={outline*.09} {...trace(outline)}/>
+    {facets.map(({indices,i})=><path key={i} className={`path-sapphire-facet${i%3===0?' path-sapphire-facet-light':''}`} d={shape(indices.map(index=>projected[index]))}
+      fillOpacity={(i<16?shoulder:pavilion)*(i%3===0?.12:.06)} visibility={visible(i<16?shoulder:pavilion)}/>)}
+    <path className="path-sapphire-pavilion" d={lower.map(line).join('')} {...trace(pavilion)}/>
+    <path className="path-sapphire-shoulder" d={shoulders.map(line).join('')} {...trace(shoulder)}/>
+    <path className="path-sapphire-crown" d={shape(projected.slice(0,8))} fillOpacity={crown*.12} {...trace(crown)}/>
   </svg>;
 }

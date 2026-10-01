@@ -44,13 +44,19 @@ async function scene(kind,value,body){
  }
 }
 
-test('large month and day readings stay two digit numbers with only two secondary ring labels',async()=>{
+test('all zodiac symbols and calendar days stay visible around a compact central reading',async()=>{
  for(const [kind,value,expected] of [['month',12,'12'],['day',31,'31'],['day',1,'01']])await scene(kind,value,async({root,dial})=>{
   assert.deepEqual(root.root.findByType('strong').children,[expected]);
-  assert.equal(root.root.findAllByType('text').length,2,'the ring does not crowd the central reading');
+  const labels=root.root.findAllByType('text');
+  assert.equal(labels.length,kind==='month'?12:31,'the complete ring remains available');
+  assert.equal(new Set(labels.map(n=>n.children.join(''))).size,kind==='month'?12:31);
+  if(kind==='day')assert.deepEqual(labels.map(n=>n.children.join('')),Array.from({length:31},(_,i)=>String(i+1)));
+  assert.equal(labels.filter(n=>n.props.className.includes('is-selected')).length,1);
+  const uprights=root.root.findAllByProps({className:'dial-symbol-upright'});
+  assert.ok(uprights.every(n=>n.props.style.transform==='rotate('+(value*360/(kind==='month'?12:31))+'deg)'));
   assert.equal(root.root.findAllByType('line').length,kind==='month'?12:31,'the full physical tick scale remains');
   assert.equal(dial().props['aria-valuenow'],value);assert.equal(dial().props['aria-valuetext'],value+(kind==='month'?'月':'日'));
-  assert.equal(root.root.findAllByProps({className:'dial-zodiac'}).length,kind==='month'?1:0);
+  assert.equal(root.root.findAllByProps({className:'dial-zodiac'}).length,0,'the chosen zodiac is emphasized on its ring instead of duplicating a giant central symbol');
  });
 });
 
@@ -87,13 +93,13 @@ test('help and hidden tabs cancel pointer capture and keep arrow alternatives di
 
 test('a full-size dial is drawn in place and stays locked until its rings and ticks complete',async()=>{
  await scene('month',1,async({root,dial,form,changes})=>{
-  const rings=()=>root.root.findAllByProps({className:'dial-entry-ring'});
+  const rings=()=>root.root.findAll(n=>n.type==='circle'&&n.props.className?.includes('dial-entry-ring'));
   const lines=()=>root.root.findAllByType('line');
   await form(0);assert.ok(rings().every(n=>n.props.visibility==='hidden'));assert.ok(lines().every(n=>n.props.visibility==='hidden'));
   assert.equal(dial().props['aria-disabled'],true);
   await act(()=>dial().props.onKeyDown({key:'ArrowRight',preventDefault(){}}));assert.deepEqual(changes,[]);
-  await form(.45);assert.ok(rings().some(n=>n.props.strokeDashoffset>0&&n.props.strokeDashoffset<1));
-  const radii=rings().map(n=>n.props.r);assert.deepEqual(radii,['106','90']);
+  await form(.25);assert.ok(rings().some(n=>n.props.strokeDashoffset>0&&n.props.strokeDashoffset<1));
+  const radii=rings().map(n=>n.props.r);assert.deepEqual(radii,['106','61']);
   assert.ok(lines().some(n=>n.props.visibility==='visible')&&lines().some(n=>n.props.visibility==='hidden'));
   const edges=lines().map(n=>n.props.x1);
   await form(.8);assert.notDeepEqual(lines().map(n=>n.props.x1),edges,'ticks grow on the unchanged ring');

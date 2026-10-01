@@ -38,7 +38,7 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
       const resolved=softStep((form-.38)/.62)*(1-exit);
       const alignment=p.discovery?softStep(sapphireAlignment(a,p.discovery.target).strength):0;
       const libraFocus=p.discovery?.target===1?alignment:0;
-      const shapeOpacity=1-libraFocus*.68;
+      const shapeOpacity=1-libraFocus*.05;
       const projected=vertices.map(project),outline=gemstoneOutline(projected);
       const polygon=(points:{x:number;y:number}[])=>{g.beginPath();points.forEach((v,i)=>{if(i)g.lineTo(v.x,v.y);else g.moveTo(v.x,v.y);});g.closePath();};
       // The real gift's four-point cradle appears behind a round faceted stone.
@@ -146,13 +146,11 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
             g.lineTo(points[2].x,points[2].y);g.closePath();g.fill();g.stroke();
           }
         }
-        // The faint sky chart stays fixed; its reflection turns with the stone.
-        // Both charts coincide only at the Libra orientation.
+        // The constellation is etched on these same projected facets.
+        // Its shared vertices keep it attached while the whole stone turns.
         if(sight.target===1 || sight.found>=1){
-          drawLibraDiscovery(g,{cx,cy,scale,angle:a,targetAngle:SAPPHIRE_DISCOVERIES[1].angle,
+          drawLibraDiscovery(g,{project,scale,
             alignment:close,found:sight.found>=1,time,reduced,opacity:(1-exit)*form});
-          if(sight.target===1 && close>.65){g.fillStyle=`rgba(247,224,241,${(close-.65)*2})`;
-            g.font='12px Georgia';g.textAlign='center';g.fillText('10 · 08',cx,cy+scale*1.36);}
         }
         if(sight.target===2){
           const endX=w*.84,endY=h*.30;
@@ -179,20 +177,20 @@ export function StarSapphire({ formation, release, angle, paused, demonstrate, o
       }
       seeds.forEach(({v,seed},i)=>{
         const q=project(v),expansion=p.origin==='light'?softStep(p.dust):1;
-        const nebulaAngle=(seed%3)*Math.PI*2/3+rand(seed+17)*4.5;
-        const nebulaRadius=(.018+rand(seed+17)**.7*.2)*(1-form*.32);
-        const sx=p.origin==='nebula'?w*(.5+Math.cos(nebulaAngle)*nebulaRadius):w*.5+(rand(seed)-.5)*w*.84*expansion;
-        const sy=p.origin==='nebula'?h*.47+Math.sin(nebulaAngle)*nebulaRadius*w*.64:h*.47+(rand(seed+500)-.5)*h*.85*expansion;
+        // DateNebula delivers this same edge lattice. Its particles retain sole
+        // ownership of the flight; only settled facet glints appear here.
+        if(p.origin==='nebula' && i%3!==0)return;
+        const sx=p.origin==='nebula'?q.x:w*.5+(rand(seed)-.5)*w*.84*expansion;
+        const sy=p.origin==='nebula'?q.y:h*.47+(rand(seed+500)-.5)*h*.85*expansion;
         let x=sx+(q.x-sx)*form,y=sy+(q.y-sy)*form;
         if(!reduced){x+=(rand(seed+2300)*w-x)*exit;y+=(rand(seed+3400)*h-y)*exit;}
-        g.globalAlpha=(.20+.38*(reduced?.7:Math.sin(seed+time*.0008)**2))*(1-exit)*shapeOpacity*(p.origin==='light'||p.origin==='nebula'?softStep(p.dust):1);
+        const arrival=p.origin==='nebula'?softStep((p.formation-.48)/.52)*.72:p.origin==='light'?softStep(p.dust):1;
+        g.globalAlpha=(.20+.38*(reduced?.7:Math.sin(seed+time*.0008)**2))*(1-exit)*shapeOpacity*arrival;
         g.fillStyle=i%9===0?'#f1eeff':`rgb(${rgb})`;g.beginPath();g.arc(x,y,i%9===0?1.4:.55,0,7);g.fill();
       });g.globalAlpha=1;
-      if(libraFade>.01){
-        g.globalAlpha=libraFade*(1-exit)*(1-libraFocus*.6);g.strokeStyle='#c8d5ef40';g.lineWidth=.65;
-        g.beginPath();g.ellipse(w*.5,h*.47,scale*1.36,scale*.69,-.17,0,Math.PI*2);g.stroke();
-        g.fillStyle='#dce4f4';g.font='22px Georgia';g.textAlign='center';g.fillText('♎\uFE0E',w*.5+scale*1.13,h*.47-scale*.57);
-        g.font='11px Georgia';g.fillStyle='#b9c7e0';g.fillText('X · VIII',w*.5-scale*.98,h*.47+scale*.63);g.globalAlpha=1;
+      if(libraFade>.01 && !p.discovery){
+        drawLibraDiscovery(g,{project,scale,alignment:1,found:true,time,reduced,
+          opacity:libraFade*(1-exit)*form*.65});
       }
     };frame=requestAnimationFrame(draw);return()=>{cancelAnimationFrame(frame);motion.removeEventListener('change',updateMotion);};
   },[]);

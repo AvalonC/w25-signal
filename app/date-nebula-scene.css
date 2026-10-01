@@ -4,11 +4,11 @@
 .date-nebula-player.is-unveiling .date-wheels .dial-block:last-child {
   animation:none!important;
   opacity:var(--dial-release-opacity,1);
-  transform:scale(var(--dial-release-scale,1)) rotate(var(--dial-release-angle,0deg));
+  transform:none;
   transform-origin:50% 42%;
-  filter:drop-shadow(0 0 9px rgba(var(--date-rgb),.38));
+  filter:none;
 }
-.date-nebula-player.is-unveiling .date-wheels .dial-block:last-child { transform:scale(var(--dial-release-scale,1)) rotate(calc(var(--dial-release-angle,0deg)*-1)); }
+.date-nebula-player.is-unveiling .date-wheels .dial-block:last-child { transform:none; }
 .date-nebula-player .path-date-light { z-index:2; }
 .date-nebula-player .path-date-light .star-sapphire-canvas { position:absolute;inset:0; }
 .date-result-overlay { position:absolute; inset:0; z-index:3; pointer-events:none; }

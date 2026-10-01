@@ -50,7 +50,7 @@
 .path-date-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; }
 .path-date-stage { position:relative; flex:1; min-height:0; width:100%; container-type:size; }
 .free-flow .path-date-view .date-wheels { position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:8px; width:100%; height:100%; max-width:640px; margin:0 auto; padding:0 2px; z-index:2; }
-.path-date-view .dial-block { width:min(100%,73cqh); min-width:0; max-width:280px; justify-self:center; margin:0; }
+.path-date-view .dial-block { width:min(100%,224px,55cqh); min-width:0; max-width:224px; justify-self:center; margin:0; }
 .free-flow .path-date-view .dial-block:first-child { transform:none; translate:0 -8%; }
 .free-flow .path-date-view .dial-block:last-child { transform:none; translate:0 8%; }
 .path-date-view .date-dial { width:100%; height:auto; aspect-ratio:1; max-width:none; max-height:none; touch-action:none; }
@@ -100,9 +100,9 @@
 @keyframes date-gather-to-light-reverse { 0%,10%{transform:translate(0,0) rotate(0) scale(1);opacity:1;filter:none}45%{opacity:.9;filter:drop-shadow(0 0 6px rgba(var(--date-rgb),.4))}100%{transform:translate(var(--orbit-to-x),var(--orbit-to-y)) rotate(-260deg) scale(.035);opacity:0;filter:blur(1px)} }
 @media(max-width:600px) {
  .free-flow .path-date-view .date-wheels { display:block; }
- .path-date-view .dial-block { position:absolute; width:min(56%,37cqh); height:calc(min(56%,37cqh) + 44px); max-width:240px; }
- .free-flow .path-date-view .dial-block:first-child { top:5%; left:4%; translate:0; }
- .free-flow .path-date-view .dial-block:last-child { right:4%; bottom:5%; translate:0; }
+ .path-date-view .dial-block { position:absolute; height:auto; max-width:none; }
+ .free-flow .path-date-view .dial-block:first-child { width:min(clamp(156px,46vw,188px),calc(50cqh - 49px)); top:6%; left:7%; translate:0; transform:none; }
+ .free-flow .path-date-view .dial-block:last-child { width:min(clamp(176px,51vw,208px),calc(50cqh - 45px)); right:6%; bottom:5%; translate:0; transform:none; }
  .path-date-view .dial-arrows { position:static; margin:5px 0 0; }
 }
 @media(max-height:740px) { .path-place-whisper{font-size:15px;padding-bottom:4px}.path-home{flex-basis:44px}.path-home .path-company{width:44px;height:44px}.path-date-view .date-dial strong{font-size:24px}.path-wish-verse,.path-prism-message > .path-wish-verse{font-size:12px;margin-top:3px}.prism-road-copy{font-size:13px}.prism-next-place{width:62px;height:62px} }
@@ -112,3 +112,10 @@
  .prism-next-place:not(:disabled) svg,.path-place-onward:not(:disabled) svg { animation:none; }
  .journey-returning .prism-road-core,.journey-returning .prism-road-aura { filter:none; }
 }
+
+@media(max-width:600px) and (max-height:650px) {
+ .free-flow .path-date-view .dial-block:first-child { top:1%; left:5%; }
+ .free-flow .path-date-view .dial-block:last-child { right:4%; bottom:0; }
+}
+
+.prism-next-place span { position:absolute;top:100%;left:50%;transform:translateX(-50%);font:13px/1.7 var(--journey-ui,'PingFang SC',sans-serif);letter-spacing:.06em;white-space:nowrap;color:#e2c7da; }

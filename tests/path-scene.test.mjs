@@ -146,7 +146,7 @@ test('finding pink needs a continuous pause at the right angle; cancelled drags 
 test('October eighth gathers the dials once, retains its place, and pauses when the player leaves the tab', async () => {
   await scene({ path: { ...freshPath(), place: 'date' }, month: 10, day: 7 }, async ({ root, advance, current, discoveries }) => {
     assert.equal(root.root.findAllByProps({className:'path-date-memory'}).length,0,'no birthday answer is printed below the dials');
-    await advance(1200);
+    await advance(2640);
     assert.equal(current().path.dateFound, false, 'a neighbouring date must not unlock the stone');
     await act(() => root.root.findByProps({ 'aria-label': '日加一' }).props.onClick());
     assert.equal(current().day, 8);
@@ -176,7 +176,7 @@ test('October eighth gathers the dials once, retains its place, and pauses when 
 
 test('a birthday found after the colour gathers pink and reduced motion still preserves the discovery', async () => {
   await scene({reduced:true,path:{...freshPath(),place:'date',color:true},month:10,day:8},async({root,advance,current,discoveries})=>{
-    await advance(800);
+    await advance(1200);
     const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
     assert.equal(stone().props.tint,1);
     assert.equal(current().path.dateFound,false);
@@ -192,8 +192,8 @@ test('the date place uses the live nebula clock, preserves the selected light, a
     const nebula = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
     const stone = () => root.root.find((node) => typeof node.type === 'function' && node.type.name === 'StarSapphire');
     const stage = () => root.root.findByProps({ className: 'path-date-stage' });
-    await advance(1080);
-    assert.equal(nebulaNodes().length, 0, 'the matching date cannot bypass the 1100ms entry');
+    await advance(2560);
+    assert.equal(nebulaNodes().length, 0, 'the matching date cannot bypass the layered 2600ms entry');
     assert.equal(root.root.findByProps({ className: 'date-wheels' }).props.inert, true);
     await advance(40);
     assert.equal(root.root.findByProps({ className: 'date-wheels' }).props.inert, false);
@@ -275,7 +275,7 @@ test('the nebula sources use the rendered dial centers and reduced motion keeps 
   await scene({ reduced: true, path: { ...freshPath(), place: 'date', color: false }, month: 10, day: 8,
     dialRects: [{ left: 40, top: 50, width: 120, height: 120 }, { left: 230, top: 280, width: 120, height: 120 }] },
   async ({ root, advance, current }) => {
-    await advance(960);
+    await advance(1200);
     const nebula = root.root.find((node) => typeof node.type === 'function' && node.type.name === 'DateNebula');
     assert.deepEqual(nebula.props.sources, [{ x: .25, y: .22 }, { x: .725, y: .68 }]);
     assert.equal(nebula.props.reduced, true);
@@ -440,7 +440,7 @@ test('both exploration orders automatically meet at the sapphire while leaving i
     const meeting=()=>root.root.findAllByProps({className:'path-meeting-carrier'});
     const waitUntil=async(predicate)=>{for(let i=0;i<350&&!predicate();i++)await advance(40);assert.ok(predicate(),'the expected visible scene phase arrives');};
     if(last==='date'){
-      await advance(1200);await act(()=>root.root.findByProps({'aria-label':'日加一'}).props.onClick());
+      await advance(2640);await act(()=>root.root.findByProps({'aria-label':'日加一'}).props.onClick());
     }else{
       await advance(4480);const prism=root.root.findByProps({className:'prism-light'});
       await act(()=>prism.props.onPointerDown(pointer(0,0)));await act(()=>prism.props.onPointerMove(pointer(162.5,0)));await act(()=>prism.props.onPointerUp());
@@ -457,6 +457,8 @@ test('both exploration orders automatically meet at the sapphire while leaving i
     const active=light(),container=root.root.findByProps({className:'path-meeting-layer'});
     const carried=()=>root.root.findByProps({className:'path-carried-light'}),target=()=>root.root.findByProps({className:'path-stone-target'});
     assert.equal(carried().props.disabled,true);assert.equal(carried().props.style.visibility,'hidden');assert.equal(target().props.disabled,true);
+    const carriedGem=active.find(node=>node.type?.name==='StarSapphire');
+    assert.equal(carriedGem.props.tint,1,'both exploration orders keep the discovered pink while the gem moves into the meeting');
     await act(()=>target().props.onClick());await act(()=>carried().props.onClick({detail:0}));
     await act(()=>carried().props.onPointerDown(pointer(200,50)));await act(()=>carried().props.onPointerUp(pointer(200,200)));
     assert.equal(current().path.infused,false);
@@ -467,6 +469,7 @@ test('both exploration orders automatically meet at the sapphire while leaving i
     assert.equal(light(),active,'the background sapphire is handed over without remounting');
     assert.equal(root.root.findByProps({className:'path-meeting-layer'}),container);
     assert.equal(carried().props.disabled,false);assert.equal(carried().props.style.visibility,undefined);
+    assert.equal(light().find(node=>node.type?.name==='StarSapphire').props.tint,1,'arriving at infusion does not strip the stone back to white');
     assert.equal(carried().props.style['--light-x'],'50%');assert.equal(carried().props.style['--light-y'],'10%');
     await advance(5000);assert.equal(current().path.infused,false,'arrival and idle guidance never deliver the light automatically');
     assert.equal(discoveries.filter(path=>path.place==='sapphire').length,1);
@@ -514,5 +517,27 @@ test('downward guidance stops for help and backgrounding and only the primary un
    await advance(2960);assert.equal(current().path.infused,false);
    await visibility(true);await advance(4000);assert.equal(current().path.infused,false);
    await visibility(false);await advance(80);assert.equal(current().path.infused,true);assert.equal(discoveries.length,1);
+ });
+});
+
+
+test('the labelled birthday destination takes the found pink light directly to the dial',async()=>{
+ await scene({path:{...freshPath(),place:'prism',color:true}},async({root,advance,current})=>{
+  await advance(2600);
+  const target=root.root.findByProps({'aria-label':'带着粉光前往生日星盘'});
+  assert.equal(target.props.disabled,false);
+  await act(()=>target.props.onClick());
+  assert.equal(current().path.place,'date');assert.equal(current().path.color,true);
+  const calendar=root.root.find(node=>node.type?.name==='DatePlace');assert.equal(calendar.props.pink,true);
+ });
+});
+
+
+test('a completed prism revisit keeps the labelled sapphire destination usable',async()=>{
+ await scene({path:{place:'prism',color:true,dateFound:true,infused:true}},async({root,advance,current})=>{
+  await advance(2600);
+  const target=root.root.findByProps({'aria-label':'带着粉光前往蓝宝石'});
+  assert.equal(target.props.disabled,false);await act(()=>target.props.onClick());
+  assert.equal(current().path.place,'sapphire');assert.equal(current().path.color,true);assert.equal(current().path.infused,true);
  });
 });

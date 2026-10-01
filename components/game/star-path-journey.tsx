@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { PathSky, CompanionLight } from './path-sky';
 import { DateDial } from './date-dial';
+import { dateEntryFrame } from '@/lib/dial-reveal';
 import { PrismLight } from './prism-light';
 import { StarSapphire } from './star-sapphire';
 import { SapphireScene } from './sapphire-scene';
@@ -82,7 +83,7 @@ export function StarPathJourney(props: Props) {
   }, []);
   useEffect(()=>{
     if(!readyToMeet||paused||document.hidden||meeting)return;
-    const delay=reduced?350:path.place==='date'?1600:path.place==='prism'?900:450;
+    const delay=reduced?350:path.place==='date'?1600:path.place==='prism'?2800:450;
     if(autoClock<delay)return;
     const rect=root.current?.getBoundingClientRect();if(!rect)return;
     const width=window.innerWidth||rect.width,height=window.innerHeight||rect.height;
@@ -130,7 +131,12 @@ export function StarPathJourney(props: Props) {
     {path.place!=='sky'&&path.place!=='sapphire'&&<div ref={closeView} key={path.place} className={'path-view path-view-' + path.place} inert={locked||readyToMeet}>
       {path.place === 'prism' && <PrismPlace found={path.color} paused={locked} onTap={onTap} choices={choices}
         entryOrigin={placeEntry?.main} next={path.dateFound?'sapphire':'date'}
-        onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')} />}
+        onFound={() => onPath(completePrismPath(path))} onReturn={() => visit('sky')}
+        onNext={()=>{
+          const area=root.current?.getBoundingClientRect(),light=root.current?.querySelector?.<HTMLElement>('.prism-return-light .path-company')?.getBoundingClientRect();
+          const origin=light?{x:(light.left+light.width/2)/(window.innerWidth||area?.width||1),y:(light.top+light.height/2)/(window.innerHeight||area?.height||1)}:undefined;
+          visit(path.dateFound?'sapphire':'date',origin?{main:origin,companions:[],orbit:0}:undefined);
+        }}/> }
       {path.place === 'date' && <DatePlace month={props.month} day={props.day} found={path.dateFound}
         pink={path.color} paused={locked} choices={choices} entryOrigin={placeEntry?.main} onDate={props.onDate} onTap={onTap}
         onFound={() => onPath(completeDatePath(path))} onReturn={()=>visit('sky')}/>}
@@ -158,9 +164,9 @@ function useReducedMotion() {
   return reduced;
 }
 
-function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrigin,next }: {
+function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,onNext,entryOrigin,next }: {
   found: boolean; paused: boolean; onFound: () => void; onTap: () => void; choices: number[]; onReturn: () => void;
-  entryOrigin?:SkyPoint;next:'date'|'sapphire';
+  entryOrigin?:SkyPoint;next:'date'|'sapphire';onNext:()=>void;
 }) {
   const [value, setValue] = useState(found ? 68 : 16);
   const [bloom, setBloom] = useState(false);
@@ -204,11 +210,11 @@ function PrismPlace({ found, paused, onFound, onTap, choices, onReturn,entryOrig
         <path className="prism-road-core" d={roadPath} data-progress={road.trace}/>
         <circle className="prism-road-front" cx={roadTip.x*100} cy={roadTip.y*100} r=".55" opacity={road.trace<1?1:.3}/>
       </svg>
-      <button className="prism-next-place" style={{left:`${nextPoint.x}%`,top:`${nextPoint.y}%`}} disabled={paused||road.destination<1} aria-label={next==='date'?'循着粉光回到通往星盘的路':'循着粉光回到通往宝石的路'} onClick={()=>{if(!paused&&road.destination===1)onReturn();}}>
-        <DestinationDrawing place={next} reduced={reduced} progress={road.destination}/>
+      <button className="prism-next-place" style={{left:`${nextPoint.x}%`,top:`${nextPoint.y}%`}} disabled={paused||road.destination<1} aria-label={next==='date'?'带着粉光前往生日星盘':'带着粉光前往蓝宝石'} onClick={()=>{if(!paused&&road.destination===1)onNext();}}>
+        <DestinationDrawing place={next} reduced={reduced} progress={road.destination}/><span>{next==='date'?'生日星盘':'蓝宝石'}</span>
       </button>
       <p className="prism-road-copy" style={{opacity:road.verse,transform:`translateY(${(1-road.verse)*4}px)`}}>
-        {next==='date'?'你的颜色，照亮了通往那一天的路。':'你的颜色，照亮了那一天留下的星光。'}
+        {next==='date'?'粉光已经同行。前方，是你的生日星盘。':'那一天留下的星光，正等着你的粉色。'}
       </p>
     </>}
     {(emerging || found) && <div className="prism-return-light" style={{left:`${found ? 23 : release.x}%`,top:`${found ? 72 : release.y}%`,opacity:found ? 1 : release.opacity}}>
@@ -228,15 +234,16 @@ function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, 
   const reduced = useReducedMotion();
   const [entered, setEntered] = useState(found);
   const entryTime = useVisibleClock(!entered && !paused);
-  const approach = found ? 1 : softStep(entryTime/(reduced ? 280 : 1100));
-  const secondDial=found?1:softStep((entryTime-(reduced?0:160))/(reduced?280:940));
-  useEffect(() => { if (approach >= 1) setEntered(true); }, [approach]);
+  const entry=dateEntryFrame(entryTime,reduced,found);
+  const approach=entry.month,secondDial=entry.day;
+  useEffect(() => { if (entry.ready&&!paused&&!document.hidden) setEntered(true); }, [entry.ready,paused]);
   const aligned = month === 10 && day === 8;
   const dwell = useVisibleClock(aligned && !paused && !found && !gathering && entered, aligned ? 'aligned' : 'search');
   const elapsed = useVisibleClock(gathering && !paused && !found);
   const sky = useRef<HTMLDivElement>(null), stage=useRef<HTMLDivElement>(null), done = useRef(false);
   const [sources,setSources]=useState<[NebulaPoint,NebulaPoint]>([{x:.28,y:.29},{x:.72,y:.74}]);
   const [entryTarget,setEntryTarget]=useState<SkyPoint|null>(null);
+  const [sourceRadii,setSourceRadii]=useState<[number,number]>([.18,.20]);
   useLayoutEffect(()=>{
     if(!stage.current||!entryOrigin)return;
     const measure=()=>{const rect=stage.current?.querySelector?.('.date-dial')?.getBoundingClientRect();if(rect&&rect.width&&rect.height)setEntryTarget({x:(rect.left+rect.width/2)/window.innerWidth,y:(rect.top+rect.height/2)/window.innerHeight});};
@@ -258,24 +265,28 @@ function DatePlace({ month, day, found, paused, pink, choices, onDate, onFound, 
   }, [dwell, gathering, found, paused, scene.done]);
   useLayoutEffect(() => {
     if(!gathering||!stage.current)return;
-    const area=stage.current,rect=area.getBoundingClientRect();
-    const dials=area.querySelectorAll?.<HTMLElement>('.date-dial');
-    if(dials?.length===2&&rect.width&&rect.height){
+    const area=stage.current;
+    const measure=()=>{
+      const rect=area.getBoundingClientRect(),dials=area.querySelectorAll?.<HTMLElement>('.date-dial');
+      if(dials?.length!==2||!rect.width||!rect.height)return;
       setSources(Array.from(dials).map(dial=>{const r=dial.getBoundingClientRect();return{x:(r.left+r.width/2-rect.left)/rect.width,y:(r.top+r.height/2-rect.top)/rect.height};}) as [NebulaPoint,NebulaPoint]);
-    }
+      setSourceRadii(Array.from(dials).map(dial=>dial.getBoundingClientRect().width*.44/Math.min(rect.width,rect.height)) as [number,number]);
+    };
+    measure();const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);observer?.observe(area);
+    return()=>observer?.disconnect();
   }, [gathering]);
   return <div className={'path-date-view birth-chapter date-nebula-player' + (gathering || found ? ' is-unveiling' : '') + (pink ? ' date-pink' : '')}
     style={{ '--date-rgb': pink ? '255,179,222' : '229,237,255', '--date-enter':approach,
       '--dial-release-opacity':scene.dialOpacity,'--dial-release-scale':scene.dialScale,
       '--dial-release-angle':`${scene.release*16}deg` } as CSSProperties}>
-    <p className="path-place-whisper">{found ? '那一天的星光，有了形状。' : gathering ? scene.formation>0?'星云里的光，慢慢有了形状。':scene.gather>=1?'两段时光，凝成一片星云。':'两段时光，正在相遇。' : '让时光，停在你来到世上的那天。'}</p>
+    <p className="path-place-whisper">{found ? '那一天的星光，有了形状。' : gathering ? scene.formation>0?'星云里的光，慢慢有了形状。':scene.gather>=1?'两段时光，在同一片星光里相遇。':'日子里的星光，正向你靠近。' : '让时光，停在你来到世上的那天。'}</p>
     {!entered&&entryStar&&<div className="date-entering-star" aria-hidden="true" style={{left:entryStar.x*100+'vw',top:entryStar.y*100+'dvh',opacity:1-softStep((entryTime-(reduced?90:650))/(reduced?190:450))}}><CompanionLight choices={[]} pink={pink}/></div>}
     <div ref={stage} className="path-date-stage" data-nebula-phase={!gathering&&!found?'dial':scene.formation>0?'forming':scene.gather>=1?'nebula':'gathering'}>
     {!found && <div className="date-wheels" inert={gathering || paused || !entered} aria-hidden={gathering}>
       <DateDial formation={approach} label="月" value={month} max={12} kind="month" paused={paused || gathering || !entered} aligned={month === 10} onChange={(n) => { if (!paused && entered) { onDate(n, day); onTap(); } }} />
       <DateDial formation={secondDial} label="日" value={day} max={31} kind="day" paused={paused || gathering || !entered} aligned={day === 8} onChange={(n) => { if (!paused && entered) { onDate(month, n); onTap(); } }} />
     </div>}
-    {(gathering||found)&&<DateNebula elapsed={found?duration:elapsed} paused={paused} pink={pink} reduced={reduced} sources={sources} settled={found}/>}
+    {(gathering||found)&&<DateNebula elapsed={found?duration:elapsed} paused={paused} pink={pink} reduced={reduced} sources={sources} radii={sourceRadii} settled={found}/>}
     <div ref={sky} className={'path-date-light' + (gathering || found ? ' is-visible' : '')} aria-hidden="true">
       <StarSapphire formation={scene.formation}
         release={0} angle={.32} paused={paused || (!gathering && !found)} demonstrate={false}
@@ -361,10 +372,10 @@ function LightIntoStone({ choices, paused, presentation = false, onInfuse }: { c
   const rayPath = ray.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ');
   return <div className={'path-infusion-view' + (dragging ? ' is-carrying' : '') + (source ? ' is-infusing' : '')}
     aria-busy={!!source}>
-    <p className="path-place-whisper">{source ? '你带来的光，正在找到它的形状。' : '你的日子，正等着你的颜色。'}</p>
+    <p className="path-place-whisper">{source ? '你带来的光，正在找到它的形状。' : '你的日子与粉色，在这颗蓝宝石里相遇。'}</p>
     <div ref={area} className={'path-infusion-sky' + (near ? ' light-near' : '')}>
       <StarSapphire formation={1} release={0} angle={.32} paused={paused} demonstrate={false}
-        tint={source ? effect.trace : near ? .15 : 0} infusion={source ? effect.trace : 0}
+        tint={1} infusion={source ? effect.trace : 0}
         radiance={source ? effect.glow : 0} guide={{active:!source&&!presentation,near}} libra />
       {!source&&<svg className="stone-entry-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style={{opacity:presentation?0:1}}>
         <path d={`M50 15 L50 ${entry.y}`} />

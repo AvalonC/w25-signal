@@ -1,0 +1,31 @@
+/* Shared typography and quiet controls across the complete star journey. */
+:root {
+  --journey-ui:'PingFang SC','Microsoft YaHei','Noto Sans CJK SC',sans-serif;
+  --journey-story:'Songti SC','STSong','Noto Serif CJK SC',Georgia,serif;
+  --journey-latin:Georgia,'Times New Roman',serif;
+  --journey-text:#e4d9e7;
+  --journey-muted:#b4a9bf;
+}
+.immersive-journey { font-family:var(--journey-ui); color:var(--journey-text); }
+.journey-tools { position:fixed;top:env(safe-area-inset-top,0px);left:12px;right:12px;height:44px;z-index:25;pointer-events:none;display:flex;justify-content:space-between;flex-direction:row-reverse; }
+.journey-tools button { display:grid;place-items:center;pointer-events:auto;width:44px;height:44px;padding:0;border:0;background:none;color:#b7b0c7;opacity:.68;touch-action:manipulation; }
+.journey-tools button:focus-visible { outline:1px solid #e1c4da;outline-offset:-6px;border-radius:50%;opacity:1; }
+.journey-tools button:hover,.journey-tools button:active { opacity:1; }
+.immersive-journey .scene { padding-top:calc(44px + env(safe-area-inset-top,0px)); }
+.immersive-journey .scene-1 { padding-top:calc(44px + env(safe-area-inset-top,0px)); }
+.immersive-journey .guiding-light { padding-top:calc(44px + env(safe-area-inset-top,0px)); }
+.immersive-journey :is(.path-place-whisper,.path-wish-verse,.prism-road-copy,.date-result-verse,.relay-verse,.closure-whisper,.blessing-verse,.bracelet-delivery,.sapphire-identity h2,.sapphire-identity p) { font-family:var(--journey-story);font-weight:400;letter-spacing:.025em; }
+.immersive-journey :is(.path-place-label,.prism-next-place span,.relay-subline,.relay-tools button,.relay-next,.sapphire-keepsakes,.bracelet-ar-label,.bracelet-ar-note,.journey-revisit button,.closure-invitation,.closure-meaning,.blessing-exit-hint) { font-family:var(--journey-ui);font-weight:400;letter-spacing:.025em; }
+.immersive-journey :is(.bracelet-send,.closure-continue,.sapphire-turn-controls button,.dial-arrows button) { font-family:var(--journey-ui);font-weight:400;border-radius:0;background:transparent; }
+.immersive-journey .bracelet-send { border:0;border-bottom:1px solid #e4bad64d; }
+.immersive-journey .bracelet-name,.immersive-journey .blessing-heading { font-family:var(--journey-latin); }
+.immersive-journey :is(.path-place-whisper,.relay-verse,.closure-whisper) { font-size:clamp(14px,3.8vw,17px); }
+.sky-dialog [data-slot=dialog-title],.relay-access-dialog h2 { font-family:var(--journey-story);font-weight:400; }
+.sky-dialog [data-slot=dialog-description],.sky-dialog button,.relay-access-dialog p,.relay-access-dialog button { font-family:var(--journey-ui);font-weight:400; }
+.revisit-brand { font-family:var(--journey-latin); }
+@media(max-height:650px) {
+  .immersive-journey .scene { padding-top:calc(38px + env(safe-area-inset-top,0px)); }
+  .journey-tools { height:40px; }
+  .immersive-journey :is(.path-place-whisper,.relay-verse,.closure-whisper) { font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .journey-tools button { transition:none; } }

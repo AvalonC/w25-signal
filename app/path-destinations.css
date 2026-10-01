@@ -21,3 +21,12 @@
 @media(prefers-reduced-motion:reduce) {
  .path-place-label { transform:none; }
 }
+
+/* The faceted round stone reads first; its star cradle is deliberately secondary. */
+.path-destination-drawing .path-sapphire-setting { fill:none; stroke:#cbd7e9; stroke-width:.7; stroke-opacity:.3; stroke-linejoin:round; }
+.path-destination-drawing .path-sapphire-body { fill:#b6cfee; stroke:#e5e6fa; stroke-width:1.15; stroke-linejoin:round; }
+.path-destination-drawing .path-sapphire-facet { fill:#acc7eb; stroke:none; }
+.path-destination-drawing .path-sapphire-facet-light { fill:#f0d7ed; }
+.path-destination-drawing .path-sapphire-crown { fill:#e8d9f2; stroke:#f4e9fa; stroke-width:1; stroke-linejoin:round; }
+.path-destination-drawing .path-sapphire-shoulder { fill:none; stroke:#dacfe9; stroke-width:.85; stroke-opacity:.72; }
+.path-destination-drawing .path-sapphire-pavilion { fill:none; stroke:#bacee9; stroke-width:.75; stroke-opacity:.5; }

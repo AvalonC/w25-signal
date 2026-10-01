@@ -6,4 +6,8 @@
   display:block;
   pointer-events:none;
   z-index:1;
+  /* Preserve the tiny individual stars and the dark gaps between them. */
+  opacity:1;
+  filter:none;
+  mix-blend-mode:normal;
 }

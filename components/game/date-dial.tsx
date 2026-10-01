@@ -3,43 +3,9 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
 import { useEffect, useRef, useState } from 'react';
 import { advanceDialRotation } from '../../lib/dial-motion';
-import { softStep } from '@/lib/motion';
+import { dialReveal } from '@/lib/dial-reveal';
 // Text presentation keeps zodiac marks in the starlight palette on phones.
 const ZODIAC = ['♑', '♒', '♓', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐'].map((sign) => sign + '\uFE0E');
-const ROMAN = [
-  '',
-  'I',
-  'II',
-  'III',
-  'IV',
-  'V',
-  'VI',
-  'VII',
-  'VIII',
-  'IX',
-  'X',
-  'XI',
-  'XII',
-  'XIII',
-  'XIV',
-  'XV',
-  'XVI',
-  'XVII',
-  'XVIII',
-  'XIX',
-  'XX',
-  'XXI',
-  'XXII',
-  'XXIII',
-  'XXIV',
-  'XXV',
-  'XXVI',
-  'XXVII',
-  'XXVIII',
-  'XXIX',
-  'XXX',
-  'XXXI',
-];
 export function DateDial({
   label,
   value,
@@ -71,7 +37,8 @@ export function DateDial({
       : (-value * 360) / max });
   }
   const p=Math.max(0,Math.min(1,formation));
-  const outer=softStep(p/.65),inner=softStep((p-.12)/.7),reading=softStep((p-.55)/.45);
+  const reveal=dialReveal(p,max);
+  const {outer,inner,reading}=reveal;
   const ring=(q:number)=>({pathLength:1,strokeDasharray:1,strokeDashoffset:1-q,visibility:q>0?'visible' as const:'hidden' as const});
   const asleep = paused || hidden || p<1;
   const previous=value===1?max:value-1, next=value===max?1:value+1;
@@ -116,7 +83,7 @@ export function DateDial({
   return (
     <div className={'dial-block dial-motion dial-' + kind +
       (aligned ? ' dial-aligned' : '') + (asleep ? ' dial-paused' : '') +
-      (turning ? ' dial-turning' : '')}>
+      (turning ? ' dial-turning' : '')} data-formation={p}>
       <div
         ref={surface}
         className="date-dial"
@@ -174,15 +141,15 @@ export function DateDial({
             <circle className="dial-aura-inner" cx="120" cy="120" r="49" />
           </g>
           <circle className="dial-entry-ring" cx="120" cy="120" r="106" transform="rotate(-90 120 120)" {...ring(outer)} />
-          <circle className="dial-entry-ring" cx="120" cy="120" r="90" transform="rotate(-90 120 120)" {...ring(inner)} />
-          <g className="dial-orbit dial-orbit-outer" visibility={outer>.98?'visible':'hidden'}>
+          <circle className="dial-entry-ring dial-inner-ring" cx="120" cy="120" r="61" transform="rotate(90 120 120)" {...ring(inner)} />
+          <g className="dial-orbit dial-orbit-outer" opacity={reading} visibility={reading>0?'visible':'hidden'}>
             <circle className="dial-orbit-arc" cx="120" cy="120" r="113" />
             <circle className="dial-satellite" cx="120" cy="7" r="1.5" />
             <circle className="dial-satellite dial-satellite-dim" cx="218" cy="176" r="1" />
           </g>
-          <g className="dial-orbit dial-orbit-inner" visibility={inner>.98?'visible':'hidden'}>
-            <circle className="dial-orbit-arc" cx="120" cy="120" r="83" />
-            <circle className="dial-satellite" cx="37" cy="120" r="1.6" />
+          <g className="dial-orbit dial-orbit-inner" opacity={inner} visibility={inner>0?'visible':'hidden'}>
+            <circle className="dial-orbit-arc" cx="120" cy="120" r="56" />
+            <circle className="dial-satellite" cx="64" cy="120" r="1.3" />
           </g>
           <g
             className="dial-scale"
@@ -193,7 +160,11 @@ export function DateDial({
           >
             {Array.from({ length: max }, (_, i) => {
               const a = ((i + 1) * Math.PI * 2) / max - Math.PI / 2;
-              const tick=softStep((p-.22-i/max*.42)/.3),tip=104-((i+1===value)?17:10)*tick;
+              const order=(i+1-value+max)%max;
+              const tick=reveal.ticks[order],tip=104-((i+1===value)?10:6)*tick;
+              const appearing=reveal.labels[order],radius=82+4*(1-appearing);
+              const x=120+radius*Math.cos(a),y=120+radius*Math.sin(a);
+              const selected=i+1===value;
               return (
                 <g key={i}>
                   <line
@@ -204,23 +175,27 @@ export function DateDial({
                     y2={120 + 104 * Math.sin(a)}
                     className={i + 1 === value ? 'dial-active' : i%3===0?'dial-major':''}
                   />
+                  <g className="dial-symbol-position" transform={`translate(${x} ${y})`}>
+                    <g className="dial-symbol-upright" style={{transform:`rotate(${-dial.rotation}deg)`}}>
+                      <text className={'dial-symbol'+(selected?' is-selected':'')} data-value={i+1}
+                        textAnchor="middle" dominantBaseline="central" opacity={appearing}
+                        visibility={appearing>0?'visible':'hidden'}>
+                        {kind==='month'?ZODIAC[i]:String(i+1)}
+                      </text>
+                    </g>
+                  </g>
                 </g>
               );
             })}
           </g>
-          <g className="dial-neighbours" opacity={reading}>
-            <text x="39" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[previous-1]:ROMAN[previous]}</text>
-            <text x="201" y="122" textAnchor="middle" dominantBaseline="central">{kind==='month'?ZODIAC[next-1]:ROMAN[next]}</text>
-          </g>
-          <path className="dial-pointer" visibility={reading>0?'visible':'hidden'} d={`M${120-6*reading} 2 ${120+6*reading} 2 120 ${2+19*reading}Z`} />
+          <path className="dial-pointer" visibility={reveal.pointer>0?'visible':'hidden'} d={`M${120-3*reveal.pointer} 3 ${120+3*reveal.pointer} 3 120 ${3+11*reveal.pointer}Z`} />
         </svg>
         <div className="dial-reading" aria-hidden="true" style={{clipPath:`inset(0 ${(1-reading)*50}% 0 ${(1-reading)*50}%)`}}>
-          {kind==='month'&&<span className="dial-zodiac">{ZODIAC[value-1]}</span>}
           <strong>{String(value).padStart(2,'0')}</strong>
           <small>{label}</small>
         </div>
       </div>
-      <div className="dial-arrows">
+      <div className="dial-arrows" style={{opacity:reading}}>
         <button
           aria-label={label + '减一'}
           disabled={asleep}

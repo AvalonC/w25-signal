@@ -236,9 +236,9 @@ export function PathSky({ color, dateFound, choices, paused, onVisit, anchor = '
   const dateAhead='C90 42 85 32 76 24M76 24C58 36 50 48 62 69';
   const words = ready ? '光与日子都在了。让它们在那颗星里相遇。' : color ? '你喜欢的光，正等着属于你的那一天。' : dateFound ? '那一天已经醒来。还缺一束你喜欢的光。' : '路还没有连起来。两处微光，在远方等你。';
   const labels: Record<Destination, string> = {
-    prism: color ? '粉光，已在同行' : '光分开的地方',
-    date: dateFound ? '十月八日，已点亮' : '日子藏在星里',
-    sapphire: ready ? '让两束光相遇' : '等光，也等那一天',
+    prism: color ? '棱镜 · 粉光已同行' : '棱镜 · 寻找颜色',
+    date: dateFound ? '生日星盘 · 已点亮' : '生日星盘',
+    sapphire: ready ? '蓝宝石 · 让光相遇' : '蓝宝石 · 等一束颜色',
   };
   return <section className={`path-exploration${entering?' path-arriving':''}${presentation?' path-presenting':''}${paused || hidden ? ' path-paused' : ''}${color ? ' path-has-color' : ''}${dateFound ? ' path-has-date' : ''}`} aria-label="带着愿望，探索尚未连接的星路">
     <p className="sr-only" aria-live="polite">{words}</p>

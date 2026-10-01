@@ -39,7 +39,7 @@ const area = d => {
 const distance = (a,b) => Math.hypot(a[0]-b[0],a[1]-b[1]);
 
 test('destination birth has no detached points or full edges at its zero frame', () => {
-  for (const place of ['prism','date']) for (const reduced of [false,true]) {
+  for (const place of ['prism','date','sapphire']) for (const reduced of [false,true]) {
     const tree = drawing(place,0,reduced);
     assert.equal(nodes(tree).filter(node=>['path','circle'].includes(node.type)&&!node.hidden).length,0);
     assert.equal(tree.props.opacity,undefined,'the SVG never relies on a whole-icon fade');
@@ -87,7 +87,7 @@ test('date arcs counterwind while ticks unfold on their ring and the hand grows 
 });
 
 test('one progress value renders one exact state and reduced motion only draws settled geometry', () => {
-  for (const place of ['prism','date']) {
+  for (const place of ['prism','date','sapphire']) {
     assert.equal(renderToStaticMarkup(drawing(place,.58)),renderToStaticMarkup(drawing(place,.58)),'pausing the parent clock freezes every construction element');
     assert.equal(renderToStaticMarkup(drawing(place,-1)),renderToStaticMarkup(drawing(place,0)));
     assert.equal(renderToStaticMarkup(drawing(place,2)),renderToStaticMarkup(drawing(place,1)));
@@ -97,4 +97,21 @@ test('one progress value renders one exact state and reduced motion only draws s
   }
   assert.equal(find(drawing('prism',.6,true),'path-prism-outline').d,find(drawing('prism',1,true),'path-prism-outline').d);
   assert.equal(find(drawing('date',.8,true),'path-date-needle-growing').d,find(drawing('date',1,true),'path-date-needle').d);
+});
+
+
+test('sapphire destination uses the same round crown and full stone outline as the next scene', async () => {
+  const {SAPPHIRE_VERTICES,projectSapphire,gemstoneOutline} = await import('../lib/sapphire-shape.ts');
+  const projected=SAPPHIRE_VERTICES.map(vertex=>{
+    const at=projectSapphire(vertex,.32,100,100);
+    return {...at,x:50+(at.x-50)*1.14,y:47+(at.y-47)*1.14};
+  });
+  const ready=drawing('sapphire',1);
+  assert.deepEqual(points(find(ready,'path-sapphire-crown').d),projected.slice(0,8).map(({x,y})=>[x,y]),'the visible crown is the same eight-sided round cut, not a four-point star');
+  assert.deepEqual(points(find(ready,'path-sapphire-body').d),gemstoneOutline(projected).map(({x,y})=>[x,y]),'the small landmark matches the full gemstone silhouette');
+  assert.equal(find(drawing('sapphire',.6),'path-sapphire-setting').visibility,'hidden','the stone takes shape before the quieter setting appears');
+  assert.ok(find(drawing('sapphire',.6),'path-sapphire-crown').strokeDashoffset<.01);
+  for (const path of nodes(ready).filter(node=>node.type==='path')) {
+    for (const [x,y] of points(path.d)) assert.ok(x>2&&x<98&&y>2&&y<98,'the whole setting and stone fit inside a 76px destination');
+  }
 });

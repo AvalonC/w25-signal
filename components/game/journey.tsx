@@ -82,13 +82,10 @@ export default function JourneyGame(){
     style={{'--pink':PINK,...MOTION_STYLE} as CSSProperties}>
     <Starfield text={fieldText} wishes={s.stage===1||s.stage===2&&s.path?.place==='sky'?wishField:null} paused={help||revisit} arrival={arrival} burst={returning}/>
     <input ref={haptic} type="checkbox" className="haptic-switch" tabIndex={-1} aria-hidden="true"/>
-    <header className="sky-header">
-      <span className="sky-brand" aria-label="星间来信">✧<span>星 间 来 信</span></span>
-      <div>
+    <nav className="journey-tools" aria-label="声音与帮助">
         <button title={sound?'关闭声音':'开启声音'} aria-label={sound?'关闭声音':'开启声音'} aria-pressed={sound} onClick={()=>{setSound(v=>!v);if(!sound)tone(140);else silence();}}>{sound?<Volume2 size={18}/>:<VolumeX size={18}/>}</button>
-        {s.stage>1&&s.stage<7&&<button title="查看提示" aria-label="查看提示" onClick={()=>{setHelp(true);}}><HelpCircle size={18}/></button>}
-      </div>
-    </header>
+        {s.stage>1&&s.stage<7&&<button title="查看提示" aria-label="查看提示" onClick={()=>{setHelp(true);}}><HelpCircle size={17} strokeWidth={1.25}/></button>}
+    </nav>
     {boot?<main className="journey-boot" aria-label="星光正在汇聚"><button aria-label="进入星海" onClick={()=>setBoot(false)}><span aria-hidden="true">✧</span></button></main>:
       s.stage===0?!s.completed||lessonReplay!==null?<GuidingLight onArrive={()=>start(lessonReplay??false)} paused={help||revisit}
         onFeedback={symbol=>{if(symbol==='.')tap();else feedback(140,soundRef.current);}}/>:
