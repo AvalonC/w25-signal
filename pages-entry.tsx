@@ -20,5 +20,6 @@ import './app/path-destinations.css';
 import './app/date-nebula.css';
 import './app/date-nebula-scene.css';
 import './app/stone-entry.css';
+import './app/revisit-dialog.css';
 
 createRoot(document.getElementById('root')!).render(<JourneyGame />);

@@ -1,0 +1,72 @@
+/* Dialogs are portalled outside the cosmos; scope directly to this surface. */
+.sky-dialog.revisit-dialog[data-slot='dialog-content'] {
+  width:min(420px,calc(100vw - 36px)); max-width:calc(100vw - 36px);
+  max-height:calc(100dvh - 32px); overflow-y:auto; overscroll-behavior:contain;
+  padding:27px 26px 15px; gap:0; border-radius:10px;
+  border:1px solid #dbbdd62e; color:#eddaea;
+  background:radial-gradient(ellipse at 50% -16%,#79587624 0,transparent 64%),linear-gradient(158deg,#171723f5,#0e1421f7);
+  box-shadow:0 26px 90px #0305109c,inset 0 1px 0 #f5deef0c;
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  text-align:center; isolation:isolate;
+}
+.revisit-dialog .revisit-close {
+  position:absolute; top:5px; right:5px; display:grid; place-items:center;
+  width:44px; height:44px; padding:0; border:0; border-radius:50%;
+  background:transparent; color:#b5adc4; cursor:pointer; transition:color 240ms,background 240ms;
+}
+.revisit-heading { padding:0 10px 20px; }
+.revisit-emblem { display:flex; align-items:center; justify-content:center; gap:12px; margin:0 auto 9px; width:126px; height:28px; color:#eac8df; }
+.revisit-emblem::before,.revisit-emblem::after { content:''; width:36px; height:1px; background:linear-gradient(90deg,transparent,#ddb6d252); }
+.revisit-emblem::after { transform:scaleX(-1); }
+.revisit-emblem svg { width:24px; height:24px; flex:none; fill:#e4bdd51a; stroke:currentColor; stroke-width:1; filter:drop-shadow(0 0 7px #e6abd544); }
+.revisit-brand { margin:0 0 14px; font:italic 13px/1.5 Georgia,serif; letter-spacing:.055em; color:#baaac3; }
+.revisit-dialog [data-slot='dialog-title'] { margin:0; font:23px/1.65 'Songti SC','STSong',Georgia,serif; font-weight:400; letter-spacing:.035em; color:#f2e1ef; }
+.revisit-dialog [data-slot='dialog-description'] { margin:5px 0 0; font:12px/1.85 'Songti SC','STSong',serif; color:#aaa1bb; letter-spacing:.035em; }
+.revisit-options { position:relative; display:flex; flex-direction:column; padding:0 3px; }
+.revisit-options::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,#dcc5df30 24%,#dcc5df30 76%,transparent); }
+.revisit-option {
+  position:relative; display:flex; align-items:center; gap:14px; width:100%; min-height:59px;
+  padding:15px 7px; border:0; border-radius:0; background:transparent;
+  color:#ded0e0; font:14px/1.8 'Songti SC','STSong',serif; letter-spacing:.025em;
+  text-align:left; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  transition:color 240ms,background 240ms;
+}
+.revisit-option::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,#dac2dc30 16%,#a3b8d62c 84%,transparent); pointer-events:none; }
+.revisit-option::before { content:''; width:4px; height:4px; flex:none; transform:rotate(45deg); border:1px solid #cdb5cf60; background:#d3afd008; transition:border-color 240ms,box-shadow 240ms; }
+.revisit-option span { flex:1; min-width:0; }
+.revisit-option > svg { flex:none; color:#bda8c4; opacity:.5; transition:opacity 240ms,transform 240ms; }
+.revisit-dialog .revisit-stay { align-self:center; justify-self:center; min-height:44px; margin:10px auto 0; padding:8px 18px; border:0; background:transparent; font:12px/1.8 'Songti SC','STSong',serif; letter-spacing:.06em; color:#a59cb6; cursor:pointer; }
+.revisit-option:focus-visible,.revisit-dialog .revisit-close:focus-visible,.revisit-dialog .revisit-stay:focus-visible { outline:1px solid #e5c0da88; outline-offset:3px; }
+.revisit-option:active { color:#fff0fa; background:#eab7d90a; }
+@media(hover:hover) {
+  .revisit-option:hover { color:#fff0fa; background:linear-gradient(90deg,transparent,#eab7d90a,transparent); }
+  .revisit-option:hover::before,.revisit-option:focus-visible::before { border-color:#f4cae5; box-shadow:0 0 8px #eab7d944; }
+  .revisit-option:hover > svg { opacity:1; transform:translateX(3px); }
+  .revisit-dialog .revisit-close:hover,.revisit-dialog .revisit-stay:hover { color:#f2d7eb; }
+}
+.sky-dialog.revisit-dialog[data-open] { animation:revisit-surface-in 440ms cubic-bezier(.22,.61,.36,1) both; }
+.revisit-dialog[data-open] .revisit-option { animation:revisit-row-in 450ms ease-out both; }
+.revisit-dialog[data-open] .revisit-option:nth-child(1) { animation-delay:80ms; }
+.revisit-dialog[data-open] .revisit-option:nth-child(2) { animation-delay:130ms; }
+.revisit-dialog[data-open] .revisit-option:nth-child(3) { animation-delay:180ms; }
+.revisit-dialog[data-open] .revisit-option:nth-child(4) { animation-delay:230ms; }
+@keyframes revisit-surface-in { from { opacity:0; filter:blur(3px); } to { opacity:1; filter:blur(0); } }
+@keyframes revisit-row-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:360px) {
+  .sky-dialog.revisit-dialog[data-slot='dialog-content'] { padding:23px 20px 12px; }
+  .revisit-heading { padding-inline:0; padding-bottom:18px; }
+  .revisit-dialog [data-slot='dialog-title'] { font-size:21px; }
+  .revisit-option { gap:11px; padding-inline:4px; font-size:13px; min-height:56px; }
+}
+@media(max-height:620px) {
+  .sky-dialog.revisit-dialog[data-slot='dialog-content'] { padding-top:20px; padding-bottom:10px; }
+  .revisit-heading { padding-bottom:15px; }
+  .revisit-brand { margin-bottom:10px; }
+  .revisit-emblem { margin-bottom:6px; height:25px; }
+  .revisit-option { min-height:52px; padding-block:12px; }
+  .revisit-dialog .revisit-stay { margin-top:8px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .sky-dialog.revisit-dialog[data-open],.revisit-dialog[data-open] .revisit-option { animation:none; }
+  .revisit-option,.revisit-option::before,.revisit-option > svg,.revisit-dialog .revisit-close { transition:none; }
+}

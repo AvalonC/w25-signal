@@ -1,7 +1,7 @@
 'use client';
 /* oxlint-disable react/react-compiler */
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
-import {Volume2,VolumeX,HelpCircle,ArrowRight} from 'lucide-react';
+import {Volume2,VolumeX,HelpCircle,ArrowRight,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/components/ui/dialog';
 import {Starfield,type WishField} from './particles';
 import {GuidingLight} from './guiding-light';
@@ -116,13 +116,21 @@ export default function JourneyGame(){
 
       </main>}
     {!saveOK&&<output className="storage-note">当前浏览器无法保存旅程，请保持页面打开。</output>}
-    <Dialog open={revisit} onOpenChange={setRevisit}><DialogContent className="sky-dialog">
-      <DialogTitle>又见面了，Leah。</DialogTitle><DialogDescription>愿望和回信，都还在这里。</DialogDescription>
-      <button className="continue" onClick={()=>revisitAt(6)}>看看手链与现实中的光</button>
-      <button className="soft-button" onClick={()=>revisitAt(7)}>读生日回信</button>
-      <button className="continue" onClick={()=>beginLesson(true)}>重温之前的选择 <ArrowRight size={16}/></button>
-      <button className="soft-button" onClick={()=>beginLesson(false)}>重新开始，选择新的愿望</button>
-      <DialogClose className="soft-button">再看一会星空</DialogClose>
+    <Dialog open={revisit} onOpenChange={setRevisit}><DialogContent className="sky-dialog revisit-dialog" showCloseButton={false}>
+      <DialogClose className="revisit-close" aria-label="关闭重访选项"><X size={17} strokeWidth={1.2} aria-hidden="true"/></DialogClose>
+      <header className="revisit-heading">
+        <div className="revisit-emblem" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 2 24 16 38 20 24 24 20 38 16 24 2 20 16 16Z"/></svg></div>
+        <p className="revisit-brand">{gift.name}</p>
+        <DialogTitle>又见面了，Leah。</DialogTitle>
+        <DialogDescription>愿望和回信，都还在这里。</DialogDescription>
+      </header>
+      <nav className="revisit-options" aria-label="重访与重新开始">
+        <button type="button" className="revisit-option" onClick={()=>revisitAt(6)}><span>看看手链与现实中的光</span><ArrowRight size={16} strokeWidth={1.2} aria-hidden="true"/></button>
+        <button type="button" className="revisit-option" onClick={()=>revisitAt(7)}><span>读生日回信</span><ArrowRight size={16} strokeWidth={1.2} aria-hidden="true"/></button>
+        <button type="button" className="revisit-option" onClick={()=>beginLesson(true)}><span>重温之前的选择</span><ArrowRight size={16} strokeWidth={1.2} aria-hidden="true"/></button>
+        <button type="button" className="revisit-option" onClick={()=>beginLesson(false)}><span>重新开始，选择新的愿望</span><ArrowRight size={16} strokeWidth={1.2} aria-hidden="true"/></button>
+      </nav>
+      <DialogClose className="revisit-stay">再看一会星空</DialogClose>
     </DialogContent></Dialog>
     <Dialog open={help} onOpenChange={setHelp}><DialogContent className="sky-dialog"><DialogTitle>让星光再亮一点</DialogTitle>
       <DialogDescription>{hint}</DialogDescription><DialogClose className="continue">继续寻找</DialogClose>
